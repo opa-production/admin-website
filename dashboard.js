@@ -403,15 +403,6 @@ function mockVerifiedClientsData(stats) {
     };
 }
 
-// Car verification status — multi-series timeline (verified / awaiting / denied per month).
-function mockVerificationTimelineData(stats) {
-    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const verified = [3, 5, 8, 12, 17, 23, 30, 38, 47, 57, 68, stats.verified_cars || 80];
-    const awaiting = [1, 2, 2, 3,  4,  5,  5,  6,  7,  8,  9,  stats.cars_awaiting_verification || 10];
-    const denied   = [0, 1, 1, 2,  2,  3,  3,  4,  4,  5,  5,  stats.rejected_cars || 6];
-    return { labels, verified_series: verified, awaiting_series: awaiting, denied_series: denied };
-}
-
 // Load dashboard
 async function loadDashboard() {
     const statsGrid = document.getElementById('statsGrid');
@@ -444,7 +435,7 @@ async function loadDashboard() {
 
         createVerifiedHostsChart(mockVerifiedHostsData(stats));
         createVerifiedClientsChart(mockVerifiedClientsData(stats));
-        createVerificationStatusChart(mockVerificationTimelineData(stats));
+        createVerificationStatusChart(stats);
     } catch (error) {
         console.error('Error loading dashboard:', error);
         statsGrid.innerHTML = '<div class="empty-state">Error loading statistics</div>';
@@ -588,61 +579,45 @@ function createVerifiedClientsChart(data) {
 }
 
 // ---------------------------------------------------------------------------
-// Car Verification Status — multi-series monthly timeline.
-// Three lines (Verified / Awaiting / Denied) so it's instantly readable
-// which way each status is trending over time.
+// Car Verification Status — horizontal stacked bar from real API counts.
+// Shows current Verified / Awaiting / Denied at a glance, with counts and
+// percentages on hover. Point-in-time, no fabricated history.
 // ---------------------------------------------------------------------------
-function createVerificationStatusChart(data) {
+function createVerificationStatusChart(stats) {
     const canvas = document.getElementById('verificationStatusChart');
     if (!canvas) return;
     if (verificationStatusChart) verificationStatusChart.destroy();
 
     const ctx = canvas.getContext('2d');
 
+    const verified = stats.verified_cars || 0;
+    const awaiting = stats.cars_awaiting_verification || 0;
+    const denied = stats.rejected_cars || 0;
+    const total = verified + awaiting + denied;
+
     const series = [
-        {
-            key: 'verified',
-            label: 'Verified',
-            data: data.verified_series,
-            color: 'rgba(16, 185, 129, 1)',
-        },
-        {
-            key: 'awaiting',
-            label: 'Awaiting',
-            data: data.awaiting_series,
-            color: 'rgba(245, 158, 11, 1)',
-        },
-        {
-            key: 'denied',
-            label: 'Denied',
-            data: data.denied_series,
-            color: 'rgba(239, 68, 68, 1)',
-        },
+        { label: 'Verified', value: verified, color: '#10b981' },
+        { label: 'Awaiting', value: awaiting, color: '#f59e0b' },
+        { label: 'Denied',   value: denied,   color: '#ef4444' },
     ];
 
     verificationStatusChart = new Chart(ctx, {
-        type: 'line',
+        type: 'bar',
         data: {
-            labels: data.labels,
+            labels: ['Cars'],
             datasets: series.map(s => ({
                 label: s.label,
-                data: s.data,
-                borderColor: s.color,
-                backgroundColor: s.color.replace('1)', '0.08)'),
-                borderWidth: 2.5,
-                tension: 0.35,
-                fill: false,
-                pointRadius: 0,
-                pointHoverRadius: 6,
-                pointHoverBackgroundColor: s.color,
-                pointHoverBorderColor: '#fff',
-                pointHoverBorderWidth: 2,
+                data: [s.value],
+                backgroundColor: s.color,
+                borderWidth: 0,
+                borderRadius: 4,
+                barThickness: 28,
             })),
         },
         options: {
+            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
-            interaction: { intersect: false, mode: 'index' },
             plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -654,29 +629,38 @@ function createVerificationStatusChart(data) {
                     displayColors: true,
                     boxPadding: 4,
                     callbacks: {
-                        label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} cars`,
+                        label: c => {
+                            const v = c.parsed.x;
+                            const pct = total > 0 ? Math.round((v / total) * 100) : 0;
+                            return ` ${c.dataset.label}: ${v} car${v === 1 ? '' : 's'} · ${pct}%`;
+                        },
                     },
                 },
             },
             scales: {
                 x: {
-                    grid: { display: false, drawBorder: false },
-                    ticks: { font: { size: 11 }, color: '#6b7280' },
-                },
-                y: {
+                    stacked: true,
                     beginAtZero: true,
                     grid: { color: 'rgba(17, 24, 39, 0.06)', drawBorder: false, borderDash: [3, 3] },
                     ticks: { font: { size: 11 }, color: '#6b7280', precision: 0 },
                 },
+                y: {
+                    stacked: true,
+                    grid: { display: false, drawBorder: false },
+                    ticks: { display: false },
+                },
             },
-            animation: { duration: 1200, easing: 'easeOutQuart' },
+            animation: { duration: 800, easing: 'easeOutQuart' },
         },
     });
 
     const legendEl = document.getElementById('verificationLegend');
     if (legendEl) {
         legendEl.innerHTML = series
-            .map(s => `<span class="legend-chip"><span class="legend-dot" style="background:${s.color}"></span>${s.label}</span>`)
+            .map(s => {
+                const pct = total > 0 ? Math.round((s.value / total) * 100) : 0;
+                return `<span class="legend-chip"><span class="legend-dot" style="background:${s.color}"></span>${s.label} · ${s.value} (${pct}%)</span>`;
+            })
             .join('');
     }
 }

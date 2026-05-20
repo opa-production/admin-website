@@ -347,6 +347,10 @@ body {
     height: 340px;
 }
 
+.graph-container-bar {
+    height: 180px;
+}
+
 /* Tables */
 .table-container {
     overflow-x: auto;
@@ -1011,6 +1015,10 @@ textarea.form-input-clean {
 
     .graph-container-wide {
         height: 300px;
+    }
+
+    .graph-container-bar {
+        height: 200px;
     }
 
     .graph-header-row {
