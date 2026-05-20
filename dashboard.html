@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="dashboard.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 </head>
 <body>
     <div class="dashboard-layout" id="dashboardLayout">
@@ -577,8 +578,16 @@
                                 <input type="text" id="newsletterSubject" class="form-input form-input-clean" placeholder="e.g. New cars added this week">
                             </div>
                             <div class="form-group">
-                                <label for="newsletterBody">Body (HTML)</label>
-                                <textarea id="newsletterBody" class="form-input form-input-clean" rows="8" placeholder="<p>Hello,</p>&#10;<p>...</p>&#10;<p><a href='https://yoursite.com/unsubscribe'>Unsubscribe</a></p>"></textarea>
+                                <div class="newsletter-editor-head">
+                                    <label for="newsletterBody">Body (Markdown)</label>
+                                    <div class="newsletter-tabs" role="tablist" aria-label="Editor mode">
+                                        <button type="button" id="newsletterWriteTab" class="newsletter-tab active" role="tab" aria-selected="true">Write</button>
+                                        <button type="button" id="newsletterPreviewTab" class="newsletter-tab" role="tab" aria-selected="false">Preview</button>
+                                    </div>
+                                </div>
+                                <textarea id="newsletterBody" class="form-input form-input-clean newsletter-body-textarea" rows="10" placeholder="### Hello!&#10;&#10;We just added new cars in **Nairobi** — check them out.&#10;&#10;- Toyota Vitz&#10;- Mazda Demio&#10;&#10;[Browse all cars](https://yoursite.com/cars)&#10;&#10;---&#10;[Unsubscribe](https://yoursite.com/unsubscribe)"></textarea>
+                                <div id="newsletterPreview" class="newsletter-preview" hidden></div>
+                                <p class="newsletter-hint">Use Markdown — <code>**bold**</code>, <code>### Heading</code>, lists, and <code>[link](url)</code>. It'll be rendered to clean HTML before sending.</p>
                             </div>
                             <div class="newsletter-actions">
                                 <button type="button" class="btn btn-primary" id="sendNewsletterBtn">Send to all subscribers</button>

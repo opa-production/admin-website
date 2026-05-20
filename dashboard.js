@@ -3261,6 +3261,16 @@ function attachSubscribersHandlers() {
     const seeBtn = document.getElementById('seeSubscribersBtn');
     const filterEl = document.getElementById('subscribersFilter');
     const sendBtn = document.getElementById('sendNewsletterBtn');
+
+    // Write / Preview tab toggle
+    const writeTab = document.getElementById('newsletterWriteTab');
+    const previewTab = document.getElementById('newsletterPreviewTab');
+    const bodyEl = document.getElementById('newsletterBody');
+    const previewEl = document.getElementById('newsletterPreview');
+    if (writeTab && previewTab && bodyEl && previewEl) {
+        writeTab.addEventListener('click', () => setNewsletterMode('write'));
+        previewTab.addEventListener('click', () => setNewsletterMode('preview'));
+    }
     if (seeBtn) {
         seeBtn.addEventListener('click', () => {
             const section = document.getElementById('subscribersListSection');
@@ -3417,6 +3427,75 @@ async function loadSubscribersList(page) {
     }
 }
 
+// Render markdown → HTML (sanitized-ish: marked already escapes raw HTML when
+// configured, but admins author this, so we keep things permissive).
+function renderNewsletterMarkdown(md) {
+    if (typeof marked === 'undefined') return md;
+    try {
+        return marked.parse(md, { gfm: true, breaks: true });
+    } catch (e) {
+        console.error('Markdown render failed:', e);
+        return md;
+    }
+}
+
+// Wrap rendered HTML in a minimal email template so every send looks consistent.
+function wrapNewsletterEmail(innerHtml, subject) {
+    const safeSubject = (subject || '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+    return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${safeSubject}</title>
+</head>
+<body style="margin:0;padding:0;background:#f6f8fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1f2937;">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f8fb;padding:32px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;background:#ffffff;border:1px solid #eef2f7;border-radius:10px;">
+          <tr>
+            <td style="padding:32px 32px 24px;line-height:1.6;font-size:15px;color:#1f2937;">
+              ${innerHtml}
+            </td>
+          </tr>
+        </table>
+        <p style="margin:18px 0 0;font-size:12px;color:#9ca3af;">
+          You're receiving this because you subscribed to our newsletter.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+function setNewsletterMode(mode) {
+    const writeTab = document.getElementById('newsletterWriteTab');
+    const previewTab = document.getElementById('newsletterPreviewTab');
+    const bodyEl = document.getElementById('newsletterBody');
+    const previewEl = document.getElementById('newsletterPreview');
+    if (!writeTab || !previewTab || !bodyEl || !previewEl) return;
+
+    const showPreview = mode === 'preview';
+    writeTab.classList.toggle('active', !showPreview);
+    previewTab.classList.toggle('active', showPreview);
+    writeTab.setAttribute('aria-selected', String(!showPreview));
+    previewTab.setAttribute('aria-selected', String(showPreview));
+
+    if (showPreview) {
+        const html = renderNewsletterMarkdown(bodyEl.value.trim());
+        previewEl.innerHTML = html || '<p style="color:#9ca3af;">Nothing to preview yet — write some Markdown first.</p>';
+        previewEl.hidden = false;
+        bodyEl.hidden = true;
+    } else {
+        previewEl.hidden = true;
+        bodyEl.hidden = false;
+    }
+}
+
 async function sendNewsletterToSubscribers() {
     const subjectEl = document.getElementById('newsletterSubject');
     const bodyEl = document.getElementById('newsletterBody');
@@ -3424,8 +3503,8 @@ async function sendNewsletterToSubscribers() {
     const sendBtn = document.getElementById('sendNewsletterBtn');
     if (!subjectEl || !bodyEl || !resultEl || !sendBtn) return;
     const subject = subjectEl.value.trim();
-    const body = bodyEl.value.trim();
-    if (!subject || !body) {
+    const markdown = bodyEl.value.trim();
+    if (!subject || !markdown) {
         resultEl.className = 'form-result error';
         resultEl.textContent = 'Please enter subject and body.';
         return;
@@ -3434,7 +3513,9 @@ async function sendNewsletterToSubscribers() {
     resultEl.className = 'form-result';
     resultEl.textContent = 'Sending…';
     try {
-        const data = await api.sendNewsletter({ subject, body_html: body });
+        const inner = renderNewsletterMarkdown(markdown);
+        const wrapped = wrapNewsletterEmail(inner, subject);
+        const data = await api.sendNewsletter({ subject, body_html: wrapped });
         resultEl.className = 'form-result success';
         resultEl.textContent = data.message || `Sent: ${data.sent || 0}, Failed: ${data.failed || 0}`;
     } catch (e) {
