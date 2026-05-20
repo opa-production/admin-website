@@ -175,111 +175,203 @@
                 </div>
 
                 <div id="notificationsPage" class="page-content" style="display: none;">
-                    <div class="content-section">
-                        <h2>Notifications Center</h2>
-                        <div id="notificationsContent">
-                            <!-- Tabs -->
-                            <div style="display: flex; gap: 10px; margin-bottom: 24px; border-bottom: 2px solid #e4e6eb;">
-                                <button id="hostNotificationTab" onclick="switchNotificationTab('host')" style="padding: 12px 24px; background: none; border: none; border-bottom: 3px solid #3498db; cursor: pointer; font-weight: 600; color: #3498db; font-size: 15px;">Hosts</button>
-                                <button id="clientNotificationTab" onclick="switchNotificationTab('client')" style="padding: 12px 24px; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-weight: 500; color: #65676b; font-size: 15px;">Clients</button>
-                            </div>
-                            
-                            <!-- Host Notifications Form -->
-                            <div id="hostNotificationForm" class="notification-form-section">
-                                <h3>Send Notification to Hosts</h3>
-                                <form id="notificationForm" onsubmit="sendNotification(event)">
-                                    <div class="form-group">
-                                        <label for="notificationTitle">Title</label>
-                                        <input type="text" id="notificationTitle" name="title" required maxlength="255" placeholder="Enter notification title">
+                    <div class="notif-header">
+                        <div class="notif-header-text">
+                            <h2 class="notif-title">Send a notification</h2>
+                            <p class="notif-subtitle">Compose a message and pick an audience. They'll receive it instantly in-app.</p>
+                        </div>
+                        <div class="notif-segmented" role="tablist" aria-label="Audience">
+                            <button id="hostNotificationTab" type="button" class="notif-seg-btn active" role="tab" aria-selected="true" onclick="switchNotificationTab('host')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/><path d="M17 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                Hosts
+                            </button>
+                            <button id="clientNotificationTab" type="button" class="notif-seg-btn" role="tab" aria-selected="false" onclick="switchNotificationTab('client')">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                Clients
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="notif-grid">
+                        <!-- Compose column -->
+                        <div class="notif-compose">
+                            <!-- Host form -->
+                            <div id="hostNotificationForm" class="notif-form-pane">
+                                <form id="notificationForm" onsubmit="sendNotification(event)" class="notif-form">
+                                    <div class="notif-card">
+                                        <div class="notif-field">
+                                            <label for="notificationTitle" class="notif-label">Title</label>
+                                            <input type="text" id="notificationTitle" name="title" required maxlength="120" placeholder="e.g. New verification policy" class="notif-input">
+                                        </div>
+                                        <div class="notif-field">
+                                            <div class="notif-label-row">
+                                                <label for="notificationMessage" class="notif-label">Message</label>
+                                                <span class="notif-counter" id="hostMessageCounter">0 / 1000</span>
+                                            </div>
+                                            <textarea id="notificationMessage" name="message" required maxlength="1000" rows="6" placeholder="Write the message that will appear in their notifications…" class="notif-input notif-textarea"></textarea>
+                                        </div>
+                                        <div class="notif-field">
+                                            <span class="notif-label">Type</span>
+                                            <div class="notif-chips" data-target="notificationType">
+                                                <button type="button" class="notif-chip active" data-value="info" data-tone="info">Info</button>
+                                                <button type="button" class="notif-chip" data-value="success" data-tone="success">Success</button>
+                                                <button type="button" class="notif-chip" data-value="warning" data-tone="warning">Warning</button>
+                                                <button type="button" class="notif-chip" data-value="error" data-tone="error">Error</button>
+                                            </div>
+                                            <select id="notificationType" name="type" hidden>
+                                                <option value="info" selected>Info</option>
+                                                <option value="success">Success</option>
+                                                <option value="warning">Warning</option>
+                                                <option value="error">Error</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="notificationMessage">Message</label>
-                                        <textarea id="notificationMessage" name="message" required maxlength="1000" rows="5" placeholder="Enter notification message"></textarea>
+
+                                    <div class="notif-card">
+                                        <span class="notif-label">Audience</span>
+                                        <div class="notif-audience">
+                                            <label class="notif-audience-opt active">
+                                                <input type="radio" name="recipientType" value="all" checked onchange="toggleHostSelection()">
+                                                <div class="notif-audience-body">
+                                                    <span class="notif-audience-title">All active hosts</span>
+                                                    <span class="notif-audience-desc">Broadcast to every active host account.</span>
+                                                </div>
+                                            </label>
+                                            <label class="notif-audience-opt">
+                                                <input type="radio" name="recipientType" value="specific" onchange="toggleHostSelection()">
+                                                <div class="notif-audience-body">
+                                                    <span class="notif-audience-title">Specific host</span>
+                                                    <span class="notif-audience-desc">Send privately to a single host.</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                        <div id="hostSelectionGroup" class="notif-field notif-specific-pick" style="display: none;">
+                                            <label for="notificationHostSelect" class="notif-label">Pick a host</label>
+                                            <select id="notificationHostSelect" class="notif-input notif-select">
+                                                <option value="">Loading hosts...</option>
+                                            </select>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="notificationType">Type</label>
-                                        <select id="notificationType" name="type">
-                                            <option value="info">Info</option>
-                                            <option value="success">Success</option>
-                                            <option value="warning">Warning</option>
-                                            <option value="error">Error</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>
-                                            <input type="radio" name="recipientType" value="all" checked onchange="toggleHostSelection()"> Send to All Active Hosts
-                                        </label>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>
-                                            <input type="radio" name="recipientType" value="specific" onchange="toggleHostSelection()"> Send to Specific Host
-                                        </label>
-                                    </div>
-                                    <div class="form-group" id="hostSelectionGroup" style="display: none;">
-                                        <label for="notificationHostSelect">Select Host</label>
-                                        <select id="notificationHostSelect" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 100%;">
-                                            <option value="">Loading hosts...</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <button type="submit" class="btn btn-primary" id="sendNotificationBtn">Send Notification</button>
-                                    </div>
-                                </form>
-                                <div id="notificationResult" style="margin-top: 20px;"></div>
-                            </div>
-                            
-                            <!-- Client Notifications Form -->
-                            <div id="clientNotificationForm" class="notification-form-section" style="display: none;">
-                                <h3>Send Notification to Clients</h3>
-                                <form id="clientNotificationForm" onsubmit="sendClientNotification(event)">
-                                    <div class="form-group">
-                                        <label for="clientNotificationTitle">Title</label>
-                                        <input type="text" id="clientNotificationTitle" name="title" required maxlength="255" placeholder="Enter notification title">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="clientNotificationMessage">Message</label>
-                                        <textarea id="clientNotificationMessage" name="message" required maxlength="1000" rows="5" placeholder="Enter notification message"></textarea>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="clientNotificationEmailSubject">Email subject (optional)</label>
-                                        <input type="text" id="clientNotificationEmailSubject" name="email_subject" maxlength="255" placeholder="Defaults to the title above">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="clientNotificationEmailBody">Email body (HTML, optional)</label>
-                                        <textarea id="clientNotificationEmailBody" name="email_body_html" rows="4" placeholder="If empty, a simple HTML wrapper around the message is used."></textarea>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="clientNotificationType">Type</label>
-                                        <select id="clientNotificationType" name="type">
-                                            <option value="info">Info</option>
-                                            <option value="success">Success</option>
-                                            <option value="warning">Warning</option>
-                                            <option value="error">Error</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>
-                                            <input type="radio" name="clientRecipientType" value="all" checked onchange="toggleClientSelection()"> Send to All Active Clients
-                                        </label>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>
-                                            <input type="radio" name="clientRecipientType" value="specific" onchange="toggleClientSelection()"> Send to Specific Client
-                                        </label>
-                                    </div>
-                                    <div class="form-group" id="clientSelectionGroup" style="display: none;">
-                                        <label for="notificationClientSelect">Select Client</label>
-                                        <select id="notificationClientSelect" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 100%;">
-                                            <option value="">Loading clients...</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <button type="submit" class="btn btn-primary" id="sendClientNotificationBtn">Send Notification</button>
+
+                                    <div class="notif-actions">
+                                        <button type="submit" class="btn btn-primary notif-send-btn" id="sendNotificationBtn">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                                            Send notification
+                                        </button>
+                                        <div id="notificationResult" class="notif-result"></div>
                                     </div>
                                 </form>
-                                <div id="clientNotificationResult" style="margin-top: 20px;"></div>
+                            </div>
+
+                            <!-- Client form -->
+                            <div id="clientNotificationForm" class="notif-form-pane" style="display: none;">
+                                <form id="clientNotificationForm" onsubmit="sendClientNotification(event)" class="notif-form">
+                                    <div class="notif-card">
+                                        <div class="notif-field">
+                                            <label for="clientNotificationTitle" class="notif-label">Title</label>
+                                            <input type="text" id="clientNotificationTitle" name="title" required maxlength="120" placeholder="e.g. Weekend booking deals" class="notif-input">
+                                        </div>
+                                        <div class="notif-field">
+                                            <div class="notif-label-row">
+                                                <label for="clientNotificationMessage" class="notif-label">Message</label>
+                                                <span class="notif-counter" id="clientMessageCounter">0 / 1000</span>
+                                            </div>
+                                            <textarea id="clientNotificationMessage" name="message" required maxlength="1000" rows="6" placeholder="Write the message that will appear in their notifications…" class="notif-input notif-textarea"></textarea>
+                                        </div>
+                                        <div class="notif-field">
+                                            <span class="notif-label">Type</span>
+                                            <div class="notif-chips" data-target="clientNotificationType">
+                                                <button type="button" class="notif-chip active" data-value="info" data-tone="info">Info</button>
+                                                <button type="button" class="notif-chip" data-value="success" data-tone="success">Success</button>
+                                                <button type="button" class="notif-chip" data-value="warning" data-tone="warning">Warning</button>
+                                                <button type="button" class="notif-chip" data-value="error" data-tone="error">Error</button>
+                                            </div>
+                                            <select id="clientNotificationType" name="type" hidden>
+                                                <option value="info" selected>Info</option>
+                                                <option value="success">Success</option>
+                                                <option value="warning">Warning</option>
+                                                <option value="error">Error</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="notif-card">
+                                        <span class="notif-label">Audience</span>
+                                        <div class="notif-audience">
+                                            <label class="notif-audience-opt active">
+                                                <input type="radio" name="clientRecipientType" value="all" checked onchange="toggleClientSelection()">
+                                                <div class="notif-audience-body">
+                                                    <span class="notif-audience-title">All active clients</span>
+                                                    <span class="notif-audience-desc">Respects each client's notification preferences.</span>
+                                                </div>
+                                            </label>
+                                            <label class="notif-audience-opt">
+                                                <input type="radio" name="clientRecipientType" value="specific" onchange="toggleClientSelection()">
+                                                <div class="notif-audience-body">
+                                                    <span class="notif-audience-title">Specific client</span>
+                                                    <span class="notif-audience-desc">Send privately to a single client.</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                        <div id="clientSelectionGroup" class="notif-field notif-specific-pick" style="display: none;">
+                                            <label for="notificationClientSelect" class="notif-label">Pick a client</label>
+                                            <select id="notificationClientSelect" class="notif-input notif-select">
+                                                <option value="">Loading clients...</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <details class="notif-card notif-accordion">
+                                        <summary class="notif-accordion-summary">
+                                            <span class="notif-accordion-title">Customize email (optional)</span>
+                                            <span class="notif-accordion-hint">By default, the subject is the title above and the body wraps the message.</span>
+                                            <svg class="notif-accordion-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                                        </summary>
+                                        <div class="notif-accordion-body">
+                                            <div class="notif-field">
+                                                <label for="clientNotificationEmailSubject" class="notif-label">Email subject</label>
+                                                <input type="text" id="clientNotificationEmailSubject" name="email_subject" maxlength="255" placeholder="Overrides the title above" class="notif-input">
+                                            </div>
+                                            <div class="notif-field">
+                                                <label for="clientNotificationEmailBody" class="notif-label">Email body (HTML)</label>
+                                                <textarea id="clientNotificationEmailBody" name="email_body_html" rows="5" placeholder="Optional HTML body. Leave blank to wrap the message above automatically." class="notif-input notif-textarea notif-mono"></textarea>
+                                            </div>
+                                        </div>
+                                    </details>
+
+                                    <div class="notif-actions">
+                                        <button type="submit" class="btn btn-primary notif-send-btn" id="sendClientNotificationBtn">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                                            Send notification
+                                        </button>
+                                        <div id="clientNotificationResult" class="notif-result"></div>
+                                    </div>
+                                </form>
                             </div>
                         </div>
+
+                        <!-- Preview column -->
+                        <aside class="notif-preview-col">
+                            <div class="notif-preview-card">
+                                <div class="notif-preview-header">
+                                    <span class="notif-preview-eyebrow">Preview</span>
+                                    <span class="notif-preview-audience" id="notifPreviewAudience">Hosts · all</span>
+                                </div>
+                                <div class="notif-preview-device">
+                                    <div class="notif-preview-toast" id="notifPreviewToast" data-tone="info">
+                                        <div class="notif-preview-icon" id="notifPreviewIcon">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                        </div>
+                                        <div class="notif-preview-body">
+                                            <div class="notif-preview-title" id="notifPreviewTitle">Notification title</div>
+                                            <div class="notif-preview-message" id="notifPreviewMessage">Your message will appear here as you type.</div>
+                                            <div class="notif-preview-time">Just now</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="notif-preview-foot">This is how recipients will see your notification.</p>
+                            </div>
+                        </aside>
                     </div>
                 </div>
 

@@ -297,6 +297,8 @@ function loadPage(page) {
         case 'notifications':
             switchNotificationTab('host');
             loadHostsForNotifications();
+            setupNotificationsInteractions();
+            updateNotifPreview();
             break;
         case 'admins':
             setupAdminSearch();
@@ -2886,16 +2888,17 @@ async function sendNotification(event) {
     const message = document.getElementById('notificationMessage').value.trim();
     const type = document.getElementById('notificationType').value;
     const recipientType = document.querySelector('input[name="recipientType"]:checked').value;
-    
+
     if (!title || !message) {
-        resultDiv.innerHTML = '<div style="color: #d32f2f; padding: 12px; background-color: #ffebee; border-radius: 4px;">Please fill in all required fields.</div>';
+        showNotifResult(resultDiv, 'error', 'Please fill in both title and message.');
         return;
     }
-    
+
     // Disable button
     sendBtn.disabled = true;
-    sendBtn.textContent = 'Sending...';
-    resultDiv.innerHTML = '';
+    const originalBtnHtml = sendBtn.innerHTML;
+    sendBtn.innerHTML = '<span class="notif-spinner"></span> Sending…';
+    showNotifResult(resultDiv, '', '');
     
     try {
         const notificationData = {
@@ -2910,68 +2913,54 @@ async function sendNotification(event) {
         let response;
         if (recipientType === 'all') {
             response = await api.broadcastToHosts(notificationData);
-            console.log('Notification response:', response);
         } else if (recipientType === 'specific') {
             const hostId = document.getElementById('notificationHostSelect').value;
             if (!hostId) {
-                resultDiv.innerHTML = '<div style="color: #d32f2f; padding: 12px; background-color: #ffebee; border-radius: 4px;">Please select a host.</div>';
+                showNotifResult(resultDiv, 'error', 'Please pick a host first.');
                 sendBtn.disabled = false;
-                sendBtn.textContent = 'Send Notification';
+                sendBtn.innerHTML = originalBtnHtml;
                 return;
             }
-            
-            const specificNotificationData = {
+            response = await api.sendToUser({
                 user_type: 'host',
                 user_id: parseInt(hostId),
-                title: title,
-                message: message,
-                type: type
-            };
-            
-            response = await api.sendToUser(specificNotificationData);
-            console.log('Notification response:', response);
+                title, message, type,
+            });
         } else {
-            resultDiv.innerHTML = '<div style="color: #d32f2f; padding: 12px; background-color: #ffebee; border-radius: 4px;">Invalid recipient type selected.</div>';
+            showNotifResult(resultDiv, 'error', 'Invalid recipient selected.');
             sendBtn.disabled = false;
-            sendBtn.textContent = 'Send Notification';
+            sendBtn.innerHTML = originalBtnHtml;
             return;
         }
-        
-        // Show success message with details
+
         if (response.sent_count && response.sent_count > 0) {
-            const recipientInfo = recipientType === 'specific' && response.user_id 
-                ? ` (Host ID: ${response.user_id})`
-                : ` (${response.sent_count} recipient(s))`;
-            resultDiv.innerHTML = `
-                <div style="color: #2e7d32; padding: 12px; background-color: #e8f5e9; border-radius: 4px; margin-bottom: 12px;">
-                    <strong>Success!</strong> ${response.message}${recipientInfo}
-                </div>
-            `;
+            const detail = recipientType === 'specific' && response.user_id
+                ? `Sent to host #${response.user_id}.`
+                : `Sent to ${response.sent_count} recipient${response.sent_count === 1 ? '' : 's'}.`;
+            showNotifResult(resultDiv, 'success', `<strong>Sent.</strong> ${detail}`);
         } else {
-            resultDiv.innerHTML = `
-                <div style="color: #f57c00; padding: 12px; background-color: #fff3e0; border-radius: 4px; margin-bottom: 12px;">
-                    <strong>Warning:</strong> ${response.message || 'No active recipients found. Notification not sent.'}
-                </div>
-            `;
+            showNotifResult(resultDiv, 'warning', response.message || 'No active recipients found.');
         }
-        
-        // Reset form
+
         form.reset();
         document.getElementById('notificationType').value = 'info';
+        document.querySelectorAll('#hostNotificationForm .notif-chip').forEach((c, i) => c.classList.toggle('active', i === 0));
         document.querySelector('input[name="recipientType"][value="all"]').checked = true;
+        document.querySelectorAll('input[name="recipientType"]').forEach(r => {
+            const opt = r.closest('.notif-audience-opt');
+            if (opt) opt.classList.toggle('active', r.checked);
+        });
         document.getElementById('notificationHostSelect').value = '';
         toggleHostSelection();
-        
+        const counter = document.getElementById('hostMessageCounter');
+        if (counter) counter.textContent = '0 / 1000';
+        updateNotifPreview();
     } catch (error) {
         console.error('Error sending notification:', error);
-        resultDiv.innerHTML = `
-            <div style="color: #d32f2f; padding: 12px; background-color: #ffebee; border-radius: 4px;">
-                <strong>Error:</strong> ${error.message}
-            </div>
-        `;
+        showNotifResult(resultDiv, 'error', `<strong>Error.</strong> ${error.message}`);
     } finally {
         sendBtn.disabled = false;
-        sendBtn.textContent = 'Send Notification';
+        sendBtn.innerHTML = originalBtnHtml;
     }
 }
 
@@ -2981,27 +2970,126 @@ function switchNotificationTab(tab) {
     const clientTab = document.getElementById('clientNotificationTab');
     const hostForm = document.getElementById('hostNotificationForm');
     const clientForm = document.getElementById('clientNotificationForm');
-    
-    if (tab === 'host') {
-        hostTab.style.borderBottomColor = '#3498db';
-        hostTab.style.color = '#3498db';
-        hostTab.style.fontWeight = '600';
-        clientTab.style.borderBottomColor = 'transparent';
-        clientTab.style.color = '#65676b';
-        clientTab.style.fontWeight = '500';
-        hostForm.style.display = 'block';
-        clientForm.style.display = 'none';
+    const isHost = tab === 'host';
+
+    if (hostTab) { hostTab.classList.toggle('active', isHost); hostTab.setAttribute('aria-selected', String(isHost)); }
+    if (clientTab) { clientTab.classList.toggle('active', !isHost); clientTab.setAttribute('aria-selected', String(!isHost)); }
+    if (hostForm) hostForm.style.display = isHost ? 'block' : 'none';
+    if (clientForm) clientForm.style.display = isHost ? 'none' : 'block';
+
+    setupNotificationsInteractions();
+    updateNotifPreview();
+    if (!isHost) loadClientsForNotifications();
+}
+
+// ---- Notifications UI wiring (chips, counters, audience cards, preview) ----
+let notificationsInteractionsBound = false;
+
+function setupNotificationsInteractions() {
+    if (notificationsInteractionsBound) return;
+    notificationsInteractionsBound = true;
+
+    // Type chips (host + client)
+    document.querySelectorAll('.notif-chips').forEach(group => {
+        const targetId = group.dataset.target;
+        const select = document.getElementById(targetId);
+        group.querySelectorAll('.notif-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                group.querySelectorAll('.notif-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                if (select) select.value = chip.dataset.value;
+                updateNotifPreview();
+            });
+        });
+    });
+
+    // Audience option cards — toggle .active visual on the parent label.
+    document.querySelectorAll('input[name="recipientType"], input[name="clientRecipientType"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            const group = radio.getAttribute('name');
+            document.querySelectorAll(`input[name="${group}"]`).forEach(r => {
+                const opt = r.closest('.notif-audience-opt');
+                if (opt) opt.classList.toggle('active', r.checked);
+            });
+            updateNotifPreview();
+        });
+    });
+
+    // Char counter + live preview on title/message
+    const wireField = (id, counterId, max) => {
+        const input = document.getElementById(id);
+        const counter = counterId ? document.getElementById(counterId) : null;
+        if (!input) return;
+        const update = () => {
+            if (counter) counter.textContent = `${input.value.length} / ${max}`;
+            updateNotifPreview();
+        };
+        input.addEventListener('input', update);
+        update();
+    };
+    wireField('notificationTitle');
+    wireField('notificationMessage', 'hostMessageCounter', 1000);
+    wireField('clientNotificationTitle');
+    wireField('clientNotificationMessage', 'clientMessageCounter', 1000);
+
+    // Specific-user select changes refresh preview audience line
+    ['notificationHostSelect', 'notificationClientSelect'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', updateNotifPreview);
+    });
+}
+
+function updateNotifPreview() {
+    const isClient = document.getElementById('clientNotificationForm')?.style.display !== 'none';
+    const titleEl = document.getElementById(isClient ? 'clientNotificationTitle' : 'notificationTitle');
+    const msgEl = document.getElementById(isClient ? 'clientNotificationMessage' : 'notificationMessage');
+    const typeEl = document.getElementById(isClient ? 'clientNotificationType' : 'notificationType');
+    const recipientType = document.querySelector(`input[name="${isClient ? 'clientRecipientType' : 'recipientType'}"]:checked`)?.value || 'all';
+
+    const previewToast = document.getElementById('notifPreviewToast');
+    const previewIcon = document.getElementById('notifPreviewIcon');
+    const previewTitle = document.getElementById('notifPreviewTitle');
+    const previewMessage = document.getElementById('notifPreviewMessage');
+    const previewAudience = document.getElementById('notifPreviewAudience');
+    if (!previewToast) return;
+
+    const tone = (typeEl && typeEl.value) || 'info';
+    previewToast.dataset.tone = tone;
+    if (previewIcon) previewIcon.innerHTML = notifIconSvg(tone);
+
+    previewTitle.textContent = (titleEl?.value || '').trim() || 'Notification title';
+    previewMessage.textContent = (msgEl?.value || '').trim() || 'Your message will appear here as you type.';
+
+    let audienceLabel;
+    if (recipientType === 'all') {
+        audienceLabel = isClient ? 'Clients · everyone' : 'Hosts · everyone';
     } else {
-        clientTab.style.borderBottomColor = '#3498db';
-        clientTab.style.color = '#3498db';
-        clientTab.style.fontWeight = '600';
-        hostTab.style.borderBottomColor = 'transparent';
-        hostTab.style.color = '#65676b';
-        hostTab.style.fontWeight = '500';
-        hostForm.style.display = 'none';
-        clientForm.style.display = 'block';
-        loadClientsForNotifications();
+        const sel = document.getElementById(isClient ? 'notificationClientSelect' : 'notificationHostSelect');
+        const text = sel && sel.value ? (sel.options[sel.selectedIndex]?.textContent || '').trim() : '';
+        audienceLabel = text
+            ? `${isClient ? 'Client' : 'Host'} · ${text}`
+            : `${isClient ? 'Client' : 'Host'} · pick one`;
     }
+    previewAudience.textContent = audienceLabel;
+}
+
+function notifIconSvg(tone) {
+    switch (tone) {
+        case 'success':
+            return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+        case 'warning':
+            return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+        case 'error':
+            return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+        default:
+            return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    }
+}
+
+function showNotifResult(el, tone, html) {
+    if (!el) return;
+    el.className = `notif-result notif-result-${tone}`;
+    el.innerHTML = html;
 }
 
 // Toggle client selection
@@ -3068,16 +3156,17 @@ async function sendClientNotification(event) {
     const emailSubject = (document.getElementById('clientNotificationEmailSubject').value || '').trim();
     const emailBodyHtml = (document.getElementById('clientNotificationEmailBody').value || '').trim();
     const recipientType = document.querySelector('input[name="clientRecipientType"]:checked').value;
-    
+
     if (!title || !message) {
-        resultDiv.innerHTML = '<div style="color: #d32f2f; padding: 12px; background-color: #ffebee; border-radius: 4px;">Please fill in all required fields.</div>';
+        showNotifResult(resultDiv, 'error', 'Please fill in both title and message.');
         return;
     }
-    
+
     // Disable button
     sendBtn.disabled = true;
-    sendBtn.textContent = 'Sending...';
-    resultDiv.innerHTML = '';
+    const originalBtnHtml = sendBtn.innerHTML;
+    sendBtn.innerHTML = '<span class="notif-spinner"></span> Sending…';
+    showNotifResult(resultDiv, '', '');
     
     try {
         const notificationData = {
@@ -3094,73 +3183,56 @@ async function sendClientNotification(event) {
         
         let response;
         if (recipientType === 'all') {
-            // Use preferences-aware broadcast: respects each client's notification toggles
             response = await api.broadcastToClientsByPreferences(notificationData);
-            console.log('Notification response:', response);
         } else if (recipientType === 'specific') {
             const clientId = document.getElementById('notificationClientSelect').value;
             if (!clientId) {
-                resultDiv.innerHTML = '<div style="color: #d32f2f; padding: 12px; background-color: #ffebee; border-radius: 4px;">Please select a client.</div>';
+                showNotifResult(resultDiv, 'error', 'Please pick a client first.');
                 sendBtn.disabled = false;
-                sendBtn.textContent = 'Send Notification';
+                sendBtn.innerHTML = originalBtnHtml;
                 return;
             }
-            
-            const specificNotificationData = {
+            response = await api.sendToUser({
                 user_type: 'client',
                 user_id: parseInt(clientId),
-                title: title,
-                message: message,
-                type: type
-            };
-            
-            response = await api.sendToUser(specificNotificationData);
-            console.log('Notification response:', response);
+                title, message, type,
+            });
         } else {
-            resultDiv.innerHTML = '<div style="color: #d32f2f; padding: 12px; background-color: #ffebee; border-radius: 4px;">Invalid recipient type selected.</div>';
+            showNotifResult(resultDiv, 'error', 'Invalid recipient selected.');
             sendBtn.disabled = false;
-            sendBtn.textContent = 'Send Notification';
+            sendBtn.innerHTML = originalBtnHtml;
             return;
         }
-        
-        // Show success message with details
-        // If we got here, the API call was successful (200 status)
+
         const sentCount = response.sent_count || 0;
         if (sentCount > 0) {
-            const recipientInfo = recipientType === 'specific' && response.user_id 
-                ? ` (Client ID: ${response.user_id})`
-                : ` (${sentCount} recipient(s))`;
-            resultDiv.innerHTML = `
-                <div style="color: #2e7d32; padding: 12px; background-color: #e8f5e9; border-radius: 4px; margin-bottom: 12px;">
-                    <strong>Success!</strong> ${response.message || 'Notification sent successfully'}${recipientInfo}
-                </div>
-            `;
+            const detail = recipientType === 'specific' && response.user_id
+                ? `Sent to client #${response.user_id}.`
+                : `Sent to ${sentCount} recipient${sentCount === 1 ? '' : 's'}.`;
+            showNotifResult(resultDiv, 'success', `<strong>Sent.</strong> ${detail}`);
         } else {
-            // Even if sent_count is 0, if API returned 200, show the message from API
-            resultDiv.innerHTML = `
-                <div style="color: #f57c00; padding: 12px; background-color: #fff3e0; border-radius: 4px; margin-bottom: 12px;">
-                    <strong>Info:</strong> ${response.message || 'No active recipients found. Notification not sent.'}
-                </div>
-            `;
+            showNotifResult(resultDiv, 'warning', response.message || 'No active recipients found.');
         }
-        
-        // Reset form
+
         form.reset();
         document.getElementById('clientNotificationType').value = 'info';
+        document.querySelectorAll('#clientNotificationForm .notif-chip').forEach((c, i) => c.classList.toggle('active', i === 0));
         document.querySelector('input[name="clientRecipientType"][value="all"]').checked = true;
+        document.querySelectorAll('input[name="clientRecipientType"]').forEach(r => {
+            const opt = r.closest('.notif-audience-opt');
+            if (opt) opt.classList.toggle('active', r.checked);
+        });
         document.getElementById('notificationClientSelect').value = '';
         toggleClientSelection();
-        
+        const counter = document.getElementById('clientMessageCounter');
+        if (counter) counter.textContent = '0 / 1000';
+        updateNotifPreview();
     } catch (error) {
         console.error('Error sending client notification:', error);
-        resultDiv.innerHTML = `
-            <div style="color: #d32f2f; padding: 12px; background-color: #ffebee; border-radius: 4px;">
-                <strong>Error:</strong> ${error.message}
-            </div>
-        `;
+        showNotifResult(resultDiv, 'error', `<strong>Error.</strong> ${error.message}`);
     } finally {
         sendBtn.disabled = false;
-        sendBtn.textContent = 'Send Notification';
+        sendBtn.innerHTML = originalBtnHtml;
     }
 }
 
