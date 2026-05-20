@@ -3240,6 +3240,16 @@ function createSubscribersTrendChart(labels, subscriptions, unsubscriptions) {
     if (subscribersTrendChart) subscribersTrendChart.destroy();
 
     const ctx = canvas.getContext('2d');
+    const height = canvas.height || 280;
+
+    const subGradient = ctx.createLinearGradient(0, 0, 0, height);
+    subGradient.addColorStop(0, 'rgba(37, 99, 235, 0.28)');
+    subGradient.addColorStop(1, 'rgba(37, 99, 235, 0.02)');
+
+    const unsubGradient = ctx.createLinearGradient(0, 0, 0, height);
+    unsubGradient.addColorStop(0, 'rgba(239, 68, 68, 0.22)');
+    unsubGradient.addColorStop(1, 'rgba(239, 68, 68, 0.02)');
+
     subscribersTrendChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -3249,48 +3259,64 @@ function createSubscribersTrendChart(labels, subscriptions, unsubscriptions) {
             }),
             datasets: [
                 {
-                    label: 'Subscriptions',
+                    label: 'Subscribed',
                     data: subscriptions,
-                    borderColor: 'rgba(52, 152, 219, 1)',
-                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    borderColor: 'rgba(37, 99, 235, 1)',
+                    backgroundColor: subGradient,
                     fill: true,
-                    tension: 0.35,
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    pointHoverRadius: 5
+                    tension: 0.4,
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    pointHoverBackgroundColor: 'rgba(37, 99, 235, 1)',
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 2,
                 },
                 {
-                    label: 'Unsubscriptions',
+                    label: 'Unsubscribed',
                     data: unsubscriptions,
-                    borderColor: 'rgba(231, 76, 60, 1)',
-                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    backgroundColor: unsubGradient,
                     fill: true,
-                    tension: 0.35,
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    pointHoverRadius: 5
-                }
-            ]
+                    tension: 0.4,
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    pointHoverBackgroundColor: 'rgba(239, 68, 68, 1)',
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 2,
+                },
+            ],
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 2.5,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
             plugins: {
-                legend: { position: 'top' }
+                legend: { display: false },
+                tooltip: {
+                    padding: 12,
+                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                    titleFont: { size: 13, weight: '600' },
+                    bodyFont: { size: 12 },
+                    cornerRadius: 8,
+                    displayColors: true,
+                    boxPadding: 4,
+                },
             },
             scales: {
                 x: {
-                    grid: { display: false },
-                    ticks: { maxRotation: 45, font: { size: 11 } }
+                    grid: { display: false, drawBorder: false },
+                    ticks: { maxRotation: 0, autoSkipPadding: 18, font: { size: 11 }, color: '#6b7280' },
                 },
                 y: {
                     beginAtZero: true,
-                    ticks: { stepSize: 1 },
-                    grid: { color: 'rgba(0,0,0,0.06)' }
-                }
-            }
-        }
+                    grid: { color: 'rgba(17, 24, 39, 0.05)', drawBorder: false, borderDash: [3, 3] },
+                    ticks: { precision: 0, font: { size: 11 }, color: '#6b7280' },
+                },
+            },
+            animation: { duration: 1000, easing: 'easeOutQuart' },
+        },
     });
 }
 
@@ -4364,18 +4390,24 @@ async function loadSupportConversations() {
                 previewHtml = `<strong>${sender}:</strong> ${preview}${lastMessage.message.length > 85 ? '…' : ''}`;
             }
 
+            const isActive = currentSupportConversationId === conv.id;
+            const rowClasses = [
+                'support-conv-row',
+                isUnread ? 'unread' : '',
+                isActive ? 'active' : '',
+            ].filter(Boolean).join(' ');
+
             html += `
-                <div onclick="viewSupportConversation(${conv.id})" class="support-conv-card${isUnread ? ' unread' : ''}">
+                <div onclick="viewSupportConversation(${conv.id})" class="${rowClasses}" data-conv-id="${conv.id}">
                     <div class="support-conv-avatar" style="background:${avatarColor};">${escapeHtml(initials)}</div>
                     <div class="support-conv-body">
                         <div class="support-conv-top">
                             <span class="support-conv-name">${escapeHtml(hostName)}</span>
                             <span class="support-conv-time">${formatRelativeTime(lastMessage ? lastMessage.created_at : conv.created_at)}</span>
                         </div>
-                        <div class="support-conv-email">${escapeHtml(conv.host_email || '')}</div>
                         <div class="support-conv-preview">${previewHtml}</div>
                     </div>
-                    <div class="support-conv-badges">${statusBadge}${unreadBadge}</div>
+                    <div class="support-conv-badges">${unreadBadge}${statusBadge}</div>
                 </div>
             `;
         });
@@ -4416,12 +4448,19 @@ function changeSupportPage(page) {
 // View support conversation details
 async function viewSupportConversation(conversationId) {
     currentSupportConversationId = conversationId;
-    
-    // Hide list page, show detail page
-    document.getElementById('supportPage').style.display = 'none';
-    document.getElementById('supportDetailPage').style.display = 'block';
-    document.getElementById('pageTitle').textContent = 'Support Conversation';
-    
+
+    // Two-pane layout: show conversation in the right pane, mark row active
+    const inbox = document.getElementById('supportInbox');
+    const emptyState = document.getElementById('supportEmptyState');
+    const convPane = document.getElementById('supportConversationPane');
+    if (inbox) inbox.classList.add('conversation-open');
+    if (emptyState) emptyState.style.display = 'none';
+    if (convPane) convPane.style.display = 'flex';
+
+    document.querySelectorAll('.support-conv-row').forEach(row => {
+        row.classList.toggle('active', Number(row.dataset.convId) === conversationId);
+    });
+
     const infoEl = document.getElementById('supportConversationInfo');
     const messagesEl = document.getElementById('supportMessages');
     const replyForm = document.getElementById('supportReplyForm');
@@ -4522,13 +4561,17 @@ async function viewSupportConversation(conversationId) {
     }
 }
 
-// Back to support list
+// Back to support list — on mobile this collapses the right pane; on desktop
+// it just clears the active selection and shows the empty state.
 function backToSupportList() {
-    document.getElementById('supportDetailPage').style.display = 'none';
-    document.getElementById('supportPage').style.display = 'block';
-    document.getElementById('pageTitle').textContent = 'Support';
     currentSupportConversationId = null;
-    loadSupportConversations();
+    const inbox = document.getElementById('supportInbox');
+    const emptyState = document.getElementById('supportEmptyState');
+    const convPane = document.getElementById('supportConversationPane');
+    if (inbox) inbox.classList.remove('conversation-open');
+    if (convPane) convPane.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'flex';
+    document.querySelectorAll('.support-conv-row.active').forEach(row => row.classList.remove('active'));
 }
 
 // Auto-resize textarea

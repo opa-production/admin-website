@@ -446,43 +446,63 @@
                 </div>
 
                 <div id="subscribersPage" class="page-content" style="display: none;">
-                    <div class="content-section">
-                        <div class="stats-grid" id="subscribersStatsGrid">
-                            <div class="stat-card">
-                                <div class="stat-label">Subscribers</div>
-                                <div class="stat-value" id="subscribersCountDisplay">—</div>
-                                <div class="stat-subvalue">currently subscribed</div>
-                            </div>
+                    <div class="subscribers-header">
+                        <div class="subscribers-header-text">
+                            <h2 class="subscribers-title">Newsletter subscribers</h2>
+                            <p class="subscribers-subtitle">Track sign-ups and send updates to your subscriber list.</p>
                         </div>
-                        <div class="graphs-section">
-                            <div class="graph-container" style="grid-column: 1 / -1;">
-                                <h3>Subscription &amp; unsubscription trend</h3>
-                                <canvas id="subscribersTrendChart"></canvas>
-                            </div>
+                        <div class="subscribers-count-pill" title="Currently subscribed">
+                            <span class="subscribers-count-dot"></span>
+                            <span class="subscribers-count-value" id="subscribersCountDisplay">—</span>
+                            <span class="subscribers-count-label">subscribers</span>
                         </div>
-                        <div class="content-section" style="margin-top: 0; padding: 24px;">
-                            <h2>Send newsletter</h2>
-                            <p class="form-hint">Sends to all currently subscribed addresses. Include an unsubscribe link in the body.</p>
+                    </div>
+
+                    <div class="graphs-section graphs-section-timeline">
+                        <div class="graph-container graph-container-wide">
+                            <div class="graph-header graph-header-row">
+                                <div>
+                                    <h3>Subscription trend</h3>
+                                    <span class="graph-subtitle">Last 30 days · subscriptions vs unsubscriptions</span>
+                                </div>
+                                <div class="graph-legend">
+                                    <span class="legend-chip"><span class="legend-dot" style="background:#2563eb"></span>Subscribed</span>
+                                    <span class="legend-chip"><span class="legend-dot" style="background:#ef4444"></span>Unsubscribed</span>
+                                </div>
+                            </div>
+                            <canvas id="subscribersTrendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="subscribers-grid">
+                        <div class="content-section newsletter-card">
+                            <div class="newsletter-card-header">
+                                <h2>Send newsletter</h2>
+                                <p class="form-hint">Sends to all currently subscribed addresses. Include an unsubscribe link in the body.</p>
+                            </div>
                             <div class="form-group">
                                 <label for="newsletterSubject">Subject</label>
-                                <input type="text" id="newsletterSubject" class="form-input" placeholder="Newsletter subject">
+                                <input type="text" id="newsletterSubject" class="form-input form-input-clean" placeholder="e.g. New cars added this week">
                             </div>
                             <div class="form-group">
                                 <label for="newsletterBody">Body (HTML)</label>
-                                <textarea id="newsletterBody" class="form-input" rows="6" placeholder="<p>Hello,</p><p>...</p><p><a href='https://yoursite.com/unsubscribe'>Unsubscribe</a></p>"></textarea>
+                                <textarea id="newsletterBody" class="form-input form-input-clean" rows="8" placeholder="<p>Hello,</p>&#10;<p>...</p>&#10;<p><a href='https://yoursite.com/unsubscribe'>Unsubscribe</a></p>"></textarea>
                             </div>
-                            <button type="button" class="btn btn-primary" id="sendNewsletterBtn">Send to all subscribers</button>
-                            <div id="newsletterResult" class="form-result"></div>
+                            <div class="newsletter-actions">
+                                <button type="button" class="btn btn-primary" id="sendNewsletterBtn">Send to all subscribers</button>
+                                <div id="newsletterResult" class="form-result"></div>
+                            </div>
                         </div>
-                        <div class="content-section" style="margin-top: 24px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                                <h2 style="margin: 0;">Subscriber list</h2>
-                                <button type="button" class="btn btn-secondary" id="seeSubscribersBtn">See subscribers</button>
+
+                        <div class="content-section subscribers-list-card">
+                            <div class="subscribers-list-header">
+                                <h2>Subscriber list</h2>
+                                <button type="button" class="btn btn-secondary btn-small" id="seeSubscribersBtn">See subscribers</button>
                             </div>
                             <div id="subscribersListSection" style="display: none;">
-                                <div style="margin-bottom: 12px;">
+                                <div class="subscribers-filter-row">
                                     <label class="form-label">Show</label>
-                                    <select id="subscribersFilter" class="form-select">
+                                    <select id="subscribersFilter" class="form-select form-input-clean">
                                         <option value="true">Subscribed only</option>
                                         <option value="false">All (including unsubscribed)</option>
                                     </select>
@@ -499,7 +519,7 @@
                                         <tbody id="subscribersTableBody"></tbody>
                                     </table>
                                 </div>
-                                <div id="subscribersPagination" style="margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;"></div>
+                                <div id="subscribersPagination" class="subscribers-pagination"></div>
                             </div>
                         </div>
                     </div>
@@ -532,65 +552,72 @@
                     </div>
                 </div>
 
-                <div id="supportPage" class="page-content" style="display: none;">
-                    <div class="support-list-container">
-                        <div class="support-list-header">
-                            <div class="support-list-header-left">
-                                <h2 class="support-list-title">Support Inbox</h2>
-                                <span id="unreadCount" class="support-unread-pill" style="display:none;"></span>
-                            </div>
-                            <div class="support-list-filters">
-                                <select id="supportStatusFilter" class="support-filter-select">
-                                    <option value="">All Status</option>
-                                    <option value="open">Open</option>
-                                    <option value="closed">Closed</option>
-                                </select>
-                                <input type="number" id="supportHostIdFilter" placeholder="Host ID" class="support-filter-input">
+                <div id="supportPage" class="page-content support-page-shell" style="display: none;">
+                    <div class="support-inbox" id="supportInbox">
+                        <aside class="support-inbox-left">
+                            <div class="support-left-header">
+                                <div class="support-left-title-row">
+                                    <h2 class="support-list-title">Inbox</h2>
+                                    <span id="unreadCount" class="support-unread-pill" style="display:none;"></span>
+                                </div>
                                 <div class="support-search-box">
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                                     <input type="text" id="supportSearch" placeholder="Search conversations..." class="support-search-input">
                                 </div>
+                                <div class="support-left-filters">
+                                    <select id="supportStatusFilter" class="support-filter-select">
+                                        <option value="">All</option>
+                                        <option value="open">Open</option>
+                                        <option value="closed">Closed</option>
+                                    </select>
+                                    <input type="number" id="supportHostIdFilter" placeholder="Host ID" class="support-filter-input">
+                                </div>
                             </div>
-                        </div>
-                        <div id="supportContent">
-                            <div class="loading">Loading conversations...</div>
-                        </div>
-                        <div id="supportPagination" class="support-pagination-bar"></div>
-                    </div>
-                </div>
+                            <div id="supportContent" class="support-left-list">
+                                <div class="loading">Loading conversations...</div>
+                            </div>
+                            <div id="supportPagination" class="support-pagination-bar"></div>
+                        </aside>
 
-                <div id="supportDetailPage" class="page-content" style="display: none; padding: 0;">
-                    <div class="support-chat-wrapper">
-                        <div id="supportChatHeader" class="support-chat-header">
-                            <button onclick="backToSupportList()" class="support-back-btn">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-                                <span>Back</span>
-                            </button>
-                            <div id="supportConversationInfo" class="support-chat-host-info">
-                                <div class="loading">Loading...</div>
+                        <section class="support-inbox-right" id="supportInboxRight">
+                            <div id="supportEmptyState" class="support-empty-pane">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                <h3>Select a conversation</h3>
+                                <p>Pick a conversation on the left to view messages and reply.</p>
                             </div>
-                            <div id="supportChatActions" class="support-chat-actions">
-                                <button id="closeConversationBtn" onclick="closeSupportConversation()" class="support-action-btn danger-btn" style="display:none;">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                                    Close
-                                </button>
-                                <button id="reopenConversationBtn" onclick="reopenSupportConversation()" class="support-action-btn success-btn" style="display:none;">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-                                    Reopen
-                                </button>
+
+                            <div id="supportConversationPane" class="support-conversation-pane" style="display:none;">
+                                <div id="supportChatHeader" class="support-chat-header">
+                                    <button onclick="backToSupportList()" class="support-back-mobile" aria-label="Back">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                                    </button>
+                                    <div id="supportConversationInfo" class="support-chat-host-info">
+                                        <div class="loading">Loading...</div>
+                                    </div>
+                                    <div id="supportChatActions" class="support-chat-actions">
+                                        <button id="closeConversationBtn" onclick="closeSupportConversation()" class="support-action-btn danger-btn" style="display:none;">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                            Close
+                                        </button>
+                                        <button id="reopenConversationBtn" onclick="reopenSupportConversation()" class="support-action-btn success-btn" style="display:none;">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                                            Reopen
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="supportMessages" class="support-messages-area">
+                                    <div class="loading">Loading messages...</div>
+                                </div>
+                                <div id="supportReplyForm" class="support-reply-area">
+                                    <form id="supportReplyFormElement" onsubmit="sendSupportReply(event)" class="support-reply-form">
+                                        <textarea id="supportReplyMessage" placeholder="Type your reply here..." required class="support-reply-textarea" rows="1"></textarea>
+                                        <button type="submit" class="support-send-btn">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
-                        </div>
-                        <div id="supportMessages" class="support-messages-area">
-                            <div class="loading">Loading messages...</div>
-                        </div>
-                        <div id="supportReplyForm" class="support-reply-area">
-                            <form id="supportReplyFormElement" onsubmit="sendSupportReply(event)" class="support-reply-form">
-                                <textarea id="supportReplyMessage" placeholder="Type your reply here..." required class="support-reply-textarea" rows="1"></textarea>
-                                <button type="submit" class="support-send-btn">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-                                </button>
-                            </form>
-                        </div>
+                        </section>
                     </div>
                 </div>
             </div>
