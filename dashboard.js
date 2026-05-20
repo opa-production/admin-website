@@ -358,22 +358,65 @@ function backToHostsList() {
 }
 
 // Chart instances storage
-let userDistributionChart = null;
+let verifiedHostsChart = null;
+let verifiedClientsChart = null;
 let verificationStatusChart = null;
 let revenueStreamChart = null;
 let moneyFlowChart = null;
 let paidBookingsChart = null;
 let revenueCompositionChart = null;
 
+// ---------------------------------------------------------------------------
+// MOCK DATA — replace each function below with a real API call when ready.
+// Keep the return shapes identical so the chart code does not need to change.
+// ---------------------------------------------------------------------------
+
+// Verified hosts (KYC) — monthly cumulative + breakdown for the latest month.
+function mockVerifiedHostsData(stats) {
+    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const totalHosts = Math.max(stats.total_hosts || 0, 12);
+    const verified = [4, 7, 11, 16, 22, 29, 37, 46, 56, 67, 79, Math.round(totalHosts * 0.78)];
+    const pending  = [2, 3, 4,  5,  6,  6,  7,  8,  9,  10, 11, Math.round(totalHosts * 0.22)];
+    return {
+        labels,
+        verified_series: verified,
+        pending_series: pending,
+        verified_now: verified[verified.length - 1],
+        total_now: verified[verified.length - 1] + pending[pending.length - 1],
+    };
+}
+
+// Verified clients (KYC) — same shape as hosts.
+function mockVerifiedClientsData(stats) {
+    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const totalClients = Math.max(stats.total_clients || 0, 40);
+    const verified = [12, 19, 28, 41, 55, 72, 91, 114, 138, 164, 192, Math.round(totalClients * 0.71)];
+    const pending  = [6,  8,  11, 14, 18, 22, 27, 33,  39,  46,  53,  Math.round(totalClients * 0.29)];
+    return {
+        labels,
+        verified_series: verified,
+        pending_series: pending,
+        verified_now: verified[verified.length - 1],
+        total_now: verified[verified.length - 1] + pending[pending.length - 1],
+    };
+}
+
+// Car verification status — multi-series timeline (verified / awaiting / denied per month).
+function mockVerificationTimelineData(stats) {
+    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const verified = [3, 5, 8, 12, 17, 23, 30, 38, 47, 57, 68, stats.verified_cars || 80];
+    const awaiting = [1, 2, 2, 3,  4,  5,  5,  6,  7,  8,  9,  stats.cars_awaiting_verification || 10];
+    const denied   = [0, 1, 1, 2,  2,  3,  3,  4,  4,  5,  5,  stats.rejected_cars || 6];
+    return { labels, verified_series: verified, awaiting_series: awaiting, denied_series: denied };
+}
+
 // Load dashboard
 async function loadDashboard() {
     const statsGrid = document.getElementById('statsGrid');
-    const recentActivity = document.getElementById('recentActivity');
 
     try {
-        // Load stats
         const stats = await api.getDashboardStats();
-        
+
         statsGrid.innerHTML = `
             <div class="stat-card">
                 <div class="stat-label">Total Hosts</div>
@@ -397,277 +440,243 @@ async function loadDashboard() {
             </div>
         `;
 
-        // Create charts
-        createUserDistributionChart(stats);
-        createVerificationStatusChart(stats);
-
-        // Load recent activity
-        console.log('Loading recent activity...');
-        const activity = await api.getRecentActivity();
-        console.log('Recent activity received:', activity);
-        if (activity.activities && activity.activities.length > 0) {
-            window._recentActivitiesData = activity.activities;
-            renderRecentActivity(false);
-        } else {
-            recentActivity.innerHTML = '<div class="empty-state">No recent activity</div>';
-        }
+        createVerifiedHostsChart(mockVerifiedHostsData(stats));
+        createVerifiedClientsChart(mockVerifiedClientsData(stats));
+        createVerificationStatusChart(mockVerificationTimelineData(stats));
     } catch (error) {
         console.error('Error loading dashboard:', error);
         statsGrid.innerHTML = '<div class="empty-state">Error loading statistics</div>';
-        recentActivity.innerHTML = '<div class="empty-state">Error loading activity</div>';
     }
 }
 
-// Render recent activity (showAll: false = 10 items, true = all)
-function renderRecentActivity(showAll) {
-    const recentActivity = document.getElementById('recentActivity');
-    const activities = window._recentActivitiesData || [];
-    if (!recentActivity || activities.length === 0) return;
+// ---------------------------------------------------------------------------
+// KYC charts (Verified Hosts / Verified Clients)
+// Smooth filled area showing cumulative verified vs pending over time, plus
+// a subtitle with the current verified-share percentage.
+// ---------------------------------------------------------------------------
+function buildKycChart(canvas, data, palette) {
+    const ctx = canvas.getContext('2d');
+    const height = canvas.height || 200;
 
-    const limit = showAll ? activities.length : 10;
-    const toShow = activities.slice(0, limit);
-    const hasMore = activities.length > 10;
+    const verifiedGradient = ctx.createLinearGradient(0, 0, 0, height);
+    verifiedGradient.addColorStop(0, palette.verifiedTop);
+    verifiedGradient.addColorStop(1, palette.verifiedBottom);
 
-    recentActivity.innerHTML = `
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Type</th>
-                        <th>Description</th>
-                        <th>Time</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${toShow.map(item => `
-                        <tr>
-                            <td>${(item.type || '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
-                            <td>${item.description || ''}</td>
-                            <td>${item.timestamp ? new Date(item.timestamp).toLocaleString() : ''}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-        ${hasMore ? `
-            <div class="recent-activity-actions">
-                <button type="button" class="btn btn-secondary btn-small" id="recentActivityToggle">
-                    ${showAll ? 'Show Less' : 'Show All'}
-                </button>
-            </div>
-        ` : ''}
-    `;
+    const pendingGradient = ctx.createLinearGradient(0, 0, 0, height);
+    pendingGradient.addColorStop(0, palette.pendingTop);
+    pendingGradient.addColorStop(1, palette.pendingBottom);
 
-    const toggleBtn = document.getElementById('recentActivityToggle');
-    if (toggleBtn) {
-        toggleBtn.onclick = () => renderRecentActivity(!showAll);
-    }
-}
-
-// Create User Distribution Donut Chart
-function createUserDistributionChart(stats) {
-    const ctx = document.getElementById('userDistributionChart');
-    if (!ctx) return;
-
-    // Destroy existing chart if it exists
-    if (userDistributionChart) {
-        userDistributionChart.destroy();
-    }
-
-    const totalUsers = stats.total_hosts + stats.total_clients;
-    
-    userDistributionChart = new Chart(ctx, {
-        type: 'doughnut',
+    return new Chart(ctx, {
+        type: 'line',
         data: {
-            labels: ['Hosts', 'Clients'],
-            datasets: [{
-                data: [stats.total_hosts, stats.total_clients],
-                backgroundColor: [
-                    'rgba(52, 152, 219, 0.8)',
-                    'rgba(46, 204, 113, 0.8)'
-                ],
-                borderColor: [
-                    'rgba(52, 152, 219, 1)',
-                    'rgba(46, 204, 113, 1)'
-                ],
-                borderWidth: 2,
-                hoverOffset: 8
-            }]
+            labels: data.labels,
+            datasets: [
+                {
+                    label: 'Verified',
+                    data: data.verified_series,
+                    fill: true,
+                    backgroundColor: verifiedGradient,
+                    borderColor: palette.verifiedLine,
+                    borderWidth: 2,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    pointHoverBackgroundColor: palette.verifiedLine,
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 2,
+                },
+                {
+                    label: 'Pending KYC',
+                    data: data.pending_series,
+                    fill: true,
+                    backgroundColor: pendingGradient,
+                    borderColor: palette.pendingLine,
+                    borderWidth: 2,
+                    borderDash: [4, 4],
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    pointHoverBackgroundColor: palette.pendingLine,
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 2,
+                },
+            ],
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
             plugins: {
                 legend: {
                     position: 'bottom',
                     labels: {
-                        padding: 8,
-                        font: {
-                            size: 11,
-                            family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                        }
-                    }
+                        boxWidth: 10,
+                        boxHeight: 10,
+                        padding: 10,
+                        usePointStyle: true,
+                        pointStyle: 'rectRounded',
+                        font: { size: 11, family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
+                    },
                 },
                 tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const label = context.label || '';
-                            const value = context.parsed || 0;
-                            const percentage = totalUsers > 0 ? ((value / totalUsers) * 100).toFixed(1) : 0;
-                            return `${label}: ${value} (${percentage}%)`;
-                        }
-                    },
-                    padding: 12,
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleFont: {
-                        size: 14
-                    },
-                    bodyFont: {
-                        size: 13
-                    }
-                }
+                    padding: 10,
+                    backgroundColor: 'rgba(17, 24, 39, 0.92)',
+                    titleFont: { size: 12, weight: '600' },
+                    bodyFont: { size: 12 },
+                    cornerRadius: 6,
+                    displayColors: true,
+                },
             },
-            cutout: '55%',
-            animation: {
-                animateRotate: true,
-                animateScale: true,
-                duration: 1500,
-                easing: 'easeOutQuart'
-            }
-        }
+            scales: {
+                x: {
+                    grid: { display: false, drawBorder: false },
+                    ticks: { font: { size: 10 }, color: '#9ca3af' },
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(17, 24, 39, 0.05)', drawBorder: false },
+                    ticks: { font: { size: 10 }, color: '#9ca3af', precision: 0 },
+                },
+            },
+            animation: { duration: 1000, easing: 'easeOutQuart' },
+        },
     });
 }
 
-// Create Verification Status Trend Area Chart (like screenshot)
-function createVerificationStatusChart(stats) {
+function createVerifiedHostsChart(data) {
+    const canvas = document.getElementById('verifiedHostsChart');
+    if (!canvas) return;
+    if (verifiedHostsChart) verifiedHostsChart.destroy();
+
+    verifiedHostsChart = buildKycChart(canvas, data, {
+        verifiedLine: 'rgba(37, 99, 235, 1)',
+        verifiedTop: 'rgba(37, 99, 235, 0.35)',
+        verifiedBottom: 'rgba(37, 99, 235, 0.02)',
+        pendingLine: 'rgba(148, 163, 184, 1)',
+        pendingTop: 'rgba(148, 163, 184, 0.25)',
+        pendingBottom: 'rgba(148, 163, 184, 0.02)',
+    });
+
+    const subtitle = document.getElementById('verifiedHostsSubtitle');
+    if (subtitle) {
+        const pct = data.total_now > 0 ? Math.round((data.verified_now / data.total_now) * 100) : 0;
+        subtitle.textContent = `${data.verified_now.toLocaleString()} verified · ${pct}% of hosts`;
+    }
+}
+
+function createVerifiedClientsChart(data) {
+    const canvas = document.getElementById('verifiedClientsChart');
+    if (!canvas) return;
+    if (verifiedClientsChart) verifiedClientsChart.destroy();
+
+    verifiedClientsChart = buildKycChart(canvas, data, {
+        verifiedLine: 'rgba(16, 185, 129, 1)',
+        verifiedTop: 'rgba(16, 185, 129, 0.35)',
+        verifiedBottom: 'rgba(16, 185, 129, 0.02)',
+        pendingLine: 'rgba(148, 163, 184, 1)',
+        pendingTop: 'rgba(148, 163, 184, 0.25)',
+        pendingBottom: 'rgba(148, 163, 184, 0.02)',
+    });
+
+    const subtitle = document.getElementById('verifiedClientsSubtitle');
+    if (subtitle) {
+        const pct = data.total_now > 0 ? Math.round((data.verified_now / data.total_now) * 100) : 0;
+        subtitle.textContent = `${data.verified_now.toLocaleString()} verified · ${pct}% of clients`;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Car Verification Status — multi-series monthly timeline.
+// Three lines (Verified / Awaiting / Denied) so it's instantly readable
+// which way each status is trending over time.
+// ---------------------------------------------------------------------------
+function createVerificationStatusChart(data) {
     const canvas = document.getElementById('verificationStatusChart');
     if (!canvas) return;
+    if (verificationStatusChart) verificationStatusChart.destroy();
 
     const ctx = canvas.getContext('2d');
 
-    // Destroy existing chart if it exists
-    if (verificationStatusChart) {
-        verificationStatusChart.destroy();
-    }
-
-    const totalProcessed = stats.verified_cars + stats.rejected_cars + stats.cars_awaiting_verification;
-
-    const verifiedPct = totalProcessed > 0 ? (stats.verified_cars / totalProcessed) * 100 : 0;
-    const pendingTotal = stats.cars_awaiting_verification + stats.rejected_cars;
-    const pendingPct = totalProcessed > 0 ? (pendingTotal / totalProcessed) * 100 : 0;
-
-    // Use 6 months just for a smooth trend‑style look.
-    // We repeat the same percentage so the line is flat,
-    // but visually it matches the style in the reference.
-    const labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    const verifiedSeries = labels.map(() => Number(verifiedPct.toFixed(1)));
-    const pendingSeries = labels.map(() => Number(pendingPct.toFixed(1)));
-
-    // Gradients for the filled areas
-    const verifiedGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    verifiedGradient.addColorStop(0, 'rgba(46, 204, 113, 0.6)');
-    verifiedGradient.addColorStop(1, 'rgba(46, 204, 113, 0.05)');
-
-    const pendingGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    pendingGradient.addColorStop(0, 'rgba(241, 196, 15, 0.7)');
-    pendingGradient.addColorStop(1, 'rgba(241, 196, 15, 0.05)');
+    const series = [
+        {
+            key: 'verified',
+            label: 'Verified',
+            data: data.verified_series,
+            color: 'rgba(16, 185, 129, 1)',
+        },
+        {
+            key: 'awaiting',
+            label: 'Awaiting',
+            data: data.awaiting_series,
+            color: 'rgba(245, 158, 11, 1)',
+        },
+        {
+            key: 'denied',
+            label: 'Denied',
+            data: data.denied_series,
+            color: 'rgba(239, 68, 68, 1)',
+        },
+    ];
 
     verificationStatusChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels,
-            datasets: [
-                {
-                    label: 'Verified',
-                    data: verifiedSeries,
-                    fill: true,
-                    backgroundColor: verifiedGradient,
-                    borderColor: 'rgba(46, 204, 113, 1)',
-                    borderWidth: 2,
-                    tension: 0.35,
-                    pointRadius: 0
-                },
-                {
-                    label: 'Pending',
-                    data: pendingSeries,
-                    fill: true,
-                    backgroundColor: pendingGradient,
-                    borderColor: 'rgba(241, 196, 15, 1)',
-                    borderWidth: 2,
-                    tension: 0.35,
-                    pointRadius: 0
-                }
-            ]
+            labels: data.labels,
+            datasets: series.map(s => ({
+                label: s.label,
+                data: s.data,
+                borderColor: s.color,
+                backgroundColor: s.color.replace('1)', '0.08)'),
+                borderWidth: 2.5,
+                tension: 0.35,
+                fill: false,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: s.color,
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2,
+            })),
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
             plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 8,
-                        font: {
-                            size: 11,
-                            family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                        }
-                    }
-                },
+                legend: { display: false },
                 tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const label = context.dataset.label || '';
-                            const value = context.parsed.y || 0;
-                            const percentage = totalProcessed > 0 ? ((value / totalProcessed) * 100).toFixed(1) : 0;
-                            return `${label}: ${value} (${percentage}%)`;
-                        }
-                    },
                     padding: 12,
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleFont: {
-                        size: 14
+                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                    titleFont: { size: 13, weight: '600' },
+                    bodyFont: { size: 12 },
+                    cornerRadius: 8,
+                    displayColors: true,
+                    boxPadding: 4,
+                    callbacks: {
+                        label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y} cars`,
                     },
-                    bodyFont: {
-                        size: 13
-                    }
-                }
+                },
             },
             scales: {
                 x: {
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.04)',
-                        drawBorder: false
-                    },
-                    ticks: {
-                        font: {
-                            size: 10
-                        }
-                    }
+                    grid: { display: false, drawBorder: false },
+                    ticks: { font: { size: 11 }, color: '#6b7280' },
                 },
                 y: {
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.06)',
-                        borderDash: [4, 4],
-                        drawBorder: false
-                    },
-                    ticks: {
-                        beginAtZero: true,
-                        max: 100,
-                        callback: function(value) {
-                            return value + '%';
-                        },
-                        font: {
-                            size: 10
-                        }
-                    }
-                }
+                    beginAtZero: true,
+                    grid: { color: 'rgba(17, 24, 39, 0.06)', drawBorder: false, borderDash: [3, 3] },
+                    ticks: { font: { size: 11 }, color: '#6b7280', precision: 0 },
+                },
             },
-            animation: {
-                duration: 1200,
-                easing: 'easeOutQuart'
-            }
-        }
+            animation: { duration: 1200, easing: 'easeOutQuart' },
+        },
     });
+
+    const legendEl = document.getElementById('verificationLegend');
+    if (legendEl) {
+        legendEl.innerHTML = series
+            .map(s => `<span class="legend-chip"><span class="legend-dot" style="background:${s.color}"></span>${s.label}</span>`)
+            .join('');
+    }
 }
 
 // Load revenue page

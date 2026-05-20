@@ -68,20 +68,32 @@
                     <div class="stats-grid" id="statsGrid">
                         <div class="loading">Loading statistics...</div>
                     </div>
-                    <div class="graphs-section">
+                    <div class="graphs-section graphs-section-kyc">
                         <div class="graph-container">
-                            <h3>User Distribution</h3>
-                            <canvas id="userDistributionChart"></canvas>
+                            <div class="graph-header">
+                                <h3>Verified Hosts (KYC)</h3>
+                                <span class="graph-subtitle" id="verifiedHostsSubtitle">—</span>
+                            </div>
+                            <canvas id="verifiedHostsChart"></canvas>
                         </div>
                         <div class="graph-container">
-                            <h3>Car Verification Status</h3>
-                            <canvas id="verificationStatusChart"></canvas>
+                            <div class="graph-header">
+                                <h3>Verified Clients (KYC)</h3>
+                                <span class="graph-subtitle" id="verifiedClientsSubtitle">—</span>
+                            </div>
+                            <canvas id="verifiedClientsChart"></canvas>
                         </div>
                     </div>
-                    <div class="content-section">
-                        <h2>Recent Activity</h2>
-                        <div id="recentActivity">
-                            <div class="loading">Loading activity...</div>
+                    <div class="graphs-section graphs-section-timeline">
+                        <div class="graph-container graph-container-wide">
+                            <div class="graph-header graph-header-row">
+                                <div>
+                                    <h3>Car Verification Status</h3>
+                                    <span class="graph-subtitle">Monthly trend — verified vs awaiting vs denied</span>
+                                </div>
+                                <div class="graph-legend" id="verificationLegend"></div>
+                            </div>
+                            <canvas id="verificationStatusChart"></canvas>
                         </div>
                     </div>
                 </div>
