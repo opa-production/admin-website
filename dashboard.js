@@ -167,7 +167,7 @@ function configureNavigationForRole(role) {
     }
 
     const hideForCustomerService = ['revenue', 'withdrawals', 'payment-methods', 'refunds'];
-    const hideForFinance = ['subscribers', 'notifications', 'feedback', 'support'];
+    const hideForFinance = ['subscribers', 'notifications', 'feedback', 'support', 'moderation'];
 
     document.querySelectorAll('.nav-item').forEach(item => {
         const page = item.getAttribute('data-page');
@@ -263,6 +263,7 @@ function loadPage(page) {
         subscribers: 'Subscribers',
         revenue: 'Revenue',
         support: 'Support',
+        moderation: 'Moderation',
         admins: 'Admins'
     };
     document.getElementById('pageTitle').textContent = titles[page] || 'Dashboard';
@@ -330,6 +331,9 @@ function loadPage(page) {
         case 'subscribers':
             loadSubscribers();
             break;
+        case 'moderation':
+            initModerationPage();
+            break;
     }
 }
 
@@ -341,7 +345,7 @@ function isPageAllowedForRole(page, role) {
 
     // Restrictions should mirror configureNavigationForRole
     const restrictedForCustomerService = new Set(['revenue', 'withdrawals', 'payment-methods', 'refunds', 'admins']);
-    const restrictedForFinance = new Set(['subscribers', 'notifications', 'feedback', 'support', 'admins']);
+    const restrictedForFinance = new Set(['subscribers', 'notifications', 'feedback', 'support', 'moderation', 'admins']);
 
     if (role === 'customer_service') {
         return !restrictedForCustomerService.has(page);
@@ -4964,4 +4968,678 @@ async function reopenSupportConversation() {
     } catch (error) {
         alert('Error reopening conversation: ' + error.message);
     }
+}
+
+// ─── Moderation page ───────────────────────────────────────────────────────
+// Two tabs over admin-only endpoints:
+//   • Ratings        — /admin/ratings        (car/host/client unified feed)
+//   • Secondary      — /admin/secondary-contacts
+//
+// Each tab keeps its own filter+pagination state. The detail drawer is shared
+// between them; the current item type drives which API to read and which
+// action to expose (delete rating vs. clear secondary contact).
+// ───────────────────────────────────────────────────────────────────────────
+const MOD_PAGE_SIZE = 20;
+let moderationInited = false;
+let moderationActiveTab = 'ratings';
+
+const ratingsState = {
+    page: 1,
+    type: '',
+    rating: '',
+    order: 'desc',
+    search: '',
+    searchTimer: null,
+};
+
+const contactsState = {
+    page: 1,
+    status: '',
+    hasContact: '',
+    order: 'desc',
+    search: '',
+    searchTimer: null,
+};
+
+let modDrawerContext = null;
+
+// ─── MOCK DATA (preview only) ────────────────────────────────────────────
+// Remove this block and uncomment the `await api.xxx(...)` lines below to
+// switch to the real backend.
+const MOCK_RATINGS = [
+    { id: 101, type: 'car', rating: 5, review: 'Smooth ride, very clean. Pickup was easy and the host was responsive throughout.', booking_id: 4421, created_at: '2026-05-19T09:14:00Z', author_type: 'client', author_id: 3, author_name: 'Jane Doe', subject_type: 'car', subject_id: 12, subject_name: 'Toyota Vitz 2018' },
+    { id: 102, type: 'host', rating: 4, review: 'Polite and on time. Could have communicated drop-off instructions earlier.', booking_id: 4421, created_at: '2026-05-18T17:02:00Z', author_type: 'client', author_id: 3, author_name: 'Jane Doe', subject_type: 'host', subject_id: 7, subject_name: 'Peter Mwangi' },
+    { id: 103, type: 'client', rating: 5, review: 'Returned the car spotless and on time. Great communication.', booking_id: 4418, created_at: '2026-05-17T12:30:00Z', author_type: 'host', author_id: 7, author_name: 'Peter Mwangi', subject_type: 'client', subject_id: 3, subject_name: 'Jane Doe' },
+    { id: 104, type: 'car', rating: 2, review: 'AC barely worked and there was a strong smell inside. Not what I expected for the price.', booking_id: 4399, created_at: '2026-05-15T08:11:00Z', author_type: 'client', author_id: 9, author_name: 'Brian Otieno', subject_type: 'car', subject_id: 19, subject_name: 'Mazda Demio 2016' },
+    { id: 105, type: 'host', rating: 1, review: 'Cancelled on me 30 minutes before pickup with no real explanation. Very disappointed.', booking_id: 4391, created_at: '2026-05-14T19:47:00Z', author_type: 'client', author_id: 11, author_name: 'Aisha Hassan', subject_type: 'host', subject_id: 14, subject_name: 'Daniel Kiprop' },
+    { id: 106, type: 'client', rating: 3, review: 'Returned a bit late and the fuel level was lower than agreed.', booking_id: 4382, created_at: '2026-05-12T15:21:00Z', author_type: 'host', author_id: 14, author_name: 'Daniel Kiprop', subject_type: 'client', subject_id: 22, subject_name: 'Samuel Kariuki' },
+    { id: 107, type: 'car', rating: 5, review: 'Perfect for a city trip — fuel efficient and easy to park.', booking_id: 4375, created_at: '2026-05-11T07:55:00Z', author_type: 'client', author_id: 5, author_name: 'Linda Wanjiku', subject_type: 'car', subject_id: 8, subject_name: 'Honda Fit 2019' },
+    { id: 108, type: 'car', rating: 4, review: 'Solid car overall. Slight scratch on the bumper but nothing major.', booking_id: 4360, created_at: '2026-05-09T22:12:00Z', author_type: 'client', author_id: 17, author_name: 'Kevin Mutua', subject_type: 'car', subject_id: 31, subject_name: 'Nissan Note 2017' },
+    { id: 109, type: 'host', rating: 5, review: 'Super flexible with pickup time and very friendly. Will book again.', booking_id: 4360, created_at: '2026-05-09T22:08:00Z', author_type: 'client', author_id: 17, author_name: 'Kevin Mutua', subject_type: 'host', subject_id: 21, subject_name: 'Mercy Adhiambo' },
+    { id: 110, type: 'client', rating: 2, review: 'Smoked inside the car despite my house rules. Had to pay extra cleaning.', booking_id: 4355, created_at: '2026-05-08T14:40:00Z', author_type: 'host', author_id: 21, author_name: 'Mercy Adhiambo', subject_type: 'client', subject_id: 27, subject_name: 'Vincent Owino' },
+    { id: 111, type: 'car', rating: 3, review: 'Decent car but the infotainment system kept rebooting.', booking_id: 4340, created_at: '2026-05-06T10:05:00Z', author_type: 'client', author_id: 6, author_name: 'Faith Wambui', subject_type: 'car', subject_id: 44, subject_name: 'Subaru Forester 2015' },
+    { id: 112, type: 'host', rating: 4, review: 'Helpful and answered all my questions. The keys handover was quick.', booking_id: 4340, created_at: '2026-05-06T10:02:00Z', author_type: 'client', author_id: 6, author_name: 'Faith Wambui', subject_type: 'host', subject_id: 9, subject_name: 'James Njoroge' },
+    { id: 113, type: 'car', rating: 1, review: 'Tyre burst on the highway. Definitely not road-ready. Reported to support.', booking_id: 4328, created_at: '2026-05-04T18:33:00Z', author_type: 'client', author_id: 33, author_name: 'Naomi Chebet', subject_type: 'car', subject_id: 52, subject_name: 'Toyota Axio 2014' },
+    { id: 114, type: 'client', rating: 5, review: 'One of the best clients I have hosted. Took photos before and after.', booking_id: 4315, created_at: '2026-05-02T11:18:00Z', author_type: 'host', author_id: 9, author_name: 'James Njoroge', subject_type: 'client', subject_id: 41, subject_name: 'Eric Mboya' },
+    { id: 115, type: 'car', rating: 5, review: 'Felt brand new. Tank was full and the host even left bottled water.', booking_id: 4302, created_at: '2026-04-29T09:50:00Z', author_type: 'client', author_id: 41, author_name: 'Eric Mboya', subject_type: 'car', subject_id: 67, subject_name: 'Volkswagen Polo 2020' },
+    { id: 116, type: 'host', rating: 2, review: 'Kept changing the meeting point at the last minute. Stressful experience.', booking_id: 4290, created_at: '2026-04-27T13:25:00Z', author_type: 'client', author_id: 19, author_name: 'Cynthia Achieng', subject_type: 'host', subject_id: 30, subject_name: 'Robert Kamau' },
+    { id: 117, type: 'client', rating: 4, review: 'Returned with a small dent but admitted to it and paid up. Honest.', booking_id: 4275, created_at: '2026-04-24T20:11:00Z', author_type: 'host', author_id: 30, author_name: 'Robert Kamau', subject_type: 'client', subject_id: 19, subject_name: 'Cynthia Achieng' },
+    { id: 118, type: 'car', rating: 4, review: 'Spacious and comfortable for a road trip to Naivasha.', booking_id: 4260, created_at: '2026-04-22T07:00:00Z', author_type: 'client', author_id: 25, author_name: 'Mark Otieno', subject_type: 'car', subject_id: 73, subject_name: 'Toyota Prado 2018' },
+    { id: 119, type: 'host', rating: 5, review: 'Honestly the smoothest rental I have done. 10/10.', booking_id: 4260, created_at: '2026-04-22T06:58:00Z', author_type: 'client', author_id: 25, author_name: 'Mark Otieno', subject_type: 'host', subject_id: 36, subject_name: 'Patricia Nduta' },
+    { id: 120, type: 'car', rating: 3, review: 'Older model than the photos suggested. Otherwise drove fine.', booking_id: 4244, created_at: '2026-04-19T16:42:00Z', author_type: 'client', author_id: 4, author_name: 'George Onyango', subject_type: 'car', subject_id: 88, subject_name: 'Nissan Tiida 2012' },
+    { id: 121, type: 'client', rating: 5, review: 'Always replies fast and returns cars in top condition. Highly recommended.', booking_id: 4231, created_at: '2026-04-17T08:30:00Z', author_type: 'host', author_id: 36, author_name: 'Patricia Nduta', subject_type: 'client', subject_id: 25, subject_name: 'Mark Otieno' },
+    { id: 122, type: 'host', rating: 3, review: 'Average experience. Nothing wrong, nothing memorable either.', booking_id: 4218, created_at: '2026-04-15T19:09:00Z', author_type: 'client', author_id: 12, author_name: 'Stephanie Wairimu', subject_type: 'host', subject_id: 18, subject_name: 'Anthony Mutiso' },
+    { id: 123, type: 'car', rating: 5, review: 'Tinted windows, leather seats, and a powerful engine. Loved it!', booking_id: 4205, created_at: '2026-04-13T11:55:00Z', author_type: 'client', author_id: 28, author_name: 'Mike Wanyama', subject_type: 'car', subject_id: 95, subject_name: 'Mercedes-Benz C200 2019' },
+];
+
+const MOCK_CONTACTS = [
+    { client_id: 3,  client_name: 'Jane Doe',          client_email: 'jane@example.com',         client_phone: '+254712345678', secondary_contact_names: 'John Doe',           secondary_contact_phone: '+254700111222', status: 'verified',     verified_at: '2026-05-02T10:20:00Z', otp_expires_at: null },
+    { client_id: 5,  client_name: 'Linda Wanjiku',     client_email: 'linda.w@example.com',      client_phone: '+254721555444', secondary_contact_names: 'Mary Wanjiku',       secondary_contact_phone: '+254700333555', status: 'verified',     verified_at: '2026-04-29T16:11:00Z', otp_expires_at: null },
+    { client_id: 6,  client_name: 'Faith Wambui',      client_email: 'faith.w@example.com',      client_phone: '+254733002211', secondary_contact_names: 'Joseph Mwangi',      secondary_contact_phone: '+254700777888', status: 'otp_sent',     verified_at: null,                    otp_expires_at: '2026-05-22T18:00:00Z' },
+    { client_id: 9,  client_name: 'Brian Otieno',      client_email: 'brian.o@example.com',      client_phone: '+254700123987', secondary_contact_names: null,                 secondary_contact_phone: null,            status: 'not_started',  verified_at: null,                    otp_expires_at: null },
+    { client_id: 11, client_name: 'Aisha Hassan',      client_email: 'aisha.h@example.com',      client_phone: '+254712909090', secondary_contact_names: 'Said Hassan',        secondary_contact_phone: '+254700909090', status: 'verified',     verified_at: '2026-04-25T08:45:00Z', otp_expires_at: null },
+    { client_id: 12, client_name: 'Stephanie Wairimu', client_email: 'steph.w@example.com',      client_phone: '+254722111000', secondary_contact_names: null,                 secondary_contact_phone: null,            status: 'not_started',  verified_at: null,                    otp_expires_at: null },
+    { client_id: 17, client_name: 'Kevin Mutua',       client_email: 'kevin.m@example.com',      client_phone: '+254700414141', secondary_contact_names: 'Esther Mutua',       secondary_contact_phone: '+254700414242', status: 'verified',     verified_at: '2026-04-18T14:00:00Z', otp_expires_at: null },
+    { client_id: 19, client_name: 'Cynthia Achieng',   client_email: 'cynthia.a@example.com',    client_phone: '+254711445566', secondary_contact_names: 'Beatrice Achieng',   secondary_contact_phone: '+254700556677', status: 'otp_sent',     verified_at: null,                    otp_expires_at: '2026-05-21T12:30:00Z' },
+    { client_id: 22, client_name: 'Samuel Kariuki',    client_email: 'sam.k@example.com',        client_phone: '+254733998877', secondary_contact_names: 'Lucy Kariuki',       secondary_contact_phone: '+254700887766', status: 'verified',     verified_at: '2026-04-10T09:30:00Z', otp_expires_at: null },
+    { client_id: 25, client_name: 'Mark Otieno',       client_email: 'mark.o@example.com',      client_phone: '+254722121212', secondary_contact_names: 'Grace Otieno',       secondary_contact_phone: '+254700131313', status: 'verified',     verified_at: '2026-04-02T18:22:00Z', otp_expires_at: null },
+    { client_id: 27, client_name: 'Vincent Owino',     client_email: 'vincent.o@example.com',    client_phone: '+254700656565', secondary_contact_names: null,                 secondary_contact_phone: null,            status: 'not_started',  verified_at: null,                    otp_expires_at: null },
+    { client_id: 28, client_name: 'Mike Wanyama',      client_email: 'mike.w@example.com',      client_phone: '+254712020202', secondary_contact_names: 'Caroline Wanyama',   secondary_contact_phone: '+254700020203', status: 'verified',     verified_at: '2026-03-28T11:11:00Z', otp_expires_at: null },
+    { client_id: 33, client_name: 'Naomi Chebet',      client_email: 'naomi.c@example.com',      client_phone: '+254733676767', secondary_contact_names: 'Eric Chebet',        secondary_contact_phone: '+254700676868', status: 'otp_sent',     verified_at: null,                    otp_expires_at: '2026-05-20T20:00:00Z' },
+    { client_id: 41, client_name: 'Eric Mboya',        client_email: 'eric.m@example.com',      client_phone: '+254711343434', secondary_contact_names: 'Akinyi Mboya',       secondary_contact_phone: '+254700343535', status: 'verified',     verified_at: '2026-03-19T07:50:00Z', otp_expires_at: null },
+    { client_id: 47, client_name: 'Diana Njeri',       client_email: 'diana.n@example.com',      client_phone: '+254700818181', secondary_contact_names: null,                 secondary_contact_phone: null,            status: 'not_started',  verified_at: null,                    otp_expires_at: null },
+    { client_id: 52, client_name: 'Andrew Kibet',      client_email: 'andrew.k@example.com',    client_phone: '+254722858585', secondary_contact_names: 'Rose Kibet',         secondary_contact_phone: '+254700858686', status: 'verified',     verified_at: '2026-03-12T13:00:00Z', otp_expires_at: null },
+    { client_id: 58, client_name: 'Hellen Atieno',     client_email: 'hellen.a@example.com',    client_phone: '+254712747474', secondary_contact_names: 'Paul Atieno',        secondary_contact_phone: '+254700747575', status: 'otp_sent',     verified_at: null,                    otp_expires_at: '2026-05-23T09:00:00Z' },
+    { client_id: 63, client_name: 'Tony Maina',        client_email: 'tony.m@example.com',      client_phone: '+254700626262', secondary_contact_names: null,                 secondary_contact_phone: null,            status: 'not_started',  verified_at: null,                    otp_expires_at: null },
+    { client_id: 70, client_name: 'Margaret Nyambura', client_email: 'margaret.n@example.com',  client_phone: '+254733515151', secondary_contact_names: 'David Nyambura',     secondary_contact_phone: '+254700515252', status: 'verified',     verified_at: '2026-02-28T15:40:00Z', otp_expires_at: null },
+    { client_id: 78, client_name: 'Ali Mohammed',      client_email: 'ali.m@example.com',       client_phone: '+254712393939', secondary_contact_names: 'Fatuma Mohammed',    secondary_contact_phone: '+254700393940', status: 'verified',     verified_at: '2026-02-21T08:05:00Z', otp_expires_at: null },
+    { client_id: 84, client_name: 'Christine Were',    client_email: 'christine.w@example.com', client_phone: '+254700272727', secondary_contact_names: null,                 secondary_contact_phone: null,            status: 'not_started',  verified_at: null,                    otp_expires_at: null },
+    { client_id: 91, client_name: 'Brenda Cherono',    client_email: 'brenda.c@example.com',    client_phone: '+254733161616', secondary_contact_names: 'Mike Cherono',       secondary_contact_phone: '+254700161717', status: 'otp_sent',     verified_at: null,                    otp_expires_at: '2026-05-24T11:30:00Z' },
+];
+
+function mockRatingsStats() {
+    const groups = { car: [], host: [], client: [] };
+    MOCK_RATINGS.forEach(r => { if (groups[r.type]) groups[r.type].push(r.rating); });
+    const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+    return {
+        car_count: groups.car.length,    car_average: avg(groups.car),
+        host_count: groups.host.length,  host_average: avg(groups.host),
+        client_count: groups.client.length, client_average: avg(groups.client),
+    };
+}
+
+function mockRatingsList(params) {
+    let rows = MOCK_RATINGS.slice();
+    if (params.type) rows = rows.filter(r => r.type === params.type);
+    if (params.rating_value) rows = rows.filter(r => r.rating === Number(params.rating_value));
+    if (params.search) {
+        const q = String(params.search).toLowerCase();
+        rows = rows.filter(r =>
+            (r.author_name || '').toLowerCase().includes(q) ||
+            (r.subject_name || '').toLowerCase().includes(q) ||
+            (r.review || '').toLowerCase().includes(q)
+        );
+    }
+    rows.sort((a, b) => {
+        const av = new Date(a.created_at).getTime();
+        const bv = new Date(b.created_at).getTime();
+        return params.order === 'asc' ? av - bv : bv - av;
+    });
+    const total = rows.length;
+    const limit = params.limit || MOD_PAGE_SIZE;
+    const page = params.page || 1;
+    const start = (page - 1) * limit;
+    return {
+        items: rows.slice(start, start + limit),
+        total,
+        total_pages: Math.max(1, Math.ceil(total / limit)),
+        page,
+    };
+}
+
+function mockSecondaryContactsStats() {
+    const verified = MOCK_CONTACTS.filter(c => c.status === 'verified').length;
+    const otpSent = MOCK_CONTACTS.filter(c => c.status === 'otp_sent').length;
+    const notStarted = MOCK_CONTACTS.filter(c => c.status === 'not_started').length;
+    return { total_clients: MOCK_CONTACTS.length, verified, otp_sent: otpSent, not_started: notStarted };
+}
+
+function mockSecondaryContactsList(params) {
+    let rows = MOCK_CONTACTS.slice();
+    if (params.status_filter) rows = rows.filter(r => r.status === params.status_filter);
+    if (params.has_contact === 'true') rows = rows.filter(r => r.status !== 'not_started');
+    if (params.has_contact === 'false') rows = rows.filter(r => r.status === 'not_started');
+    if (params.search) {
+        const q = String(params.search).toLowerCase();
+        rows = rows.filter(r =>
+            (r.client_name || '').toLowerCase().includes(q) ||
+            (r.client_email || '').toLowerCase().includes(q) ||
+            (r.client_phone || '').toLowerCase().includes(q) ||
+            (r.secondary_contact_names || '').toLowerCase().includes(q) ||
+            (r.secondary_contact_phone || '').toLowerCase().includes(q)
+        );
+    }
+    rows.sort((a, b) => params.order === 'asc' ? a.client_id - b.client_id : b.client_id - a.client_id);
+    const total = rows.length;
+    const limit = params.limit || MOD_PAGE_SIZE;
+    const page = params.page || 1;
+    const start = (page - 1) * limit;
+    return {
+        items: rows.slice(start, start + limit),
+        total,
+        total_pages: Math.max(1, Math.ceil(total / limit)),
+        page,
+    };
+}
+
+// Tiny delay so the "Loading…" state is briefly visible
+const mockDelay = (ms = 250) => new Promise(r => setTimeout(r, ms));
+// ─── END MOCK DATA ───────────────────────────────────────────────────────
+
+function initModerationPage() {
+    if (!moderationInited) {
+        bindModerationFilters();
+        moderationInited = true;
+    }
+    switchModerationTab(moderationActiveTab);
+}
+
+function bindModerationFilters() {
+    const debounced = (state, loader) => {
+        return () => {
+            clearTimeout(state.searchTimer);
+            state.searchTimer = setTimeout(() => {
+                state.page = 1;
+                loader();
+            }, 300);
+        };
+    };
+
+    document.getElementById('ratingsTypeFilter').addEventListener('change', e => {
+        ratingsState.type = e.target.value;
+        ratingsState.page = 1;
+        loadRatings();
+        loadRatingsStats();
+    });
+    document.getElementById('ratingsStarsFilter').addEventListener('change', e => {
+        ratingsState.rating = e.target.value;
+        ratingsState.page = 1;
+        loadRatings();
+    });
+    document.getElementById('ratingsOrderFilter').addEventListener('change', e => {
+        ratingsState.order = e.target.value;
+        ratingsState.page = 1;
+        loadRatings();
+    });
+    document.getElementById('ratingsSearchInput').addEventListener('input', e => {
+        ratingsState.search = e.target.value.trim();
+        debounced(ratingsState, loadRatings)();
+    });
+
+    document.getElementById('contactsStatusFilter').addEventListener('change', e => {
+        contactsState.status = e.target.value;
+        contactsState.page = 1;
+        loadSecondaryContacts();
+        loadSecondaryContactsStats();
+    });
+    document.getElementById('contactsHasContactFilter').addEventListener('change', e => {
+        contactsState.hasContact = e.target.value;
+        contactsState.page = 1;
+        loadSecondaryContacts();
+    });
+    document.getElementById('contactsOrderFilter').addEventListener('change', e => {
+        contactsState.order = e.target.value;
+        contactsState.page = 1;
+        loadSecondaryContacts();
+    });
+    document.getElementById('contactsSearchInput').addEventListener('input', e => {
+        contactsState.search = e.target.value.trim();
+        debounced(contactsState, loadSecondaryContacts)();
+    });
+}
+
+function switchModerationTab(tab) {
+    moderationActiveTab = tab;
+    document.querySelectorAll('.moderation-tab').forEach(btn => {
+        const active = btn.getAttribute('data-mod-tab') === tab;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.getElementById('moderationRatingsPane').style.display = tab === 'ratings' ? 'block' : 'none';
+    document.getElementById('moderationContactsPane').style.display = tab === 'contacts' ? 'block' : 'none';
+
+    if (tab === 'ratings') {
+        loadRatingsStats();
+        loadRatings();
+    } else {
+        loadSecondaryContactsStats();
+        loadSecondaryContacts();
+    }
+}
+
+// ─── Ratings tab ──────────────────────────────────────────────────────────
+async function loadRatingsStats() {
+    const row = document.getElementById('ratingsStatsRow');
+    if (!row) return;
+    try {
+        // const stats = await api.getRatingsStats();
+        await mockDelay(150);
+        const stats = mockRatingsStats();
+        const total = (stats.car_count || 0) + (stats.host_count || 0) + (stats.client_count || 0);
+        const fmtAvg = v => (v == null ? '—' : Number(v).toFixed(2));
+        row.innerHTML = `
+            <div class="mod-stat-card">
+                <div class="mod-stat-label">Total ratings</div>
+                <div class="mod-stat-value">${total.toLocaleString()}</div>
+                <div class="mod-stat-sub">Across cars, hosts, clients</div>
+            </div>
+            <div class="mod-stat-card">
+                <div class="mod-stat-label">Cars</div>
+                <div class="mod-stat-value">${(stats.car_count || 0).toLocaleString()}</div>
+                <div class="mod-stat-sub">Avg ${fmtAvg(stats.car_average)} ★</div>
+            </div>
+            <div class="mod-stat-card">
+                <div class="mod-stat-label">Hosts</div>
+                <div class="mod-stat-value">${(stats.host_count || 0).toLocaleString()}</div>
+                <div class="mod-stat-sub">Avg ${fmtAvg(stats.host_average)} ★</div>
+            </div>
+            <div class="mod-stat-card">
+                <div class="mod-stat-label">Clients</div>
+                <div class="mod-stat-value">${(stats.client_count || 0).toLocaleString()}</div>
+                <div class="mod-stat-sub">Avg ${fmtAvg(stats.client_average)} ★</div>
+            </div>
+        `;
+    } catch (err) {
+        row.innerHTML = `<div class="mod-empty">Could not load stats: ${escapeModText(err.message)}</div>`;
+    }
+}
+
+async function loadRatings() {
+    const container = document.getElementById('ratingsContent');
+    const paginationEl = document.getElementById('ratingsPagination');
+    if (!container || !paginationEl) return;
+    container.innerHTML = '<div class="loading">Loading ratings...</div>';
+    paginationEl.innerHTML = '';
+
+    const params = { page: ratingsState.page, limit: MOD_PAGE_SIZE, order: ratingsState.order };
+    if (ratingsState.type) params.type = ratingsState.type;
+    if (ratingsState.rating) params.rating_value = ratingsState.rating;
+    if (ratingsState.search) params.search = ratingsState.search;
+
+    try {
+        // const data = await api.getRatings(params);
+        await mockDelay();
+        const data = mockRatingsList(params);
+        const items = data.items || data.ratings || [];
+        const total = data.total || 0;
+        const totalPages = data.total_pages || Math.max(1, Math.ceil(total / MOD_PAGE_SIZE));
+
+        if (items.length === 0) {
+            container.innerHTML = '<div class="mod-empty">No ratings match these filters.</div>';
+            return;
+        }
+
+        const rows = items.map(item => `
+            <tr onclick="openRatingDetail('${escapeModAttr(item.type)}', ${Number(item.id)})">
+                <td class="mod-cell-muted">${formatModDate(item.created_at)}</td>
+                <td><span class="mod-badge type-${escapeModAttr(item.type)}">${escapeModText(item.type)}</span></td>
+                <td>
+                    <div class="mod-cell-strong">${escapeModText(item.author_name || '—')}</div>
+                    <div class="mod-cell-muted">${escapeModText(item.author_type || '')}${item.author_id ? ` · #${item.author_id}` : ''}</div>
+                </td>
+                <td>
+                    <div class="mod-cell-strong">${escapeModText(item.subject_name || '—')}</div>
+                    <div class="mod-cell-muted">${escapeModText(item.subject_type || '')}${item.subject_id ? ` · #${item.subject_id}` : ''}</div>
+                </td>
+                <td>${renderStars(item.rating)}</td>
+                <td><div class="mod-cell-review">${escapeModText(item.review || '—')}</div></td>
+            </tr>
+        `).join('');
+
+        container.innerHTML = `
+            <div class="table-container">
+                <table class="mod-table">
+                    <thead>
+                        <tr>
+                            <th>When</th>
+                            <th>Type</th>
+                            <th>Author</th>
+                            <th>Subject</th>
+                            <th>Rating</th>
+                            <th>Review</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+        `;
+        renderModPagination(paginationEl, ratingsState.page, totalPages, total, p => {
+            ratingsState.page = p;
+            loadRatings();
+        });
+    } catch (err) {
+        container.innerHTML = `<div class="mod-empty">Error loading ratings: ${escapeModText(err.message)}</div>`;
+    }
+}
+
+async function openRatingDetail(ratingType, ratingId) {
+    modDrawerContext = { kind: 'rating', ratingType, ratingId };
+    showModerationDrawer('Rating detail', '<div class="loading">Loading...</div>', '');
+    try {
+        // const item = await api.getRating(ratingType, ratingId);
+        await mockDelay(180);
+        const item = MOCK_RATINGS.find(r => r.type === ratingType && r.id === Number(ratingId));
+        if (!item) throw new Error('Rating not found');
+        const body = `
+            <div class="mod-field">
+                <div class="mod-field-label">Rating</div>
+                <div class="mod-field-value">${renderStars(item.rating)} <span class="mod-cell-muted">(${item.rating ?? '—'}/5)</span></div>
+            </div>
+            <div class="mod-field">
+                <div class="mod-field-label">Type</div>
+                <div class="mod-field-value"><span class="mod-badge type-${escapeModAttr(item.type)}">${escapeModText(item.type)}</span></div>
+            </div>
+            <div class="mod-field">
+                <div class="mod-field-label">Created</div>
+                <div class="mod-field-value">${formatModDate(item.created_at, true)}</div>
+            </div>
+            <div class="mod-field">
+                <div class="mod-field-label">Author</div>
+                <div class="mod-field-value">${escapeModText(item.author_name || '—')} <span class="mod-cell-muted">· ${escapeModText(item.author_type || '')}${item.author_id ? ` #${item.author_id}` : ''}</span></div>
+            </div>
+            <div class="mod-field">
+                <div class="mod-field-label">Subject</div>
+                <div class="mod-field-value">${escapeModText(item.subject_name || '—')} <span class="mod-cell-muted">· ${escapeModText(item.subject_type || '')}${item.subject_id ? ` #${item.subject_id}` : ''}</span></div>
+            </div>
+            ${item.booking_id ? `
+            <div class="mod-field">
+                <div class="mod-field-label">Booking</div>
+                <div class="mod-field-value">#${Number(item.booking_id)}</div>
+            </div>` : ''}
+            <div class="mod-field">
+                <div class="mod-field-label">Review</div>
+                <div class="mod-field-value review-text">${escapeModText(item.review || '— No review text —')}</div>
+            </div>
+        `;
+        const footer = `<button class="btn-danger" onclick="deleteRatingFromDrawer()">Delete rating</button>`;
+        showModerationDrawer('Rating detail', body, footer);
+    } catch (err) {
+        showModerationDrawer('Rating detail', `<div class="mod-empty">Could not load: ${escapeModText(err.message)}</div>`, '');
+    }
+}
+
+async function deleteRatingFromDrawer() {
+    if (!modDrawerContext || modDrawerContext.kind !== 'rating') return;
+    if (!confirm('Delete this rating? This cannot be undone.')) return;
+    const footer = document.getElementById('modDrawerFooter');
+    const btn = footer ? footer.querySelector('button') : null;
+    if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
+    try {
+        // await api.deleteRating(modDrawerContext.ratingType, modDrawerContext.ratingId);
+        await mockDelay(250);
+        const idx = MOCK_RATINGS.findIndex(r => r.type === modDrawerContext.ratingType && r.id === Number(modDrawerContext.ratingId));
+        if (idx !== -1) MOCK_RATINGS.splice(idx, 1);
+        closeModerationDrawer();
+        loadRatings();
+        loadRatingsStats();
+    } catch (err) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Delete rating'; }
+        alert('Error deleting rating: ' + err.message);
+    }
+}
+
+// ─── Secondary contacts tab ──────────────────────────────────────────────
+async function loadSecondaryContactsStats() {
+    const row = document.getElementById('contactsStatsRow');
+    if (!row) return;
+    try {
+        // const stats = await api.getSecondaryContactsStats();
+        await mockDelay(150);
+        const stats = mockSecondaryContactsStats();
+        const verified = stats.verified || 0;
+        const otpSent = stats.otp_sent || 0;
+        const notStarted = stats.not_started || 0;
+        const total = stats.total_clients ?? (verified + otpSent + notStarted);
+        row.innerHTML = `
+            <div class="mod-stat-card">
+                <div class="mod-stat-label">Total clients</div>
+                <div class="mod-stat-value">${Number(total).toLocaleString()}</div>
+                <div class="mod-stat-sub">All client accounts</div>
+            </div>
+            <div class="mod-stat-card">
+                <div class="mod-stat-label">Verified</div>
+                <div class="mod-stat-value">${verified.toLocaleString()}</div>
+                <div class="mod-stat-sub">Completed OTP verification</div>
+            </div>
+            <div class="mod-stat-card">
+                <div class="mod-stat-label">OTP sent</div>
+                <div class="mod-stat-value">${otpSent.toLocaleString()}</div>
+                <div class="mod-stat-sub">Awaiting verification</div>
+            </div>
+            <div class="mod-stat-card">
+                <div class="mod-stat-label">Not started</div>
+                <div class="mod-stat-value">${notStarted.toLocaleString()}</div>
+                <div class="mod-stat-sub">No contact captured</div>
+            </div>
+        `;
+    } catch (err) {
+        row.innerHTML = `<div class="mod-empty">Could not load stats: ${escapeModText(err.message)}</div>`;
+    }
+}
+
+async function loadSecondaryContacts() {
+    const container = document.getElementById('contactsContent');
+    const paginationEl = document.getElementById('contactsPagination');
+    if (!container || !paginationEl) return;
+    container.innerHTML = '<div class="loading">Loading clients...</div>';
+    paginationEl.innerHTML = '';
+
+    const params = { page: contactsState.page, limit: MOD_PAGE_SIZE, order: contactsState.order };
+    if (contactsState.status) params.status_filter = contactsState.status;
+    if (contactsState.hasContact) params.has_contact = contactsState.hasContact;
+    if (contactsState.search) params.search = contactsState.search;
+
+    try {
+        // const data = await api.getSecondaryContacts(params);
+        await mockDelay();
+        const data = mockSecondaryContactsList(params);
+        const items = data.items || data.contacts || [];
+        const total = data.total || 0;
+        const totalPages = data.total_pages || Math.max(1, Math.ceil(total / MOD_PAGE_SIZE));
+
+        if (items.length === 0) {
+            container.innerHTML = '<div class="mod-empty">No clients match these filters.</div>';
+            return;
+        }
+
+        const rows = items.map(item => `
+            <tr onclick="openSecondaryContactDetail(${Number(item.client_id)})">
+                <td class="mod-cell-muted">#${Number(item.client_id)}</td>
+                <td>
+                    <div class="mod-cell-strong">${escapeModText(item.client_name || '—')}</div>
+                    <div class="mod-cell-muted">${escapeModText(item.client_email || '')}</div>
+                </td>
+                <td class="mod-cell-muted">${escapeModText(item.client_phone || '—')}</td>
+                <td>
+                    <div class="mod-cell-strong">${escapeModText(item.secondary_contact_names || '—')}</div>
+                    <div class="mod-cell-muted">${escapeModText(item.secondary_contact_phone || '')}</div>
+                </td>
+                <td><span class="mod-badge status-${escapeModAttr(item.status || 'not_started')}">${escapeModText(formatContactStatus(item.status))}</span></td>
+                <td class="mod-cell-muted">${item.verified_at ? formatModDate(item.verified_at) : '—'}</td>
+            </tr>
+        `).join('');
+
+        container.innerHTML = `
+            <div class="table-container">
+                <table class="mod-table">
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Name / Email</th>
+                            <th>Phone</th>
+                            <th>Secondary contact</th>
+                            <th>Status</th>
+                            <th>Verified</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+        `;
+        renderModPagination(paginationEl, contactsState.page, totalPages, total, p => {
+            contactsState.page = p;
+            loadSecondaryContacts();
+        });
+    } catch (err) {
+        container.innerHTML = `<div class="mod-empty">Error loading clients: ${escapeModText(err.message)}</div>`;
+    }
+}
+
+async function openSecondaryContactDetail(clientId) {
+    modDrawerContext = { kind: 'contact', clientId };
+    showModerationDrawer('Secondary contact', '<div class="loading">Loading...</div>', '');
+    try {
+        // const item = await api.getSecondaryContact(clientId);
+        await mockDelay(180);
+        const item = MOCK_CONTACTS.find(c => c.client_id === Number(clientId));
+        if (!item) throw new Error('Client not found');
+        const body = `
+            <div class="mod-field">
+                <div class="mod-field-label">Client</div>
+                <div class="mod-field-value">${escapeModText(item.client_name || '—')} <span class="mod-cell-muted">· #${Number(item.client_id)}</span></div>
+            </div>
+            <div class="mod-field">
+                <div class="mod-field-label">Client email</div>
+                <div class="mod-field-value">${escapeModText(item.client_email || '—')}</div>
+            </div>
+            <div class="mod-field">
+                <div class="mod-field-label">Client phone</div>
+                <div class="mod-field-value">${escapeModText(item.client_phone || '—')}</div>
+            </div>
+            <div class="mod-field">
+                <div class="mod-field-label">Status</div>
+                <div class="mod-field-value"><span class="mod-badge status-${escapeModAttr(item.status || 'not_started')}">${escapeModText(formatContactStatus(item.status))}</span></div>
+            </div>
+            <div class="mod-field">
+                <div class="mod-field-label">Secondary contact name</div>
+                <div class="mod-field-value">${escapeModText(item.secondary_contact_names || '—')}</div>
+            </div>
+            <div class="mod-field">
+                <div class="mod-field-label">Secondary contact phone</div>
+                <div class="mod-field-value">${escapeModText(item.secondary_contact_phone || '—')}</div>
+            </div>
+            ${item.verified_at ? `
+            <div class="mod-field">
+                <div class="mod-field-label">Verified at</div>
+                <div class="mod-field-value">${formatModDate(item.verified_at, true)}</div>
+            </div>` : ''}
+            ${item.otp_expires_at ? `
+            <div class="mod-field">
+                <div class="mod-field-label">OTP expires at</div>
+                <div class="mod-field-value">${formatModDate(item.otp_expires_at, true)}</div>
+            </div>` : ''}
+        `;
+        const footer = `<button class="btn-danger" onclick="clearSecondaryContactFromDrawer()">Clear &amp; force restart</button>`;
+        showModerationDrawer('Secondary contact', body, footer);
+    } catch (err) {
+        showModerationDrawer('Secondary contact', `<div class="mod-empty">Could not load: ${escapeModText(err.message)}</div>`, '');
+    }
+}
+
+async function clearSecondaryContactFromDrawer() {
+    if (!modDrawerContext || modDrawerContext.kind !== 'contact') return;
+    if (!confirm('Clear this secondary contact? The client will need to start the OTP flow again.')) return;
+    const footer = document.getElementById('modDrawerFooter');
+    const btn = footer ? footer.querySelector('button') : null;
+    if (btn) { btn.disabled = true; btn.textContent = 'Clearing…'; }
+    try {
+        // await api.clearSecondaryContact(modDrawerContext.clientId);
+        await mockDelay(250);
+        const c = MOCK_CONTACTS.find(x => x.client_id === Number(modDrawerContext.clientId));
+        if (c) {
+            c.secondary_contact_names = null;
+            c.secondary_contact_phone = null;
+            c.status = 'not_started';
+            c.verified_at = null;
+            c.otp_expires_at = null;
+        }
+        closeModerationDrawer();
+        loadSecondaryContacts();
+        loadSecondaryContactsStats();
+    } catch (err) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Clear & force restart'; }
+        alert('Error clearing contact: ' + err.message);
+    }
+}
+
+// ─── Shared drawer + helpers ─────────────────────────────────────────────
+function showModerationDrawer(title, bodyHtml, footerHtml) {
+    const drawer = document.getElementById('moderationDrawer');
+    if (!drawer) return;
+    document.getElementById('modDrawerTitle').textContent = title;
+    document.getElementById('modDrawerBody').innerHTML = bodyHtml;
+    document.getElementById('modDrawerFooter').innerHTML = footerHtml || '';
+    drawer.style.display = 'flex';
+    drawer.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModerationDrawer() {
+    const drawer = document.getElementById('moderationDrawer');
+    if (!drawer) return;
+    drawer.style.display = 'none';
+    drawer.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    modDrawerContext = null;
+}
+
+function renderModPagination(el, page, totalPages, total, onChange) {
+    if (totalPages <= 1) {
+        el.innerHTML = `<span class="mod-pagination-info">${total.toLocaleString()} ${total === 1 ? 'result' : 'results'}</span>`;
+        return;
+    }
+    const prevDisabled = page <= 1 ? 'disabled' : '';
+    const nextDisabled = page >= totalPages ? 'disabled' : '';
+    el.innerHTML = `
+        <button class="btn btn-secondary" ${prevDisabled} data-act="prev">Previous</button>
+        <span class="mod-pagination-info">Page ${page} of ${totalPages} · ${total.toLocaleString()} total</span>
+        <button class="btn btn-secondary" ${nextDisabled} data-act="next">Next</button>
+    `;
+    const [prevBtn, , nextBtn] = el.children;
+    if (prevBtn && page > 1) prevBtn.addEventListener('click', () => onChange(page - 1));
+    if (nextBtn && page < totalPages) nextBtn.addEventListener('click', () => onChange(page + 1));
+}
+
+function renderStars(value) {
+    const v = Math.max(0, Math.min(5, Math.round(Number(value) || 0)));
+    return `<span class="mod-stars">${'★'.repeat(v)}<span class="empty">${'★'.repeat(5 - v)}</span></span>`;
+}
+
+function formatContactStatus(status) {
+    if (!status) return 'Not started';
+    const map = { not_started: 'Not started', otp_sent: 'OTP sent', verified: 'Verified' };
+    return map[status] || status;
+}
+
+function formatModDate(value, withTime = false) {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (isNaN(d)) return value;
+    return withTime
+        ? d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+        : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function escapeModText(value) {
+    if (value == null) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function escapeModAttr(value) {
+    return escapeModText(value).replace(/`/g, '&#96;');
 }

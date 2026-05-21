@@ -31,6 +31,7 @@
                 <a href="#" class="nav-item" data-page="subscribers">Subscribers</a>
                 <a href="#" class="nav-item" data-page="revenue">Revenue</a>
                 <a href="#" class="nav-item" data-page="support">Support</a>
+                <a href="#" class="nav-item" data-page="moderation">Moderation</a>
                 <a href="#" class="nav-item" data-page="admins" id="adminsNavItem" style="display: none;">Admins</a>
             </nav>
         </aside>
@@ -742,6 +743,95 @@
                             </div>
                         </section>
                     </div>
+                </div>
+
+                <div id="moderationPage" class="page-content" style="display: none;">
+                    <div class="moderation-tabs" role="tablist">
+                        <button type="button" class="moderation-tab active" role="tab" aria-selected="true" data-mod-tab="ratings" onclick="switchModerationTab('ratings')">Ratings</button>
+                        <button type="button" class="moderation-tab" role="tab" aria-selected="false" data-mod-tab="contacts" onclick="switchModerationTab('contacts')">Secondary Contacts</button>
+                    </div>
+
+                    <!-- Ratings tab -->
+                    <div id="moderationRatingsPane" class="moderation-pane">
+                        <div class="mod-stats-row" id="ratingsStatsRow">
+                            <div class="loading">Loading stats...</div>
+                        </div>
+
+                        <div class="content-section">
+                            <div class="mod-filters">
+                                <select id="ratingsTypeFilter" class="mod-filter-select">
+                                    <option value="">All types</option>
+                                    <option value="car">Car</option>
+                                    <option value="host">Host</option>
+                                    <option value="client">Client</option>
+                                </select>
+                                <select id="ratingsStarsFilter" class="mod-filter-select">
+                                    <option value="">All stars</option>
+                                    <option value="5">5 stars</option>
+                                    <option value="4">4 stars</option>
+                                    <option value="3">3 stars</option>
+                                    <option value="2">2 stars</option>
+                                    <option value="1">1 star</option>
+                                </select>
+                                <select id="ratingsOrderFilter" class="mod-filter-select">
+                                    <option value="desc">Newest first</option>
+                                    <option value="asc">Oldest first</option>
+                                </select>
+                                <input type="text" id="ratingsSearchInput" placeholder="Search author, subject, review…" class="mod-filter-input">
+                            </div>
+                            <div id="ratingsContent">
+                                <div class="loading">Loading ratings...</div>
+                            </div>
+                            <div id="ratingsPagination" class="mod-pagination"></div>
+                        </div>
+                    </div>
+
+                    <!-- Secondary contacts tab -->
+                    <div id="moderationContactsPane" class="moderation-pane" style="display: none;">
+                        <div class="mod-stats-row" id="contactsStatsRow">
+                            <div class="loading">Loading stats...</div>
+                        </div>
+
+                        <div class="content-section">
+                            <div class="mod-filters">
+                                <select id="contactsStatusFilter" class="mod-filter-select">
+                                    <option value="">All statuses</option>
+                                    <option value="not_started">Not started</option>
+                                    <option value="otp_sent">OTP sent</option>
+                                    <option value="verified">Verified</option>
+                                </select>
+                                <select id="contactsHasContactFilter" class="mod-filter-select">
+                                    <option value="">All clients</option>
+                                    <option value="true">Has started</option>
+                                    <option value="false">Not started</option>
+                                </select>
+                                <select id="contactsOrderFilter" class="mod-filter-select">
+                                    <option value="desc">Newest client</option>
+                                    <option value="asc">Oldest client</option>
+                                </select>
+                                <input type="text" id="contactsSearchInput" placeholder="Search client or secondary contact…" class="mod-filter-input">
+                            </div>
+                            <div id="contactsContent">
+                                <div class="loading">Loading clients...</div>
+                            </div>
+                            <div id="contactsPagination" class="mod-pagination"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Moderation detail drawer -->
+                <div id="moderationDrawer" class="mod-drawer" style="display: none;" aria-hidden="true">
+                    <div class="mod-drawer-backdrop" onclick="closeModerationDrawer()"></div>
+                    <aside class="mod-drawer-panel" role="dialog" aria-labelledby="modDrawerTitle">
+                        <div class="mod-drawer-header">
+                            <h3 id="modDrawerTitle">Details</h3>
+                            <button type="button" class="mod-drawer-close" onclick="closeModerationDrawer()" aria-label="Close">&times;</button>
+                        </div>
+                        <div id="modDrawerBody" class="mod-drawer-body">
+                            <div class="loading">Loading...</div>
+                        </div>
+                        <div id="modDrawerFooter" class="mod-drawer-footer"></div>
+                    </aside>
                 </div>
             </div>
         </main>

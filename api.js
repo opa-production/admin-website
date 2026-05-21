@@ -292,5 +292,23 @@ const api = {
     sendNewsletter: (data) => apiRequest('/admin/subscribers/send', {
         method: 'POST',
         body: JSON.stringify(data)
-    })
+    }),
+
+    // Ratings moderation
+    getRatings: (params = {}) => {
+        const queryString = new URLSearchParams(params).toString();
+        return apiRequest(`/admin/ratings${queryString ? '?' + queryString : ''}`);
+    },
+    getRatingsStats: () => apiRequest('/admin/ratings/stats'),
+    getRating: (ratingType, ratingId) => apiRequest(`/admin/ratings/${ratingType}/${ratingId}`),
+    deleteRating: (ratingType, ratingId) => apiRequest(`/admin/ratings/${ratingType}/${ratingId}`, { method: 'DELETE' }),
+
+    // Secondary contacts
+    getSecondaryContacts: (params = {}) => {
+        const queryString = new URLSearchParams(params).toString();
+        return apiRequest(`/admin/secondary-contacts${queryString ? '?' + queryString : ''}`);
+    },
+    getSecondaryContactsStats: () => apiRequest('/admin/secondary-contacts/stats'),
+    getSecondaryContact: (clientId) => apiRequest(`/admin/secondary-contacts/${clientId}`),
+    clearSecondaryContact: (clientId) => apiRequest(`/admin/secondary-contacts/${clientId}`, { method: 'DELETE' })
 };
