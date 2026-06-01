@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node --check \"C:\\\\Users\\\\PC\\\\OneDrive\\\\Desktop\\\\admin-website\\\\dashboard.js\")"
+      "Bash(node --check \"C:\\\\Users\\\\PC\\\\OneDrive\\\\Desktop\\\\admin-website\\\\dashboard.js\")",
+      "Bash(python -c ' *)"
     ]
   }
 }
