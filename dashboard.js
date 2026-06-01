@@ -3305,7 +3305,9 @@ async function loadClientsForNotifications() {
 async function sendClientNotification(event) {
     event.preventDefault();
     
-    const form = document.getElementById('clientNotificationFormEl');
+    const form = (event && event.target && typeof event.target.reset === 'function')
+        ? event.target
+        : document.getElementById('clientNotificationFormEl');
     const resultDiv = document.getElementById('clientNotificationResult');
     const sendBtn = document.getElementById('sendClientNotificationBtn');
     
