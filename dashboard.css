@@ -898,6 +898,12 @@ textarea.form-input-clean {
     border-radius: 12px;
     font-size: 12px;
     font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Keep row action buttons on a single line */
+td.row-actions {
+    white-space: nowrap;
 }
 
 .status-badge.active {
@@ -913,6 +919,27 @@ textarea.form-input-clean {
 .status-badge.pending {
     background-color: #fff3e0;
     color: #e65100;
+}
+
+/* KYC status badges (see kyccheck.md) */
+.status-badge.kyc-verified {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-badge.kyc-pending {
+    background-color: #fff3e0;
+    color: #e65100;
+}
+
+.status-badge.kyc-failed {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
+.status-badge.kyc-not-started {
+    background-color: #eceff1;
+    color: #546e7a;
 }
 
 .action-buttons {

@@ -1177,6 +1177,19 @@ function setupHostSearch() {
 }
 
 // Load hosts
+// Map backend KYC status -> UI label + badge class (see kyccheck.md)
+const KYC_LABEL = {
+    not_started: { label: 'Not Started', cls: 'kyc-not-started' },
+    pending:     { label: 'Pending',     cls: 'kyc-pending' },
+    approved:    { label: 'Verified',    cls: 'kyc-verified' },
+    declined:    { label: 'Failed',      cls: 'kyc-failed' },
+};
+
+function kycBadge(status) {
+    const meta = KYC_LABEL[status] || KYC_LABEL.not_started;
+    return `<span class="status-badge ${meta.cls}">${meta.label}</span>`;
+}
+
 async function loadHosts() {
     const content = document.getElementById('hostsContent');
     
@@ -1199,6 +1212,7 @@ async function loadHosts() {
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Status</th>
+                                <th>KYC</th>
                                 <th>Cars</th>
                                 <th>Payment Methods</th>
                                 <th>Actions</th>
@@ -1210,9 +1224,10 @@ async function loadHosts() {
                                     <td>${host.full_name}</td>
                                     <td>${host.email}</td>
                                     <td><span class="status-badge ${host.is_active ? 'active' : 'inactive'}">${host.is_active ? 'Active' : 'Inactive'}</span></td>
+                                    <td>${kycBadge(host.kyc_status)}</td>
                                     <td>${host.cars_count || 0}</td>
                                     <td>${host.payment_methods_count || 0}</td>
-                                    <td>
+                                    <td class="row-actions">
                                         <button class="btn btn-primary btn-small" onclick="viewHostDetails(${host.id})">View</button>
                                         ${host.is_active 
                                             ? `<button class="btn btn-secondary btn-small" onclick="deactivateHost(${host.id})">Deactivate</button>`
@@ -1418,6 +1433,7 @@ async function loadClients() {
                                 <th>Name</th>
                                 <th>Email</th>
                                 <th>Status</th>
+                                <th>KYC</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -1427,6 +1443,7 @@ async function loadClients() {
                                     <td>${client.full_name}</td>
                                     <td>${client.email}</td>
                                     <td><span class="status-badge ${client.is_active ? 'active' : 'inactive'}">${client.is_active ? 'Active' : 'Inactive'}</span></td>
+                                    <td>${kycBadge(client.kyc_status)}</td>
                                     <td>
                                         <button class="btn btn-primary btn-small" onclick="viewClientDetails(${client.id})">View</button>
                                         ${client.is_active 
