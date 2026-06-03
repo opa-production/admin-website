@@ -306,7 +306,6 @@ function loadPage(page) {
       loadDashboard();
       break;
     case "hosts":
-      setupHostSearch();
       loadHosts();
       break;
     case "clients":
@@ -1260,13 +1259,40 @@ function createRevenueCompositionChart(data) {
 }
 
 // Host management state
+const LIST_PAGE_SIZE = 50;
+
 let currentHostSearch = "";
 let hostSearchTimeout = null;
 let currentHostPage = 1;
-let currentClientPage = 1;
+let hostsAll = []; // full host list held in memory for client-side search/filter/paginate
+let hostFiltersReady = false;
 
-// Setup host search (call once on page load)
-function setupHostSearch() {
+let currentClientSearch = "";
+let clientSearchTimeout = null;
+let currentClientPage = 1;
+let clientsAll = []; // full client list held in memory
+let clientFiltersReady = false;
+
+// Page through a list endpoint and return every row (client-side filtering needs
+// the whole dataset, not just one page). Uses a limit we know the backend honors.
+async function fetchAllPaged(apiFn, key) {
+  const all = [];
+  const limit = 50;
+  let page = 1;
+  while (page <= 200) {
+    // hard cap (10k rows) guards against an endpoint that never shrinks a page
+    const data = await apiFn({ limit, page });
+    const rows = (data && data[key]) || [];
+    all.push(...rows);
+    if (rows.length < limit) break;
+    page++;
+  }
+  return all;
+}
+
+// Setup host search + filters (call once on page load)
+function setupHostFilters() {
+  if (hostFiltersReady) return;
   const searchInput = document.getElementById("hostSearch");
   if (searchInput) {
     searchInput.oninput = (e) => {
@@ -1274,10 +1300,34 @@ function setupHostSearch() {
       hostSearchTimeout = setTimeout(() => {
         currentHostSearch = e.target.value;
         currentHostPage = 1; // reset to first page on a new search
-        loadHosts();
-      }, 300);
+        renderHosts();
+      }, 200);
     };
   }
+  const kyc = document.getElementById("hostKycFilter");
+  if (kyc) kyc.onchange = () => { currentHostPage = 1; renderHosts(); };
+  const cars = document.getElementById("hostCarsFilter");
+  if (cars) cars.onchange = () => { currentHostPage = 1; renderHosts(); };
+  hostFiltersReady = true;
+}
+
+// Setup client search + filters (call once on page load)
+function setupClientFilters() {
+  if (clientFiltersReady) return;
+  const searchInput = document.getElementById("clientSearch");
+  if (searchInput) {
+    searchInput.oninput = (e) => {
+      clearTimeout(clientSearchTimeout);
+      clientSearchTimeout = setTimeout(() => {
+        currentClientSearch = e.target.value;
+        currentClientPage = 1;
+        renderClients();
+      }, 200);
+    };
+  }
+  const kyc = document.getElementById("clientKycFilter");
+  if (kyc) kyc.onchange = () => { currentClientPage = 1; renderClients(); };
+  clientFiltersReady = true;
 }
 
 // Generic list pagination renderer (hosts/clients).
@@ -1309,12 +1359,12 @@ function renderListPagination(containerId, currentPage, returnedCount, limit, to
 
 function goToHostPage(page) {
   currentHostPage = page;
-  loadHosts();
+  renderHosts();
 }
 
 function goToClientPage(page) {
   currentClientPage = page;
-  loadClients();
+  renderClients();
 }
 
 // Load hosts
@@ -1334,18 +1384,52 @@ function kycBadge(status) {
 async function loadHosts() {
   const content = document.getElementById("hostsContent");
 
-  // Setup search if not already done
-  setupHostSearch();
+  // Wire search + filters once
+  setupHostFilters();
 
   try {
-    const params = { limit: 50, page: currentHostPage };
-    if (currentHostSearch) {
-      params.search = currentHostSearch;
-    }
+    content.innerHTML = '<div class="loading">Loading hosts...</div>';
+    hostsAll = await fetchAllPaged(api.getHosts, "hosts");
+    renderHosts();
+  } catch (error) {
+    console.error("Error loading hosts:", error);
+    content.innerHTML = '<div class="empty-state">Error loading hosts</div>';
+  }
+}
 
-    const data = await api.getHosts(params);
-    if (data.hosts && data.hosts.length > 0) {
-      content.innerHTML = `
+// Apply current search + KYC + cars filters to hostsAll, then paginate client-side.
+function renderHosts() {
+  const content = document.getElementById("hostsContent");
+  if (!content) return;
+
+  const search = (currentHostSearch || "").trim().toLowerCase();
+  const kyc = document.getElementById("hostKycFilter")?.value || "";
+  const cars = document.getElementById("hostCarsFilter")?.value || "";
+
+  const filtered = hostsAll.filter((host) => {
+    if (search) {
+      const hay = `${host.full_name || ""} ${host.email || ""}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    if (kyc && (host.kyc_status || "not_started") !== kyc) return false;
+    if (cars === "with" && !(host.cars_count > 0)) return false;
+    if (cars === "without" && host.cars_count > 0) return false;
+    return true;
+  });
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / LIST_PAGE_SIZE));
+  if (currentHostPage > totalPages) currentHostPage = totalPages;
+  const start = (currentHostPage - 1) * LIST_PAGE_SIZE;
+  const pageRows = filtered.slice(start, start + LIST_PAGE_SIZE);
+
+  if (pageRows.length === 0) {
+    content.innerHTML = '<div class="empty-state">No hosts match the current filters</div>';
+    renderListPagination("hostsPagination", currentHostPage, 0, LIST_PAGE_SIZE, total, "goToHostPage");
+    return;
+  }
+
+  content.innerHTML = `
                 <div class="table-container">
                     <table>
                         <thead>
@@ -1360,7 +1444,7 @@ async function loadHosts() {
                             </tr>
                         </thead>
                         <tbody>
-                            ${data.hosts
+                            ${pageRows
                               .map(
                                 (host) => `
                                 <tr>
@@ -1387,32 +1471,7 @@ async function loadHosts() {
                     </table>
                 </div>
             `;
-      renderListPagination(
-        "hostsPagination",
-        currentHostPage,
-        data.hosts.length,
-        params.limit,
-        data.total,
-        "goToHostPage",
-      );
-    } else {
-      content.innerHTML =
-        currentHostPage > 1
-          ? '<div class="empty-state">No more hosts</div>'
-          : '<div class="empty-state">No hosts found</div>';
-      renderListPagination(
-        "hostsPagination",
-        currentHostPage,
-        0,
-        params.limit,
-        data.total,
-        "goToHostPage",
-      );
-    }
-  } catch (error) {
-    console.error("Error loading hosts:", error);
-    content.innerHTML = '<div class="empty-state">Error loading hosts</div>';
-  }
+  renderListPagination("hostsPagination", currentHostPage, pageRows.length, LIST_PAGE_SIZE, total, "goToHostPage");
 }
 
 // View host details
@@ -1595,12 +1654,50 @@ async function deleteHost(hostId, reloadAfter = false) {
 // Load clients
 async function loadClients() {
   const content = document.getElementById("clientsContent");
+
+  // Wire search + filters once
+  setupClientFilters();
+
   try {
-    const params = { limit: 50, page: currentClientPage };
-    const data = await api.getClients(params);
-    console.log("Clients data:", data);
-    if (data.clients && data.clients.length > 0) {
-      content.innerHTML = `
+    content.innerHTML = '<div class="loading">Loading clients...</div>';
+    clientsAll = await fetchAllPaged(api.getClients, "clients");
+    renderClients();
+  } catch (error) {
+    console.error("Error loading clients:", error);
+    content.innerHTML = '<div class="empty-state">Error loading clients</div>';
+  }
+}
+
+// Apply current search + KYC filter to clientsAll, then paginate client-side.
+function renderClients() {
+  const content = document.getElementById("clientsContent");
+  if (!content) return;
+
+  const search = (currentClientSearch || "").trim().toLowerCase();
+  const kyc = document.getElementById("clientKycFilter")?.value || "";
+
+  const filtered = clientsAll.filter((client) => {
+    if (search) {
+      const hay = `${client.full_name || ""} ${client.email || ""}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    if (kyc && (client.kyc_status || "not_started") !== kyc) return false;
+    return true;
+  });
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / LIST_PAGE_SIZE));
+  if (currentClientPage > totalPages) currentClientPage = totalPages;
+  const start = (currentClientPage - 1) * LIST_PAGE_SIZE;
+  const pageRows = filtered.slice(start, start + LIST_PAGE_SIZE);
+
+  if (pageRows.length === 0) {
+    content.innerHTML = '<div class="empty-state">No clients match the current filters</div>';
+    renderListPagination("clientsPagination", currentClientPage, 0, LIST_PAGE_SIZE, total, "goToClientPage");
+    return;
+  }
+
+  content.innerHTML = `
                 <div class="table-container">
                     <table>
                         <thead>
@@ -1613,7 +1710,7 @@ async function loadClients() {
                             </tr>
                         </thead>
                         <tbody>
-                            ${data.clients
+                            ${pageRows
                               .map(
                                 (client) => `
                                 <tr>
@@ -1638,32 +1735,7 @@ async function loadClients() {
                     </table>
                 </div>
             `;
-      renderListPagination(
-        "clientsPagination",
-        currentClientPage,
-        data.clients.length,
-        params.limit,
-        data.total,
-        "goToClientPage",
-      );
-    } else {
-      content.innerHTML =
-        currentClientPage > 1
-          ? '<div class="empty-state">No more clients</div>'
-          : '<div class="empty-state">No clients found</div>';
-      renderListPagination(
-        "clientsPagination",
-        currentClientPage,
-        0,
-        params.limit,
-        data.total,
-        "goToClientPage",
-      );
-    }
-  } catch (error) {
-    console.error("Error loading clients:", error);
-    content.innerHTML = '<div class="empty-state">Error loading clients</div>';
-  }
+  renderListPagination("clientsPagination", currentClientPage, pageRows.length, LIST_PAGE_SIZE, total, "goToClientPage");
 }
 
 // View client details

@@ -121,10 +121,22 @@
 
                 <div id="hostsPage" class="page-content" style="display: none;">
                     <div class="content-section">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                             <h2 style="margin: 0;">Hosts</h2>
-                            <div style="display: flex; gap: 10px;">
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                                 <input type="text" id="hostSearch" placeholder="Search by name or email..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 300px;">
+                                <select id="hostKycFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                    <option value="">All KYC</option>
+                                    <option value="approved">Verified</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="declined">Failed</option>
+                                    <option value="not_started">Not Started</option>
+                                </select>
+                                <select id="hostCarsFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                    <option value="">All Hosts</option>
+                                    <option value="with">With cars</option>
+                                    <option value="without">Without cars</option>
+                                </select>
                             </div>
                         </div>
                         <div id="hostsContent">
@@ -148,7 +160,19 @@
 
                 <div id="clientsPage" class="page-content" style="display: none;">
                     <div class="content-section">
-                        <h2>Clients</h2>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                            <h2 style="margin: 0;">Clients</h2>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <input type="text" id="clientSearch" placeholder="Search by name or email..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 300px;">
+                                <select id="clientKycFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                    <option value="">All KYC</option>
+                                    <option value="approved">Verified</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="declined">Failed</option>
+                                    <option value="not_started">Not Started</option>
+                                </select>
+                            </div>
+                        </div>
                         <div id="clientsContent">
                             <div class="loading">Loading clients...</div>
                         </div>
