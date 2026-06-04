@@ -1738,6 +1738,88 @@ function renderClients() {
   renderListPagination("clientsPagination", currentClientPage, pageRows.length, LIST_PAGE_SIZE, total, "goToClientPage");
 }
 
+// ---- Client detail helpers ----
+
+function fmtDate(value) {
+  if (!value) return "N/A";
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? "N/A" : d.toLocaleDateString();
+}
+
+function fmtDateTime(value) {
+  if (!value) return "N/A";
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? "N/A" : d.toLocaleString();
+}
+
+function clientText(value) {
+  return value === null || value === undefined || value === ""
+    ? "N/A"
+    : escapeHtmlText(value);
+}
+
+const SECONDARY_CONTACT_LABEL = {
+  not_started: { label: "Not Started", cls: "inactive" },
+  pending: { label: "Pending", cls: "pending" },
+  verified: { label: "Verified", cls: "active" },
+};
+
+function secondaryContactBadge(status) {
+  const meta =
+    SECONDARY_CONTACT_LABEL[status] || SECONDARY_CONTACT_LABEL.not_started;
+  return `<span class="status-badge ${meta.cls}">${meta.label}</span>`;
+}
+
+function verifiedBadge(isVerified) {
+  return isVerified
+    ? '<span class="status-badge active">Verified</span>'
+    : '<span class="status-badge inactive">Unverified</span>';
+}
+
+function faceMatchPct(score) {
+  if (score === null || score === undefined) return "N/A";
+  return `${Math.round(score * 100)}%`;
+}
+
+// Render a single document thumbnail (or a placeholder when the URL is absent)
+function clientDocThumb(label, url) {
+  const placeholderStyle =
+    "width: 100%; height: 140px; border-radius: 8px; border: 1px dashed #d1d5db; background: #f9fafb; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 13px; text-align: center; padding: 0 8px;";
+  const inner = url
+    ? (() => {
+        const safe = escapeHtmlAttr(url);
+        // referrerpolicy="no-referrer" so Supabase/CDN hotlink protection doesn't
+        // block the inline request; onerror swaps in a placeholder if it still fails.
+        const onerror = `this.onerror=null;this.style.display='none';this.insertAdjacentHTML('afterend','<div style=&quot;${placeholderStyle}&quot;>Preview unavailable — open ${label}</div>');`;
+        return `
+          <a href="${safe}" target="_blank" rel="noopener noreferrer" title="Open ${label}">
+            <img src="${safe}" alt="${label}" loading="lazy" referrerpolicy="no-referrer"
+              onerror="${onerror}"
+              style="width: 100%; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; background: #f5f5f5; display: block;" />
+          </a>`;
+      })()
+    : `<div style="${placeholderStyle}">Not provided</div>`;
+  return `
+    <div class="client-doc">
+      <div class="detail-label" style="margin-bottom: 6px;">${label}</div>
+      ${inner}
+    </div>`;
+}
+
+// Render the detail rows for a single KYC record (reused by latest + history)
+function clientKycRecordRows(kyc) {
+  return `
+    <div class="detail-row"><div class="detail-label">Status:</div><div class="detail-value">${kycBadge(kyc.status)}</div></div>
+    <div class="detail-row"><div class="detail-label">Document Type:</div><div class="detail-value">${clientText(kyc.document_type)}</div></div>
+    <div class="detail-row"><div class="detail-label">Verified Name:</div><div class="detail-value">${clientText(kyc.verified_name)}</div></div>
+    <div class="detail-row"><div class="detail-label">Verified DOB:</div><div class="detail-value">${fmtDate(kyc.verified_dob)}</div></div>
+    <div class="detail-row"><div class="detail-label">Verified Gender:</div><div class="detail-value">${clientText(kyc.verified_gender)}</div></div>
+    <div class="detail-row"><div class="detail-label">Face Match Score:</div><div class="detail-value">${faceMatchPct(kyc.face_match_score)}</div></div>
+    <div class="detail-row"><div class="detail-label">Decision Reason:</div><div class="detail-value">${clientText(kyc.decision_reason)}</div></div>
+    <div class="detail-row"><div class="detail-label">Verified At:</div><div class="detail-value">${fmtDateTime(kyc.verified_at)}</div></div>
+    <div class="detail-row"><div class="detail-label">Dojah Reference:</div><div class="detail-value">${clientText(kyc.dojah_reference_id)}</div></div>`;
+}
+
 // View client details
 async function viewClientDetails(clientId) {
   // Hide all pages
@@ -1759,25 +1841,39 @@ async function viewClientDetails(clientId) {
     const client = await api.getClient(clientId);
     hostDetailTitle.textContent = client.full_name || "Client Details";
 
+    const license = client.driving_license;
+    const kyc = client.kyc_latest;
+    const kycHistory = Array.isArray(client.kyc_history)
+      ? client.kyc_history
+      : [];
+
     hostDetailContent.innerHTML = `
             <div class="responsive-detail-grid">
                 <div class="host-detail-section">
                     <h3>Basic Information</h3>
                     <div class="detail-row">
                         <div class="detail-label">Name:</div>
-                        <div class="detail-value">${client.full_name || "N/A"}</div>
+                        <div class="detail-value">${clientText(client.full_name)}</div>
                     </div>
                     <div class="detail-row">
                         <div class="detail-label">Email:</div>
-                        <div class="detail-value">${client.email || "N/A"}</div>
+                        <div class="detail-value">${clientText(client.email)}</div>
                     </div>
                     <div class="detail-row">
                         <div class="detail-label">Mobile Number:</div>
-                        <div class="detail-value">${client.mobile_number || "N/A"}</div>
+                        <div class="detail-value">${clientText(client.mobile_number)}</div>
                     </div>
                     <div class="detail-row">
                         <div class="detail-label">ID Number:</div>
-                        <div class="detail-value">${client.id_number || "N/A"}</div>
+                        <div class="detail-value">${clientText(client.id_number)}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Date of Birth:</div>
+                        <div class="detail-value">${fmtDate(client.date_of_birth)}</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Gender:</div>
+                        <div class="detail-value">${clientText(client.gender)}</div>
                     </div>
                     <div class="detail-row">
                         <div class="detail-label">Status:</div>
@@ -1788,28 +1884,95 @@ async function viewClientDetails(clientId) {
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="host-detail-section">
-                    <h3>Additional Information</h3>
+                    <h3>Secondary Contact</h3>
                     <div class="detail-row">
-                        <div class="detail-label">Bio:</div>
-                        <div class="detail-value">${client.bio || "N/A"}</div>
+                        <div class="detail-label">Names:</div>
+                        <div class="detail-value">${clientText(client.secondary_contact_names)}</div>
                     </div>
                     <div class="detail-row">
-                        <div class="detail-label">Fun Fact:</div>
-                        <div class="detail-value">${client.fun_fact || "N/A"}</div>
+                        <div class="detail-label">Phone:</div>
+                        <div class="detail-value">${clientText(client.secondary_contact_phone)}</div>
                     </div>
                     <div class="detail-row">
-                        <div class="detail-label">Created At:</div>
-                        <div class="detail-value">${new Date(client.created_at).toLocaleString()}</div>
+                        <div class="detail-label">Status:</div>
+                        <div class="detail-value">${secondaryContactBadge(client.secondary_contact_status)}</div>
                     </div>
                     <div class="detail-row">
-                        <div class="detail-label">Last Updated:</div>
-                        <div class="detail-value">${client.updated_at ? new Date(client.updated_at).toLocaleString() : "N/A"}</div>
+                        <div class="detail-label">Verified At:</div>
+                        <div class="detail-value">${fmtDateTime(client.secondary_contact_verified_at)}</div>
                     </div>
                 </div>
             </div>
-            
+
+            <div class="host-detail-section">
+                <h3>Documents</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;">
+                    ${clientDocThumb("Avatar", client.avatar_url)}
+                    ${clientDocThumb("ID Document", client.id_document_url)}
+                    ${clientDocThumb("License Document", client.license_document_url)}
+                </div>
+            </div>
+
+            <div class="host-detail-section">
+                <h3>Driving License</h3>
+                ${
+                  license
+                    ? `
+                    <div class="detail-row"><div class="detail-label">License Number:</div><div class="detail-value">${clientText(license.license_number)}</div></div>
+                    <div class="detail-row"><div class="detail-label">Category:</div><div class="detail-value">${clientText(license.category)}</div></div>
+                    <div class="detail-row"><div class="detail-label">Issue Date:</div><div class="detail-value">${fmtDate(license.issue_date)}</div></div>
+                    <div class="detail-row"><div class="detail-label">Expiry Date:</div><div class="detail-value">${fmtDate(license.expiry_date)}</div></div>
+                    <div class="detail-row"><div class="detail-label">Verification:</div><div class="detail-value">${verifiedBadge(license.is_verified)}</div></div>
+                    <div class="detail-row"><div class="detail-label">Notes:</div><div class="detail-value">${clientText(license.verification_notes)}</div></div>
+                    `
+                    : '<div class="detail-value" style="color: #666;">No driving license on file.</div>'
+                }
+            </div>
+
+            <div class="host-detail-section">
+                <h3>KYC Verification ${kycBadge(client.kyc_status)}</h3>
+                ${
+                  kyc
+                    ? clientKycRecordRows(kyc)
+                    : '<div class="detail-value" style="color: #666;">No KYC records on file.</div>'
+                }
+                ${
+                  kycHistory.length > 1
+                    ? `
+                    <details style="margin-top: 16px;">
+                        <summary style="cursor: pointer; font-weight: 500;">View KYC history (${kycHistory.length})</summary>
+                        ${kycHistory
+                          .map(
+                            (rec, i) => `
+                            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+                                <div class="detail-label" style="margin-bottom: 6px;">Attempt ${i + 1} · ${fmtDateTime(rec.created_at)}</div>
+                                ${clientKycRecordRows(rec)}
+                            </div>`,
+                          )
+                          .join("")}
+                    </details>`
+                    : ""
+                }
+            </div>
+
+            <div class="host-detail-section">
+                <h3>Account</h3>
+                <div class="detail-row">
+                    <div class="detail-label">Created At:</div>
+                    <div class="detail-value">${fmtDateTime(client.created_at)}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Last Updated:</div>
+                    <div class="detail-value">${fmtDateTime(client.updated_at)}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Terms Accepted At:</div>
+                    <div class="detail-value">${fmtDateTime(client.terms_accepted_at)}</div>
+                </div>
+            </div>
+
             <div style="margin-top: 24px; display: flex; gap: 12px;">
                 ${
                   client.is_active
