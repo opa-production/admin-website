@@ -277,6 +277,30 @@ const api = {
         body: JSON.stringify(data)
     }),
 
+    // Referrers (who referred whom) — see refferals.md
+    // Hosts who referred other hosts
+    getReferrers: (params = {}) => {
+        const queryString = new URLSearchParams(params).toString();
+        return apiRequest(`/admin/referrers${queryString ? '?' + queryString : ''}`);
+    },
+    getReferrer: (hostId) => apiRequest(`/admin/referrers/${hostId}`),
+    // Clients who referred hosts (parity)
+    getClientReferrers: (params = {}) => {
+        const queryString = new URLSearchParams(params).toString();
+        return apiRequest(`/admin/client-referrers${queryString ? '?' + queryString : ''}`);
+    },
+    getClientReferrer: (clientId) => apiRequest(`/admin/client-referrers/${clientId}`),
+
+    // Client referral earnings (client referred a host) — see refferals.md §1
+    getClientReferralEarnings: (params = {}) => {
+        const queryString = new URLSearchParams(params).toString();
+        return apiRequest(`/admin/client-referral-earnings${queryString ? '?' + queryString : ''}`);
+    },
+    reverseClientReferralEarning: (id, reason) => apiRequest(`/admin/client-referral-earnings/${id}/reverse`, {
+        method: 'POST',
+        body: JSON.stringify({ reason })
+    }),
+
     // Subscribers (newsletter)
     getSubscribers: (params = {}) => {
         const queryString = new URLSearchParams(params).toString();

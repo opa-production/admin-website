@@ -27,6 +27,8 @@
                 <a href="#" class="nav-item" data-page="payment-methods">Payment Methods</a>
                 <a href="#" class="nav-item" data-page="bookings">Bookings</a>
                 <a href="#" class="nav-item" data-page="withdrawals">Withdrawals</a>
+                <a href="#" class="nav-item" data-page="referrals">Referrals</a>
+                <a href="#" class="nav-item" data-page="referral-earnings">Referral Earnings</a>
                 <a href="#" class="nav-item" data-page="refunds">Refunds</a>
                 <a href="#" class="nav-item" data-page="subscribers">Subscribers</a>
                 <a href="#" class="nav-item" data-page="revenue">Revenue</a>
@@ -560,6 +562,63 @@
                     </div>
                 </div>
 
+                <div id="referralsPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                            <h2 style="margin: 0;">Referrals</h2>
+                            <input type="text" id="referrerSearch" placeholder="Search name or email..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 260px;">
+                        </div>
+                        <div class="referrals-tabs" style="display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid #eee;">
+                            <button class="referrals-tab active" data-rtab="host" onclick="switchReferralTab('host')">Host referrers</button>
+                            <button class="referrals-tab" data-rtab="client" onclick="switchReferralTab('client')">Client referrers</button>
+                        </div>
+                        <p style="color: #666; margin-top: 0; margin-bottom: 16px; font-size: 14px;" id="referralsHint">Hosts who referred other hosts. Click a row to see referred hosts and earnings.</p>
+                        <div id="referrersContent">
+                            <div class="loading">Loading referrers...</div>
+                        </div>
+                        <div id="referrersPagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;"></div>
+                    </div>
+                </div>
+
+                <div id="referralDetailPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 24px;">
+                            <button class="btn btn-secondary" onclick="backToReferralsList()" style="padding: 8px 16px;">← Back</button>
+                            <h2 id="referralDetailTitle" style="margin: 0;">Referrer Details</h2>
+                        </div>
+                        <div id="referralDetailContent">
+                            <div class="loading">Loading referrer details...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="referralEarningsPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                            <h2 style="margin: 0;">Client Referral Earnings</h2>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <select id="clientEarningStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                    <option value="">All Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="reversed">Reversed</option>
+                                </select>
+                                <select id="clientEarningKindFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                    <option value="">All Kinds</option>
+                                    <option value="listing">Listing</option>
+                                    <option value="first_booking">First booking</option>
+                                </select>
+                                <input type="number" id="clientEarningReferrerFilter" placeholder="Referrer client ID..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 170px;">
+                                <input type="number" id="clientEarningReferredFilter" placeholder="Referred host ID..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 170px;">
+                            </div>
+                        </div>
+                        <div id="clientEarningsContent">
+                            <div class="loading">Loading earnings...</div>
+                        </div>
+                        <div id="clientEarningsPagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;"></div>
+                    </div>
+                </div>
+
                 <div id="refundsPage" class="page-content" style="display: none;">
                     <div class="content-section">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -965,6 +1024,29 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeWithdrawalStatusModal()">Cancel</button>
                     <button type="button" class="btn btn-primary" id="withdrawalStatusConfirmBtn" onclick="confirmWithdrawalStatusUpdate()">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reverse referral earning modal -->
+    <div id="reverseEarningModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <h2>Reverse Earning</h2>
+                <button class="modal-close" onclick="closeReverseEarningModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="reverseEarningId" value="">
+                <p id="reverseEarningSummary" style="margin-bottom: 16px;"></p>
+                <div class="form-group">
+                    <label for="reverseEarningReason">Reason (required, 3–500 characters)</label>
+                    <textarea id="reverseEarningReason" rows="3" maxlength="500" placeholder="e.g. duplicate / fraud / ..." style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                </div>
+                <div id="reverseEarningError" style="color: #d32f2f; margin-bottom: 15px;"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeReverseEarningModal()">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="reverseEarningConfirmBtn" onclick="confirmReverseEarning()">Reverse Earning</button>
                 </div>
             </div>
         </div>

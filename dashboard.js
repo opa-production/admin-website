@@ -179,6 +179,8 @@ function configureNavigationForRole(role) {
   const hideForCustomerService = [
     "revenue",
     "withdrawals",
+    "referrals",
+    "referral-earnings",
     "payment-methods",
     "refunds",
   ];
@@ -283,6 +285,8 @@ function loadPage(page) {
     "payment-methods": "Payment Methods",
     bookings: "Bookings",
     withdrawals: "Withdrawals",
+    referrals: "Referrals",
+    "referral-earnings": "Referral Earnings",
     subscribers: "Subscribers",
     revenue: "Revenue",
     support: "Support",
@@ -347,6 +351,14 @@ function loadPage(page) {
       setupWithdrawalFilters();
       loadWithdrawals();
       break;
+    case "referrals":
+      setupReferrerSearch();
+      switchReferralTab(currentReferralTab);
+      break;
+    case "referral-earnings":
+      setupClientEarningFilters();
+      loadClientReferralEarnings();
+      break;
     case "refunds":
       setupRefundFilters();
       loadRefunds();
@@ -370,6 +382,8 @@ function isPageAllowedForRole(page, role) {
   const restrictedForCustomerService = new Set([
     "revenue",
     "withdrawals",
+    "referrals",
+    "referral-earnings",
     "payment-methods",
     "refunds",
     "admins",
@@ -3027,6 +3041,477 @@ function openWithdrawalStatusModal(id, action) {
   if (notesEl) notesEl.value = "";
   if (errEl) errEl.textContent = "";
   modal.style.display = "flex";
+}
+
+// ==================== REFERRALS MONITORING ====================
+// Read-only admin view of the referral programme: hosts/clients who have
+// referred hosts, with per-referrer drill-down. See refferals.md.
+
+let currentReferralTab = "host"; // "host" | "client"
+let currentReferrerPage = 1;
+let currentReferrerSearch = "";
+let referrerSearchWired = false;
+
+const REFERRAL_STATUS_LABEL = {
+  pending: { label: "Pending", cls: "pending" },
+  approved: { label: "Approved", cls: "active" },
+  reversed: { label: "Reversed", cls: "inactive" },
+};
+
+function referralStatusBadge(status) {
+  const meta = REFERRAL_STATUS_LABEL[status] || {
+    label: status || "—",
+    cls: "kyc-not-started",
+  };
+  return `<span class="status-badge ${meta.cls}">${meta.label}</span>`;
+}
+
+function referralKindBadge(kind) {
+  const label =
+    kind === "first_booking"
+      ? "First booking"
+      : kind === "listing"
+        ? "Listing"
+        : kind || "—";
+  return `<span class="status-badge kyc-not-started">${label}</span>`;
+}
+
+// Format a KES amount (amounts arrive as *_ksh numbers)
+function fmtKes(value) {
+  const n = typeof value === "number" ? value : parseFloat(value);
+  if (isNaN(n)) return "KES 0";
+  return (
+    "KES " +
+    n.toLocaleString("en-KE", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })
+  );
+}
+
+function setupReferrerSearch() {
+  const input = document.getElementById("referrerSearch");
+  if (!input || referrerSearchWired) return;
+  referrerSearchWired = true;
+  let timeout;
+  input.oninput = () => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      currentReferrerSearch = input.value.trim();
+      currentReferrerPage = 1;
+      loadReferrers();
+    }, 400);
+  };
+}
+
+function switchReferralTab(tab) {
+  currentReferralTab = tab;
+  currentReferrerPage = 1;
+  document.querySelectorAll(".referrals-tab").forEach((b) => {
+    b.classList.toggle("active", b.getAttribute("data-rtab") === tab);
+  });
+  const hint = document.getElementById("referralsHint");
+  if (hint) {
+    hint.textContent =
+      tab === "client"
+        ? "Clients who referred hosts. Click a row to see referred hosts and earnings."
+        : "Hosts who referred other hosts. Click a row to see referred hosts and earnings.";
+  }
+  loadReferrers();
+}
+
+async function loadReferrers() {
+  const content = document.getElementById("referrersContent");
+  if (!content) return;
+  const isClient = currentReferralTab === "client";
+  try {
+    content.innerHTML = '<div class="loading">Loading referrers...</div>';
+    const params = { page: currentReferrerPage, limit: 20 };
+    if (currentReferrerSearch) params.search = currentReferrerSearch;
+    const data = isClient
+      ? await api.getClientReferrers(params)
+      : await api.getReferrers(params);
+    const rows = data.referrers || [];
+    if (rows.length === 0) {
+      content.innerHTML = '<div class="empty-state">No referrers found</div>';
+      document.getElementById("referrersPagination").innerHTML = "";
+      return;
+    }
+    const idKey = isClient ? "client_id" : "host_id";
+    const refLabel = isClient ? "Client" : "Host";
+    content.innerHTML = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>${refLabel} (referrer)</th>
+                            <th>Referral code</th>
+                            <th># Referred</th>
+                            <th>Approved</th>
+                            <th>Pending</th>
+                            <th>Reversed</th>
+                            <th>Joined</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows
+                          .map(
+                            (r) => `
+                            <tr>
+                                <td>${escapeHtmlText(r.full_name || "N/A")}<br><small>${escapeHtmlText(r.email || "")} · #${r[idKey]}</small></td>
+                                <td><code>${escapeHtmlText(r.referral_code || "—")}</code></td>
+                                <td>${r.total_referred ?? 0}</td>
+                                <td>${fmtKes(r.total_approved_ksh)}</td>
+                                <td>${fmtKes(r.total_pending_ksh)}</td>
+                                <td>${fmtKes(r.total_reversed_ksh)}</td>
+                                <td>${fmtDate(r.created_at)}</td>
+                                <td><button class="btn btn-small btn-primary" onclick="viewReferrerDetails(${r[idKey]})">View</button></td>
+                            </tr>`,
+                          )
+                          .join("")}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    renderReferrerPagination(data.total, data.limit, data.page);
+  } catch (error) {
+    console.error("Error loading referrers:", error);
+    content.innerHTML = `<div class="empty-state">Error loading referrers: ${error.message}</div>`;
+    document.getElementById("referrersPagination").innerHTML = "";
+  }
+}
+
+function renderReferrerPagination(total, limit, page) {
+  const pagination = document.getElementById("referrersPagination");
+  if (!pagination) return;
+  const totalPages = Math.ceil((total || 0) / (limit || 20)) || 1;
+  const currentPage = page || 1;
+  if (totalPages <= 1) {
+    pagination.innerHTML = "";
+    return;
+  }
+  let html = "";
+  if (currentPage > 1) {
+    html += `<button class="btn btn-secondary" onclick="goToReferrerPage(${currentPage - 1})">Previous</button>`;
+  }
+  html += `<span style="padding: 0 15px;">Page ${currentPage} of ${totalPages}</span>`;
+  if (currentPage < totalPages) {
+    html += `<button class="btn btn-secondary" onclick="goToReferrerPage(${currentPage + 1})">Next</button>`;
+  }
+  pagination.innerHTML = html;
+}
+
+function goToReferrerPage(page) {
+  currentReferrerPage = page;
+  loadReferrers();
+}
+
+// Drill-down: one referrer's referred hosts + earnings
+async function viewReferrerDetails(id) {
+  const isClient = currentReferralTab === "client";
+  document.querySelectorAll(".page-content").forEach((p) => {
+    p.style.display = "none";
+  });
+  const page = document.getElementById("referralDetailPage");
+  const titleEl = document.getElementById("referralDetailTitle");
+  const content = document.getElementById("referralDetailContent");
+  page.style.display = "block";
+  document.getElementById("pageTitle").textContent = "Referrer Details";
+  content.innerHTML =
+    '<div class="loading">Loading referrer details...</div>';
+
+  try {
+    const data = isClient
+      ? await api.getClientReferrer(id)
+      : await api.getReferrer(id);
+    titleEl.textContent = data.full_name || "Referrer Details";
+    const referred = data.referred_hosts || [];
+    const earnings = data.earnings || [];
+    const refLabel = isClient ? "Client" : "Host";
+
+    content.innerHTML = `
+            <div class="responsive-detail-grid" style="margin-bottom: 24px;">
+                <div class="host-detail-section">
+                    <h3>${refLabel} (referrer)</h3>
+                    <div class="detail-row"><div class="detail-label">Name:</div><div class="detail-value">${clientText(data.full_name)}</div></div>
+                    <div class="detail-row"><div class="detail-label">Email:</div><div class="detail-value">${clientText(data.email)}</div></div>
+                    <div class="detail-row"><div class="detail-label">Referral Code:</div><div class="detail-value"><code>${clientText(data.referral_code)}</code></div></div>
+                    <div class="detail-row"><div class="detail-label">Total Referred:</div><div class="detail-value">${data.total_referred ?? 0}</div></div>
+                </div>
+                <div class="host-detail-section">
+                    <h3>Earnings Totals</h3>
+                    <div class="detail-row"><div class="detail-label">Approved:</div><div class="detail-value">${fmtKes(data.total_approved_ksh)}</div></div>
+                    <div class="detail-row"><div class="detail-label">Pending:</div><div class="detail-value">${fmtKes(data.total_pending_ksh)}</div></div>
+                    <div class="detail-row"><div class="detail-label">Reversed:</div><div class="detail-value">${fmtKes(data.total_reversed_ksh)}</div></div>
+                </div>
+            </div>
+
+            <div class="host-detail-section">
+                <h3>Referred Hosts (${referred.length})</h3>
+                ${
+                  referred.length
+                    ? `
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Host</th><th>Joined</th><th>Cars Published</th><th>KYC</th><th>Earnings From Them</th></tr>
+                            </thead>
+                            <tbody>
+                                ${referred
+                                  .map(
+                                    (h) => `
+                                    <tr>
+                                        <td>${escapeHtmlText(h.full_name || "N/A")} <small>#${h.host_id}</small></td>
+                                        <td>${fmtDate(h.joined_at)}</td>
+                                        <td>${h.cars_published ?? 0}</td>
+                                        <td>${h.kyc_verified ? '<span class="status-badge kyc-verified">Verified</span>' : '<span class="status-badge kyc-not-started">Unverified</span>'}</td>
+                                        <td>${fmtKes(h.earnings_from_this_host_ksh)}</td>
+                                    </tr>`,
+                                  )
+                                  .join("")}
+                            </tbody>
+                        </table>
+                    </div>`
+                    : '<div class="detail-value" style="color: #666;">No referred hosts yet.</div>'
+                }
+            </div>
+
+            <div class="host-detail-section">
+                <h3>Earnings (${earnings.length})</h3>
+                ${
+                  earnings.length
+                    ? `
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Referred</th><th>Car</th><th>Kind</th><th>Amount</th><th>Status</th><th>Created</th><th>Approved</th></tr>
+                            </thead>
+                            <tbody>
+                                ${earnings
+                                  .map(
+                                    (e) => `
+                                    <tr>
+                                        <td>${escapeHtmlText(e.referred_name || "N/A")}${e.referred_host_id ? ` <small>#${e.referred_host_id}</small>` : ""}</td>
+                                        <td>${escapeHtmlText(e.car_name || "—")}</td>
+                                        <td>${referralKindBadge(e.kind)}</td>
+                                        <td>${fmtKes(e.amount_ksh)}</td>
+                                        <td>${referralStatusBadge(e.status)}</td>
+                                        <td>${fmtDate(e.created_at)}</td>
+                                        <td>${fmtDate(e.approved_at)}</td>
+                                    </tr>`,
+                                  )
+                                  .join("")}
+                            </tbody>
+                        </table>
+                    </div>`
+                    : '<div class="detail-value" style="color: #666;">No earnings yet.</div>'
+                }
+            </div>
+        `;
+  } catch (error) {
+    console.error("Error loading referrer details:", error);
+    content.innerHTML = `<div class="empty-state">Error loading referrer details: ${error.message}</div>`;
+  }
+}
+
+function backToReferralsList() {
+  loadPage("referrals");
+}
+
+// ==================== CLIENT REFERRAL EARNINGS ====================
+// Earnings where a client referred a host, with a reverse action. See
+// refferals.md §1.
+
+let currentClientEarningPage = 1;
+let currentClientEarningStatus = "";
+let currentClientEarningKind = "";
+let currentClientEarningReferrerId = "";
+let currentClientEarningReferredId = "";
+let clientEarningFiltersWired = false;
+
+function setupClientEarningFilters() {
+  if (clientEarningFiltersWired) return;
+  clientEarningFiltersWired = true;
+
+  const statusFilter = document.getElementById("clientEarningStatusFilter");
+  const kindFilter = document.getElementById("clientEarningKindFilter");
+  const referrerFilter = document.getElementById("clientEarningReferrerFilter");
+  const referredFilter = document.getElementById("clientEarningReferredFilter");
+
+  if (statusFilter) {
+    statusFilter.onchange = () => {
+      currentClientEarningStatus = statusFilter.value;
+      currentClientEarningPage = 1;
+      loadClientReferralEarnings();
+    };
+  }
+  if (kindFilter) {
+    kindFilter.onchange = () => {
+      currentClientEarningKind = kindFilter.value;
+      currentClientEarningPage = 1;
+      loadClientReferralEarnings();
+    };
+  }
+  let timeout;
+  if (referrerFilter) {
+    referrerFilter.oninput = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        currentClientEarningReferrerId = referrerFilter.value.trim();
+        currentClientEarningPage = 1;
+        loadClientReferralEarnings();
+      }, 400);
+    };
+  }
+  if (referredFilter) {
+    referredFilter.oninput = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        currentClientEarningReferredId = referredFilter.value.trim();
+        currentClientEarningPage = 1;
+        loadClientReferralEarnings();
+      }, 400);
+    };
+  }
+}
+
+async function loadClientReferralEarnings() {
+  const content = document.getElementById("clientEarningsContent");
+  if (!content) return;
+  try {
+    content.innerHTML = '<div class="loading">Loading earnings...</div>';
+    const params = { page: currentClientEarningPage, limit: 20 };
+    if (currentClientEarningStatus) params.status = currentClientEarningStatus;
+    if (currentClientEarningKind) params.kind = currentClientEarningKind;
+    if (currentClientEarningReferrerId)
+      params.referrer_client_id = parseInt(currentClientEarningReferrerId, 10);
+    if (currentClientEarningReferredId)
+      params.referred_host_id = parseInt(currentClientEarningReferredId, 10);
+
+    const data = await api.getClientReferralEarnings(params);
+    const rows = data.earnings || [];
+    if (rows.length === 0) {
+      content.innerHTML = '<div class="empty-state">No earnings found</div>';
+      document.getElementById("clientEarningsPagination").innerHTML = "";
+      return;
+    }
+    content.innerHTML = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Referrer (client)</th>
+                            <th>Referred (host)</th>
+                            <th>Car</th>
+                            <th>Kind</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Approved</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows
+                          .map((e) => {
+                            const reversed = e.status === "reversed";
+                            const reverseBtn = reversed
+                              ? `<span title="${escapeHtmlAttr(e.reversed_reason || "Reversed")}" style="color:#999;">Reversed</span>`
+                              : `<button class="btn btn-small btn-danger" onclick="openReverseEarningModal(${e.id})">Reverse</button>`;
+                            return `
+                            <tr>
+                                <td>${escapeHtmlText(e.referrer_name || "N/A")}<br><small>${escapeHtmlText(e.referrer_email || "")} · #${e.referrer_client_id}</small></td>
+                                <td>${escapeHtmlText(e.referred_name || "N/A")}<br><small>${escapeHtmlText(e.referred_email || "")} · #${e.referred_host_id}</small></td>
+                                <td>${escapeHtmlText(e.car_name || "—")}${e.car_id ? ` <small>#${e.car_id}</small>` : ""}</td>
+                                <td>${referralKindBadge(e.kind)}</td>
+                                <td>${fmtKes(e.amount_ksh)}</td>
+                                <td>${referralStatusBadge(e.status)}</td>
+                                <td>${fmtDate(e.created_at)}</td>
+                                <td>${fmtDate(e.approved_at)}</td>
+                                <td>${reverseBtn}</td>
+                            </tr>`;
+                          })
+                          .join("")}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    renderClientEarningPagination(data.total, data.limit, data.page);
+  } catch (error) {
+    console.error("Error loading client referral earnings:", error);
+    content.innerHTML = `<div class="empty-state">Error loading earnings: ${error.message}</div>`;
+    document.getElementById("clientEarningsPagination").innerHTML = "";
+  }
+}
+
+function renderClientEarningPagination(total, limit, page) {
+  const pagination = document.getElementById("clientEarningsPagination");
+  if (!pagination) return;
+  const totalPages = Math.ceil((total || 0) / (limit || 20)) || 1;
+  const currentPage = page || 1;
+  if (totalPages <= 1) {
+    pagination.innerHTML = "";
+    return;
+  }
+  let html = "";
+  if (currentPage > 1) {
+    html += `<button class="btn btn-secondary" onclick="goToClientEarningPage(${currentPage - 1})">Previous</button>`;
+  }
+  html += `<span style="padding: 0 15px;">Page ${currentPage} of ${totalPages}</span>`;
+  if (currentPage < totalPages) {
+    html += `<button class="btn btn-secondary" onclick="goToClientEarningPage(${currentPage + 1})">Next</button>`;
+  }
+  pagination.innerHTML = html;
+}
+
+function goToClientEarningPage(page) {
+  currentClientEarningPage = page;
+  loadClientReferralEarnings();
+}
+
+function openReverseEarningModal(id) {
+  const modal = document.getElementById("reverseEarningModal");
+  const idInput = document.getElementById("reverseEarningId");
+  const summaryEl = document.getElementById("reverseEarningSummary");
+  const reasonEl = document.getElementById("reverseEarningReason");
+  const errEl = document.getElementById("reverseEarningError");
+  if (!modal || !idInput) return;
+  idInput.value = id;
+  if (summaryEl)
+    summaryEl.textContent = `Reverse earning #${id}? It will stop counting toward the client's withdrawable balance. This cannot be undone.`;
+  if (reasonEl) reasonEl.value = "";
+  if (errEl) errEl.textContent = "";
+  modal.style.display = "flex";
+}
+
+function closeReverseEarningModal() {
+  const modal = document.getElementById("reverseEarningModal");
+  if (modal) modal.style.display = "none";
+}
+
+async function confirmReverseEarning() {
+  const id = document.getElementById("reverseEarningId")?.value;
+  const reasonEl = document.getElementById("reverseEarningReason");
+  const errEl = document.getElementById("reverseEarningError");
+  const btn = document.getElementById("reverseEarningConfirmBtn");
+  if (!id) return;
+  const reason = reasonEl ? reasonEl.value.trim() : "";
+  if (reason.length < 3 || reason.length > 500) {
+    if (errEl) errEl.textContent = "Reason must be 3–500 characters.";
+    return;
+  }
+  if (errEl) errEl.textContent = "";
+  if (btn) btn.disabled = true;
+  try {
+    await api.reverseClientReferralEarning(id, reason);
+    closeReverseEarningModal();
+    loadClientReferralEarnings();
+  } catch (error) {
+    if (errEl) errEl.textContent = error.message || "Reverse failed";
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 // ==================== REFUNDS MANAGEMENT ====================
