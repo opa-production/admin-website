@@ -1,33 +1,100 @@
 # Admin Web Panel
 
-Simple, minimalistic admin web interface for the Car Rental platform.
+Admin web interface for the Ardena car-rental platform. It's a plain
+HTML/CSS/JavaScript app (no build step, no framework) that talks to the
+FastAPI backend (`opabackend`) over its REST API.
 
-## Setup
+## Running locally
 
-1. Make sure the FastAPI backend is running:
-   ```bash
-   uvicorn app.main:app --reload
-   ```
+There is nothing to build. Serve the folder with any static web server and open
+it in a browser — don't open the files with `file://`, the API calls need an
+`http://` origin.
 
-2. Open `index.html` in a web browser or serve it using a local web server.
+```bash
+# from the project root, pick one:
+python -m http.server 5500
+# or the VS Code "Live Server" extension (defaults to port 5500)
+```
 
-## Default Admin Credentials
-
-- **Email:** `admin@carrental.com`
-- **Password:** `Admin123!`
+Then visit `http://localhost:5500/index.html`.
 
 ## Configuration
 
-The API base URL is configured in `login.js`. By default, it points to:
-```
-http://localhost:8000/api/v1
+The backend base URL is defined as the `API_BASE_URL` constant in **two** files
+(keep them in sync):
+
+- `api.js`  — used by the dashboard
+- `login.js` — used by the login page
+
+It currently points at production:
+
+```js
+const API_BASE_URL = 'https://api.ardena.xyz/api/v1';
 ```
 
-To change the API URL, edit the `API_BASE_URL` constant in `login.js`.
+To run against a local backend, change both constants, e.g.
+`http://localhost:8000/api/v1`, and make sure the backend allows your dev origin
+(see **CORS** below).
+
+## Authentication
+
+Login (`index.html`) posts to `/admin/auth/login` and stores the returned JWT in
+`localStorage` as `admin_token` (admin profile in `admin_info`). Every dashboard
+request sends `Authorization: Bearer <admin_token>`; a `401` clears the token and
+redirects back to the login page. Use the admin credentials issued for your
+environment.
+
+## Features
+
+The dashboard (`dashboard.html`) is a single page with a sidebar; each section is
+rendered by `dashboard.js`:
+
+- **Dashboard** — stats, revenue, KYC and booking trend charts
+- **Hosts** — list with search, KYC status filter, and a with/without-cars
+  filter; view details, activate/deactivate, delete
+- **Clients** — list with search and KYC status filter; view details,
+  activate/deactivate, delete
+- **Cars** — list/search, approve/reject/hide, media
+- **Feedback**, **Notifications** (broadcasts + targeted sends),
+  **Payment Methods**, **Bookings** (with pagination), **Withdrawals**,
+  **Refunds**, **Subscribers** (newsletter), **Revenue**, **Support**,
+  **Moderation** (ratings), and **Admins** (super-admin only)
+
+### KYC status
+
+Host and client rows show a KYC badge — **Verified / Pending / Failed /
+Not Started** — mapped from the backend `kyc_status`
+(`approved / pending / declined / not_started`). See `kyccheckmd` for the backend
+contract. The Hosts and Clients lists load the full dataset and apply
+search/filter/pagination client-side.
 
 ## Files
 
-- `index.html` - Login page
-- `styles.css` - Minimal styling
-- `login.js` - Login functionality
-- `dashboard.html` - Admin dashboard (to be implemented)
+| File | Purpose |
+|------|---------|
+| `index.html` / `login.js` / `styles.css` | Login page |
+| `dashboard.html` | Admin dashboard markup |
+| `dashboard.js` | All dashboard logic and rendering |
+| `dashboard.css` | Dashboard styling |
+| `api.js` | API client (`API_BASE_URL`, auth, all endpoint methods) |
+| `subscribers.html` | Standalone subscribers/newsletter view |
+| `kyccheckmd` | KYC backend integration notes |
+| `bookings.md` | Bookings API notes |
+
+## CORS
+
+Browser requests are blocked unless the **backend** returns the
+`Access-Control-Allow-Origin` header for your origin, e.g.
+
+```
+Access to fetch at 'https://api.ardena.xyz/api/v1/admin/...' from origin
+'http://localhost:5500' has been blocked by CORS policy: No
+'Access-Control-Allow-Origin' header is present on the requested resource.
+```
+
+This is a **backend (`opabackend`) configuration issue**, not something the
+frontend can fix. The API's CORS middleware must allow the origin you're serving
+from (e.g. `http://localhost:5500`, `http://127.0.0.1:5500`, and the deployed
+admin URL). In FastAPI that means adding the origin to `CORSMiddleware`
+`allow_origins`. Until the backend allows your origin, requests from that origin
+will fail in the browser.
