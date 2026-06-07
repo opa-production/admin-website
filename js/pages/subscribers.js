@@ -30,8 +30,9 @@ function markdownToHtml(md) {
 // in the preview; the backend personalises it per recipient.
 function buildBrandedEmailHtml(innerHtml, subject, opts = {}) {
   const logo = opts.logoUrl || "/js/assets/logo.png";
-  // Temporary: links to a static success page until the real opt-out flow ships.
-  const unsub = opts.unsubscribeUrl || "/unsubscribe.html";
+  // Points at the public brand domain (never the admin/API host). The branded
+  // page for this route is shipped as unsubscribe.html — deploy it there.
+  const unsub = opts.unsubscribeUrl || "https://ardena.co.ke/unsubscribe";
   const safeSubject = escapeHtml(subject || "");
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
