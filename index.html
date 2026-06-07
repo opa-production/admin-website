@@ -3,31 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - Car Rental</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Admin Login</title>
+    <link rel="icon" type="image/png" href="js/assets/logo.png">
+    <link rel="stylesheet" href="login.css">
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-box">
-            <h1>Admin Login</h1>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" required autocomplete="email">
+    <div class="auth-shell">
+        <!-- Left: sign-in form -->
+        <div class="auth-left">
+            <div class="auth-card">
+                <div class="auth-logo">
+                    <img src="js/assets/logo.png" alt="Company logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                    <span class="auth-logo-fallback" style="display:none;">Admin</span>
                 </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <div class="password-input-wrapper">
-                        <input type="password" id="password" name="password" required autocomplete="current-password">
-                        <button type="button" class="password-toggle" id="passwordToggle" title="Show password" aria-label="Show password">
-                            Show
-                        </button>
+
+                <h1 class="auth-heading">Welcome back</h1>
+                <p class="auth-subheading">Sign in to your admin account to continue.</p>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" placeholder="you@company.com" required autocomplete="email">
                     </div>
-                </div>
-                <div id="errorMessage" class="error-message"></div>
-                <button type="submit" class="login-button">Sign In</button>
-            </form>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+                            <button type="button" class="password-toggle" id="passwordToggle" title="Show password" aria-label="Show password">
+                                Show
+                            </button>
+                        </div>
+                    </div>
+                    <div id="errorMessage" class="error-message"></div>
+                    <button type="submit" class="login-button">Sign In</button>
+                </form>
+
+                <p class="auth-footnote">Authorized personnel only.</p>
+            </div>
         </div>
+
+        <!-- Right: brand image (landing.jpg) -->
+        <div class="auth-right" role="img" aria-label="Brand imagery"></div>
     </div>
     <script src="login.js"></script>
 </body>
