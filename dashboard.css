@@ -2734,6 +2734,22 @@ body.admin-nav-open {
     .mod-drawer-panel { width: 100%; }
 }
 
+/* ==================== Admin role badges ==================== */
+.role-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.role-badge.role-super_admin { background: #fde8e8; color: #b91c1c; }
+.role-badge.role-manager { background: #f3e8ff; color: #7c3aed; }
+.role-badge.role-finance { background: #e3f0ff; color: #1d4ed8; }
+.role-badge.role-customer_service { background: #e6f6ea; color: #1d7a36; }
+.role-badge.role-unknown { background: #f1f5f9; color: #475569; }
+
 /* ==================== Custom toasts (replaces native alert) ==================== */
 .ui-toast-container {
     position: fixed;

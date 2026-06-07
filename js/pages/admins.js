@@ -47,6 +47,11 @@ async function loadAdmins() {
 
   setupAdminSearch();
 
+  // Only super_admin can create/manage admins; managers get a read-only view.
+  const canManage = canManageAdmins();
+  const createBtn = document.getElementById("createAdminBtn");
+  if (createBtn) createBtn.style.display = canManage ? "" : "none";
+
   try {
     const params = { limit: 50 };
     if (currentAdminSearch) {
@@ -81,17 +86,21 @@ async function loadAdmins() {
                                 <tr>
                                     <td>${admin.full_name}</td>
                                     <td>${admin.email}</td>
-                                    <td>${admin.role}</td>
+                                    <td>${roleBadge(admin.role)}</td>
                                     <td><span class="status-badge ${admin.is_active ? "active" : "inactive"}">${admin.is_active ? "Active" : "Inactive"}</span></td>
                                     <td>${new Date(admin.created_at).toLocaleDateString()}</td>
                                     <td>
                                         <button class="btn btn-primary btn-small" onclick="viewAdminDetails(${admin.id})">View</button>
                                         ${
-                                          admin.is_active
-                                            ? `<button class="btn btn-secondary btn-small" onclick="deactivateAdmin(${admin.id})">Deactivate</button>`
-                                            : `<button class="btn btn-primary btn-small" onclick="activateAdmin(${admin.id})">Activate</button>`
+                                          canManage
+                                            ? `${
+                                                admin.is_active
+                                                  ? `<button class="btn btn-secondary btn-small" onclick="deactivateAdmin(${admin.id})">Deactivate</button>`
+                                                  : `<button class="btn btn-primary btn-small" onclick="activateAdmin(${admin.id})">Activate</button>`
+                                              }
+                                        <button class="btn btn-danger btn-small" onclick="deleteAdminConfirm(${admin.id}, '${admin.full_name}')">Delete</button>`
+                                            : ""
                                         }
-                                        <button class="btn btn-danger btn-small" onclick="deleteAdminConfirm(${admin.id}, '${admin.full_name}')">Delete</button>
                                     </td>
                                 </tr>
                             `,
@@ -153,7 +162,7 @@ async function viewAdminDetails(adminId) {
                     </div>
                     <div class="detail-row">
                         <div class="detail-label">Role:</div>
-                        <div class="detail-value">${admin.role || "N/A"}</div>
+                        <div class="detail-value">${roleBadge(admin.role)}</div>
                     </div>
                     <div class="detail-row">
                         <div class="detail-label">Status:</div>
@@ -184,6 +193,9 @@ async function viewAdminDetails(adminId) {
                 </div>
             </div>
             
+            ${
+              canManageAdmins()
+                ? `
             <div class="action-buttons" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #eee;">
                 <button class="btn btn-primary" onclick="showEditAdminForm(${admin.id})">Edit Admin</button>
                 <button class="btn btn-secondary" onclick="showChangeAdminPasswordModal(${admin.id})">Change Password</button>
@@ -193,7 +205,12 @@ async function viewAdminDetails(adminId) {
                     : `<button class="btn btn-primary" onclick="activateAdmin(${admin.id}, true)">Activate</button>`
                 }
                 <button class="btn btn-danger" onclick="deleteAdminConfirm(${admin.id}, '${admin.full_name}', true)">Delete</button>
-            </div>
+            </div>`
+                : `
+            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #eee; color: #888; font-size: 13px;">
+                Read-only — only a Super Admin can edit admin accounts.
+            </div>`
+            }
         `;
   } catch (error) {
     console.error("Error loading admin details:", error);

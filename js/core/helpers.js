@@ -5,6 +5,33 @@
 // Host management state
 const LIST_PAGE_SIZE = 50;
 
+// Admin roles — store/send the value (e.g. "manager"), render the label.
+// See roles.md. super_admin is seeded only (never offered in the create UI).
+const ROLE_LABELS = {
+  super_admin: "Super Admin",
+  manager: "Manager",
+  finance: "Finance",
+  customer_service: "Customer Care",
+};
+
+function roleLabel(role) {
+  return ROLE_LABELS[role] || role || "—";
+}
+
+function roleBadge(role) {
+  const r = role || "unknown";
+  return `<span class="role-badge role-${r}">${roleLabel(role)}</span>`;
+}
+
+// Admin-management capability gates (cosmetic only — the backend enforces them).
+function canViewAdmins(role) {
+  return ["super_admin", "manager"].includes(role || window.currentAdminRole);
+}
+
+function canManageAdmins(role) {
+  return (role || window.currentAdminRole) === "super_admin";
+}
+
 // Page through a list endpoint and return every row (client-side filtering needs
 // the whole dataset, not just one page). Uses a limit we know the backend honors.
 async function fetchAllPaged(apiFn, key) {

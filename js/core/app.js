@@ -122,9 +122,11 @@ function setupNavigation() {
 
 // Configure sidebar/navigation visibility based on admin role
 function configureNavigationForRole(role) {
+  // Super admins manage admins; managers get a read-only view (see roles.md).
   const adminsNavItem = document.getElementById("adminsNavItem");
   if (adminsNavItem) {
-    adminsNavItem.style.display = role === "super_admin" ? "block" : "none";
+    adminsNavItem.style.display =
+      role === "super_admin" || role === "manager" ? "block" : "none";
   }
 
   const hideForCustomerService = [
@@ -277,6 +279,11 @@ function loadPage(page) {
 // Check if a page is allowed for a given admin role
 function isPageAllowedForRole(page, role) {
   if (role === "super_admin") {
+    return true;
+  }
+
+  // Managers have full operational access plus the (read-only) admins section.
+  if (role === "manager") {
     return true;
   }
 

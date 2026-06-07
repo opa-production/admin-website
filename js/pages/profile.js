@@ -48,7 +48,7 @@ async function loadMyProfile() {
                         </div>
                         <div class="form-group">
                             <label>Role</label>
-                            <div class="detail-value" style="padding: 10px 0;">${admin.role || "N/A"}</div>
+                            <div class="detail-value" style="padding: 10px 0;">${roleBadge(admin.role)}</div>
                         </div>
                         <div class="form-group">
                             <label>Status</label>
