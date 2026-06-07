@@ -416,7 +416,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                             <h2 style="margin: 0;">Admins</h2>
                             <div style="display: flex; gap: 10px;">
-                                <button class="btn btn-primary" id="createAdminBtn" onclick="showCreateAdminForm()">Create Admin</button>
+                                <button class="btn btn-primary" id="createAdminBtn" onclick="showCreateAdminForm()">Invite Admin</button>
                                 <select id="adminRoleFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
                                     <option value="">All Roles</option>
                                     <option value="super_admin">Super Admin</option>
@@ -946,7 +946,7 @@
     <div id="adminModal" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
-                <h2 id="adminModalTitle">Create Admin</h2>
+                <h2 id="adminModalTitle">Invite Admin</h2>
                 <button class="modal-close" onclick="closeAdminModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -960,15 +960,8 @@
                         <label for="adminEmail">Email *</label>
                         <input type="email" id="adminEmail" required placeholder="Enter email address">
                     </div>
-                    <div id="adminPasswordFields">
-                        <div class="form-group">
-                            <label for="adminPassword">Password *</label>
-                            <input type="password" id="adminPassword" minlength="8" placeholder="Enter password (min 8 characters)">
-                        </div>
-                        <div class="form-group">
-                            <label for="adminPasswordConfirm">Confirm Password *</label>
-                            <input type="password" id="adminPasswordConfirm" minlength="8" placeholder="Confirm password">
-                        </div>
+                    <div id="adminInviteNote" class="form-group" style="background:#eef4ff; border:1px solid #d6e4ff; border-radius:8px; padding:10px 12px; font-size:13px; color:#33415c;">
+                        A temporary password is generated automatically and emailed to this address from <strong>info@ardena.co.ke</strong>. The admin sets their own password after first sign-in — you don't enter one here.
                     </div>
                     <div class="form-group">
                         <label for="adminRole">Role *</label>
@@ -986,7 +979,7 @@
                     <div id="adminFormError" style="color: #d32f2f; margin-bottom: 15px;"></div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" onclick="closeAdminModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary" id="saveAdminBtn">Save</button>
+                        <button type="submit" class="btn btn-primary" id="saveAdminBtn">Send invite</button>
                     </div>
                 </form>
             </div>

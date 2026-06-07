@@ -98,6 +98,11 @@ async function loadAdmins() {
                                                   ? `<button class="btn btn-secondary btn-small" onclick="deactivateAdmin(${admin.id})">Deactivate</button>`
                                                   : `<button class="btn btn-primary btn-small" onclick="activateAdmin(${admin.id})">Activate</button>`
                                               }
+                                        ${
+                                          admin.role !== "super_admin"
+                                            ? `<button class="btn btn-secondary btn-small" onclick="resendCredentials(${admin.id}, '${admin.email}')">Resend</button>`
+                                            : ""
+                                        }
                                         <button class="btn btn-danger btn-small" onclick="deleteAdminConfirm(${admin.id}, '${admin.full_name}')">Delete</button>`
                                             : ""
                                         }
@@ -200,6 +205,11 @@ async function viewAdminDetails(adminId) {
                 <button class="btn btn-primary" onclick="showEditAdminForm(${admin.id})">Edit Admin</button>
                 <button class="btn btn-secondary" onclick="showChangeAdminPasswordModal(${admin.id})">Change Password</button>
                 ${
+                  admin.role !== "super_admin"
+                    ? `<button class="btn btn-secondary" onclick="resendCredentials(${admin.id}, '${admin.email}')">Resend Credentials</button>`
+                    : ""
+                }
+                ${
                   admin.is_active
                     ? `<button class="btn btn-secondary" onclick="deactivateAdmin(${admin.id}, true)">Deactivate</button>`
                     : `<button class="btn btn-primary" onclick="activateAdmin(${admin.id}, true)">Activate</button>`
@@ -220,15 +230,14 @@ async function viewAdminDetails(adminId) {
 
 // Show create admin form
 function showCreateAdminForm() {
-  document.getElementById("adminModalTitle").textContent = "Create Admin";
+  document.getElementById("adminModalTitle").textContent = "Invite Admin";
   document.getElementById("adminFormId").value = "";
   document.getElementById("adminForm").reset();
-  document.getElementById("adminPasswordFields").style.display = "block";
-  document.getElementById("adminPassword").required = true;
-  document.getElementById("adminPasswordConfirm").required = true;
+  document.getElementById("adminInviteNote").style.display = "block";
   document.getElementById("adminRole").value = "customer_service";
   document.getElementById("adminIsActive").checked = true;
   document.getElementById("adminFormError").textContent = "";
+  document.getElementById("saveAdminBtn").textContent = "Send invite";
   document.getElementById("adminModal").style.display = "flex";
 }
 
@@ -240,13 +249,12 @@ async function showEditAdminForm(adminId) {
     document.getElementById("adminFormId").value = adminId;
     document.getElementById("adminFullName").value = admin.full_name || "";
     document.getElementById("adminEmail").value = admin.email || "";
-    document.getElementById("adminPasswordFields").style.display = "none";
-    document.getElementById("adminPassword").required = false;
-    document.getElementById("adminPasswordConfirm").required = false;
+    document.getElementById("adminInviteNote").style.display = "none";
     document.getElementById("adminRole").value =
       admin.role || "customer_service";
     document.getElementById("adminIsActive").checked = admin.is_active;
     document.getElementById("adminFormError").textContent = "";
+    document.getElementById("saveAdminBtn").textContent = "Save";
     document.getElementById("adminModal").style.display = "flex";
   } catch (error) {
     alert("Error loading admin: " + error.message);
@@ -263,8 +271,6 @@ async function saveAdmin(event) {
 
   const fullName = document.getElementById("adminFullName").value.trim();
   const email = document.getElementById("adminEmail").value.trim();
-  const password = document.getElementById("adminPassword").value;
-  const passwordConfirm = document.getElementById("adminPasswordConfirm").value;
   const role = document.getElementById("adminRole").value;
   const isActive = document.getElementById("adminIsActive").checked;
 
@@ -276,52 +282,72 @@ async function saveAdmin(event) {
     return;
   }
 
-  if (!adminId && (!password || password.length < 8)) {
-    errorDiv.textContent = "Password must be at least 8 characters.";
-    return;
-  }
-
-  if (!adminId && password !== passwordConfirm) {
-    errorDiv.textContent = "Passwords do not match.";
-    return;
-  }
-
   saveBtn.disabled = true;
-  saveBtn.textContent = "Saving...";
+  saveBtn.textContent = adminId ? "Saving..." : "Sending...";
 
   try {
     if (adminId) {
-      // Update admin
-      const updateData = {
+      // Update existing admin (no password here — credentials are emailed on invite)
+      await api.updateAdmin(adminId, {
         full_name: fullName,
         email: email,
         role: role,
         is_active: isActive,
-      };
-      await api.updateAdmin(adminId, updateData);
+      });
       alert("Admin updated successfully");
       closeAdminModal();
       viewAdminDetails(adminId);
     } else {
-      // Create admin
-      const createData = {
+      // Invite admin — server generates a temp password and emails credentials.
+      const res = await api.inviteAdmin({
         full_name: fullName,
         email: email,
-        password: password,
-        password_confirmation: passwordConfirm,
         role: role,
         is_active: isActive,
-      };
-      await api.createAdmin(createData);
-      alert("Admin created successfully");
+      });
       closeAdminModal();
+      if (res && res.email_sent === false) {
+        uiToast(
+          res.message ||
+            `Admin created, but the invite email to ${email} failed. Use "Resend" on their row.`,
+          "warning",
+          { duration: 8000 },
+        );
+      } else {
+        uiToast(
+          (res && res.message) || "Invite sent — credentials emailed.",
+          "success",
+        );
+      }
       loadAdmins();
     }
   } catch (error) {
     errorDiv.textContent = error.message || "Error saving admin";
   } finally {
     saveBtn.disabled = false;
-    saveBtn.textContent = "Save";
+    saveBtn.textContent = adminId ? "Save" : "Send invite";
+  }
+}
+
+// Resend (regenerate + re-email) an admin's temporary password. super_admin only;
+// the API rejects targeting another super_admin. See invite.md endpoint 2.
+async function resendCredentials(adminId, email) {
+  if (
+    !(await uiConfirm(
+      `Send a new password to ${email}? Their current password will stop working.`,
+      { title: "Resend credentials", confirmText: "Send new password" },
+    ))
+  ) {
+    return;
+  }
+  try {
+    const res = await api.resendAdminCredentials(adminId);
+    uiToast(
+      (res && res.message) || "New credentials emailed.",
+      res && res.email_sent === false ? "warning" : "success",
+    );
+  } catch (error) {
+    alert("Error resending credentials: " + error.message);
   }
 }
 

@@ -185,10 +185,16 @@ const api = {
         return apiRequest(`/admin/admins${queryString ? '?' + queryString : ''}`);
     },
     getAdmin: (id) => apiRequest(`/admin/admins/${id}`),
-    createAdmin: (data) => apiRequest('/admin/admins', { 
-        method: 'POST', 
+    createAdmin: (data) => apiRequest('/admin/admins', {
+        method: 'POST',
         body: JSON.stringify(data)
     }),
+    // Invite flow: server generates a temp password and emails credentials (no password sent). See invite.md
+    inviteAdmin: (data) => apiRequest('/admin/admins/invite', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    resendAdminCredentials: (id) => apiRequest(`/admin/admins/${id}/resend-credentials`, { method: 'POST' }),
     updateAdmin: (id, data) => apiRequest(`/admin/admins/${id}`, { 
         method: 'PUT', 
         body: JSON.stringify(data)
