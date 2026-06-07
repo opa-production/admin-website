@@ -153,6 +153,8 @@ function setupNavigation() {
   const navItems = document.querySelectorAll(".nav-item");
   navItems.forEach((item) => {
     item.addEventListener("click", (e) => {
+      // External links (e.g. the standalone Listing Reports page) navigate normally.
+      if (item.getAttribute("data-external") === "true") return;
       e.preventDefault();
       const page = item.getAttribute("data-page");
 
@@ -190,6 +192,7 @@ function configureNavigationForRole(role) {
     "feedback",
     "support",
     "moderation",
+    "listing-reports",
   ];
 
   document.querySelectorAll(".nav-item").forEach((item) => {

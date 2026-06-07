@@ -335,5 +335,17 @@ const api = {
     },
     getSecondaryContactsStats: () => apiRequest('/admin/secondary-contacts/stats'),
     getSecondaryContact: (clientId) => apiRequest(`/admin/secondary-contacts/${clientId}`),
-    clearSecondaryContact: (clientId) => apiRequest(`/admin/secondary-contacts/${clientId}`, { method: 'DELETE' })
+    clearSecondaryContact: (clientId) => apiRequest(`/admin/secondary-contacts/${clientId}`, { method: 'DELETE' }),
+
+    // Listing reports (moderation queue) — see reports.md
+    getListingReports: (params = {}) => {
+        const queryString = new URLSearchParams(params).toString();
+        return apiRequest(`/admin/listing-reports${queryString ? '?' + queryString : ''}`);
+    },
+    getListingReport: (reportId) => apiRequest(`/admin/listing-reports/${reportId}`),
+    updateListingReportStatus: (reportId, status) => apiRequest(`/admin/listing-reports/${reportId}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status })
+    }),
+    deleteListingReport: (reportId) => apiRequest(`/admin/listing-reports/${reportId}`, { method: 'DELETE' })
 };
