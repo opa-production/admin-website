@@ -30,7 +30,8 @@ function markdownToHtml(md) {
 // in the preview; the backend personalises it per recipient.
 function buildBrandedEmailHtml(innerHtml, subject, opts = {}) {
   const logo = opts.logoUrl || "/js/assets/logo.png";
-  const unsub = opts.unsubscribeUrl || "#";
+  // Temporary: links to a static success page until the real opt-out flow ships.
+  const unsub = opts.unsubscribeUrl || "/unsubscribe.html";
   const safeSubject = escapeHtml(subject || "");
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
