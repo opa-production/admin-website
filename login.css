@@ -197,11 +197,26 @@ input::placeholder {
 .auth-right {
     flex: 1 1 54%;
     position: relative;
-    /* Gradient sits above the image for depth, and acts as a graceful
-       fallback if landing.jpg is not present. */
-    background:
-        linear-gradient(135deg, rgba(10, 30, 60, 0.45), rgba(0, 102, 204, 0.35)),
-        #0a1e3c url('js/assets/landing.jpg') center / cover no-repeat;
+    overflow: hidden;
+    background: #0a1e3c; /* shown until the video paints / if it can't play */
+}
+
+/* Looping background video filling the panel. */
+.auth-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Brand tint over the video for depth and contrast. */
+.auth-right-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(10, 30, 60, 0.45), rgba(0, 102, 204, 0.35));
+    pointer-events: none;
 }
 
 /* ---------- Responsive ---------- */

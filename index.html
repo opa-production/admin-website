@@ -42,8 +42,13 @@
             </div>
         </div>
 
-        <!-- Right: brand image (landing.jpg) -->
-        <div class="auth-right" role="img" aria-label="Brand imagery"></div>
+        <!-- Right: looping brand video (landing.mp4), with the image as poster fallback -->
+        <div class="auth-right" aria-hidden="true">
+            <video class="auth-video" autoplay loop muted playsinline preload="auto" poster="js/assets/landing.jpg">
+                <source src="js/assets/landing.mp4" type="video/mp4">
+            </video>
+            <div class="auth-right-overlay"></div>
+        </div>
     </div>
     <script src="login.js"></script>
 </body>
