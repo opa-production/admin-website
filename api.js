@@ -325,6 +325,18 @@ const api = {
         body: JSON.stringify(data)
     }),
 
+    // Bulk email service — send a branded email to all clients and/or all hosts.
+    // Backend wraps the body in the Ardena template + per-recipient unsubscribe. See emails.md
+    sendBulkEmail: (data) => apiRequest('/admin/emails/send', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    // Send a single test email to one address using the same template. See test.md
+    sendTestEmail: (data) => apiRequest('/admin/emails/test', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+
     // Ratings moderation
     getRatings: (params = {}) => {
         const queryString = new URLSearchParams(params).toString();

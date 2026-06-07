@@ -136,6 +136,7 @@ function configureNavigationForRole(role) {
     "referral-earnings",
     "payment-methods",
     "refunds",
+    "subscribers",
   ];
   const hideForFinance = [
     "subscribers",
@@ -191,7 +192,7 @@ function loadPage(page) {
     withdrawals: "Withdrawals",
     referrals: "Referrals",
     "referral-earnings": "Referral Earnings",
-    subscribers: "Subscribers",
+    subscribers: "Email Service",
     revenue: "Revenue",
     support: "Support",
     moderation: "Moderation",
@@ -295,6 +296,7 @@ function isPageAllowedForRole(page, role) {
     "referral-earnings",
     "payment-methods",
     "refunds",
+    "subscribers",
     "admins",
   ]);
   const restrictedForFinance = new Set([

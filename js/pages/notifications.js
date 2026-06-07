@@ -372,12 +372,6 @@ async function sendClientNotification(event) {
     .getElementById("clientNotificationMessage")
     .value.trim();
   const type = document.getElementById("clientNotificationType").value;
-  const emailSubject = (
-    document.getElementById("clientNotificationEmailSubject").value || ""
-  ).trim();
-  const emailBodyHtml = (
-    document.getElementById("clientNotificationEmailBody").value || ""
-  ).trim();
   const recipientType = document.querySelector(
     'input[name="clientRecipientType"]:checked',
   ).value;
@@ -402,17 +396,12 @@ async function sendClientNotification(event) {
       title: title,
       message: message,
       type: type,
-      // Optional email fields for preferences-based broadcast
-      email_subject: emailSubject || undefined,
-      email_body_html: emailBodyHtml || undefined,
     };
-
-    console.log("Sending client notification:", notificationData);
-    console.log("Recipient type:", recipientType);
 
     let response;
     if (recipientType === "all") {
-      response = await api.broadcastToClientsByPreferences(notificationData);
+      // In-app only — a plain broadcast to all active clients (no emails).
+      response = await api.broadcastToClients(notificationData);
     } else if (recipientType === "specific") {
       const clientId = document.getElementById(
         "notificationClientSelect",

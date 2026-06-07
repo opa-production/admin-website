@@ -42,7 +42,7 @@ const NAV_ITEMS = [
   { page: "referrals", label: "Referrals", icon: "referrals" },
   { page: "referral-earnings", label: "Referral Earnings", icon: "referral-earnings" },
   { page: "refunds", label: "Refunds", icon: "refunds" },
-  { page: "subscribers", label: "Subscribers", icon: "subscribers" },
+  { page: "subscribers", label: "Email Service", icon: "subscribers" },
   { page: "revenue", label: "Revenue", icon: "revenue" },
   { page: "support", label: "Support", icon: "support" },
   { page: "moderation", label: "Moderation", icon: "moderation" },

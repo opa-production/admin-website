@@ -213,8 +213,8 @@
                 <div id="notificationsPage" class="page-content" style="display: none;">
                     <div class="notif-header">
                         <div class="notif-header-text">
-                            <h2 class="notif-title">Send a notification</h2>
-                            <p class="notif-subtitle">Compose a message and pick an audience. They'll receive it instantly in-app.</p>
+                            <h2 class="notif-title">Send an in-app notification</h2>
+                            <p class="notif-subtitle">Compose a message and pick an audience — it appears instantly in their in-app notifications. No emails are sent from here (use Email Service for emails).</p>
                         </div>
                         <div class="notif-segmented" role="tablist" aria-label="Audience">
                             <button id="hostNotificationTab" type="button" class="notif-seg-btn active" role="tab" aria-selected="true" onclick="switchNotificationTab('host')">
@@ -338,7 +338,7 @@
                                                 <input type="radio" name="clientRecipientType" value="all" checked onchange="toggleClientSelection()">
                                                 <div class="notif-audience-body">
                                                     <span class="notif-audience-title">All active clients</span>
-                                                    <span class="notif-audience-desc">Respects each client's notification preferences.</span>
+                                                    <span class="notif-audience-desc">Broadcast to every active client account.</span>
                                                 </div>
                                             </label>
                                             <label class="notif-audience-opt">
@@ -356,24 +356,6 @@
                                             </select>
                                         </div>
                                     </div>
-
-                                    <details class="notif-card notif-accordion">
-                                        <summary class="notif-accordion-summary">
-                                            <span class="notif-accordion-title">Customize email (optional)</span>
-                                            <span class="notif-accordion-hint">By default, the subject is the title above and the body wraps the message.</span>
-                                            <svg class="notif-accordion-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                                        </summary>
-                                        <div class="notif-accordion-body">
-                                            <div class="notif-field">
-                                                <label for="clientNotificationEmailSubject" class="notif-label">Email subject</label>
-                                                <input type="text" id="clientNotificationEmailSubject" name="email_subject" maxlength="255" placeholder="Overrides the title above" class="notif-input">
-                                            </div>
-                                            <div class="notif-field">
-                                                <label for="clientNotificationEmailBody" class="notif-label">Email body (HTML)</label>
-                                                <textarea id="clientNotificationEmailBody" name="email_body_html" rows="5" placeholder="Optional HTML body. Leave blank to wrap the message above automatically." class="notif-input notif-textarea notif-mono"></textarea>
-                                            </div>
-                                        </div>
-                                    </details>
 
                                     <div class="notif-actions">
                                         <button type="submit" class="btn btn-primary notif-send-btn" id="sendClientNotificationBtn">
@@ -632,90 +614,83 @@
                 </div>
 
                 <div id="subscribersPage" class="page-content" style="display: none;">
-                    <div class="subscribers-header">
-                        <div class="subscribers-header-text">
-                            <h2 class="subscribers-title">Newsletter subscribers</h2>
-                            <p class="subscribers-subtitle">Track sign-ups and send updates to your subscriber list.</p>
+                    <div class="email-header">
+                        <div class="email-header-text">
+                            <h2 class="email-title">Email service</h2>
+                            <p class="email-subtitle">Send a branded Ardena email to your clients and hosts. Every email gets the Ardena header and a one-click unsubscribe.</p>
                         </div>
-                        <div class="subscribers-count-pill" title="Currently subscribed">
-                            <span class="subscribers-count-dot"></span>
-                            <span class="subscribers-count-value" id="subscribersCountDisplay">—</span>
-                            <span class="subscribers-count-label">subscribers</span>
-                        </div>
-                    </div>
-
-                    <div class="graphs-section graphs-section-timeline">
-                        <div class="graph-container graph-container-wide">
-                            <div class="graph-header graph-header-row">
-                                <div>
-                                    <h3>Subscription trend</h3>
-                                    <span class="graph-subtitle">Last 30 days · subscriptions vs unsubscriptions</span>
-                                </div>
-                                <div class="graph-legend">
-                                    <span class="legend-chip"><span class="legend-dot" style="background:#2563eb"></span>Subscribed</span>
-                                    <span class="legend-chip"><span class="legend-dot" style="background:#ef4444"></span>Unsubscribed</span>
-                                </div>
-                            </div>
-                            <canvas id="subscribersTrendChart"></canvas>
+                        <div class="email-reach" id="emailReach" title="Approximate active recipients">
+                            <span class="email-reach-value" id="emailReachValue">—</span>
+                            <span class="email-reach-label">recipients</span>
                         </div>
                     </div>
 
-                    <div class="subscribers-grid">
-                        <div class="content-section newsletter-card">
-                            <div class="newsletter-card-header">
-                                <h2>Send newsletter</h2>
-                                <p class="form-hint">Sends to all currently subscribed addresses. Include an unsubscribe link in the body.</p>
-                            </div>
+                    <div class="email-grid">
+                        <!-- Compose column -->
+                        <div class="content-section email-compose">
                             <div class="form-group">
-                                <label for="newsletterSubject">Subject</label>
-                                <input type="text" id="newsletterSubject" class="form-input form-input-clean" placeholder="e.g. New cars added this week">
+                                <label for="emailFromAlias">From</label>
+                                <select id="emailFromAlias" class="form-input form-input-clean email-from-select">
+                                    <option value="noreply">noreply@ardena.co.ke</option>
+                                    <option value="info">info@ardena.co.ke</option>
+                                    <option value="hello">hello@ardena.co.ke</option>
+                                    <option value="kelvin">kelvin@ardena.co.ke</option>
+                                    <option value="mokaya">mokaya@ardena.co.ke</option>
+                                    <option value="ceo">ceo@ardena.co.ke</option>
+                                </select>
                             </div>
+
+                            <div class="form-group">
+                                <label>Send to</label>
+                                <div class="email-audience">
+                                    <label class="email-aud-opt">
+                                        <input type="checkbox" id="emailToClients" checked>
+                                        <span>Clients</span>
+                                    </label>
+                                    <label class="email-aud-opt">
+                                        <input type="checkbox" id="emailToHosts">
+                                        <span>Hosts</span>
+                                    </label>
+                                </div>
+                                <p class="email-aud-hint">Pick one or both. Opted-out recipients are skipped automatically.</p>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="emailSubject">Subject</label>
+                                <input type="text" id="emailSubject" class="form-input form-input-clean" maxlength="200" placeholder="e.g. New cars added this week">
+                            </div>
+
                             <div class="form-group">
                                 <div class="newsletter-editor-head">
-                                    <label for="newsletterBody">Body (Markdown)</label>
-                                    <div class="newsletter-tabs" role="tablist" aria-label="Editor mode">
-                                        <button type="button" id="newsletterWriteTab" class="newsletter-tab active" role="tab" aria-selected="true">Write</button>
-                                        <button type="button" id="newsletterPreviewTab" class="newsletter-tab" role="tab" aria-selected="false">Preview</button>
-                                    </div>
+                                    <label for="emailBody">Body (Markdown)</label>
                                 </div>
-                                <textarea id="newsletterBody" class="form-input form-input-clean newsletter-body-textarea" rows="10" placeholder="### Hello!&#10;&#10;We just added new cars in **Nairobi** — check them out.&#10;&#10;- Toyota Vitz&#10;- Mazda Demio&#10;&#10;[Browse all cars](https://yoursite.com/cars)&#10;&#10;---&#10;[Unsubscribe](https://yoursite.com/unsubscribe)"></textarea>
-                                <div id="newsletterPreview" class="newsletter-preview" hidden></div>
-                                <p class="newsletter-hint">Use Markdown — <code>**bold**</code>, <code>### Heading</code>, lists, and <code>[link](url)</code>. It'll be rendered to clean HTML before sending.</p>
+                                <textarea id="emailBody" class="form-input form-input-clean newsletter-body-textarea" rows="12" placeholder="### Hi there!&#10;&#10;We just added new cars in **Nairobi** — check them out.&#10;&#10;- Toyota Vitz&#10;- Mazda Demio&#10;&#10;[Browse all cars](https://ardena.co.ke)"></textarea>
+                                <p class="newsletter-hint">Markdown — <code>**bold**</code>, <code>### Heading</code>, lists, and <code>[link](url)</code>. The Ardena header and unsubscribe footer are added automatically — you only write the body.</p>
                             </div>
+
+                            <div class="email-test-row">
+                                <input type="email" id="emailTestAddress" class="form-input form-input-clean" placeholder="you@example.com">
+                                <button type="button" class="btn btn-secondary" id="sendTestEmailBtn">Send test</button>
+                            </div>
+                            <p class="email-test-hint">Send a test to one address first to see exactly how it lands.</p>
+
                             <div class="newsletter-actions">
-                                <button type="button" class="btn btn-primary" id="sendNewsletterBtn">Send to all subscribers</button>
-                                <div id="newsletterResult" class="form-result"></div>
+                                <button type="button" class="btn btn-primary" id="sendEmailBtn">Send email</button>
+                                <div id="emailResult" class="form-result"></div>
                             </div>
                         </div>
 
-                        <div class="content-section subscribers-list-card">
-                            <div class="subscribers-list-header">
-                                <h2>Subscriber list</h2>
-                                <button type="button" class="btn btn-secondary btn-small" id="seeSubscribersBtn">See subscribers</button>
+                        <!-- Live preview column -->
+                        <aside class="email-preview-col">
+                            <div class="email-preview-head">
+                                <span class="email-preview-eyebrow">Live preview</span>
+                                <span class="email-preview-meta" id="emailPreviewMeta">From noreply@ardena.co.ke</span>
                             </div>
-                            <div id="subscribersListSection" style="display: none;">
-                                <div class="subscribers-filter-row">
-                                    <label class="form-label">Show</label>
-                                    <select id="subscribersFilter" class="form-select form-input-clean">
-                                        <option value="true">Subscribed only</option>
-                                        <option value="false">All (including unsubscribed)</option>
-                                    </select>
-                                </div>
-                                <div class="table-container">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Email</th>
-                                                <th>Status</th>
-                                                <th>Subscribed at</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="subscribersTableBody"></tbody>
-                                    </table>
-                                </div>
-                                <div id="subscribersPagination" class="subscribers-pagination"></div>
+                            <div class="email-preview-frame">
+                                <iframe id="emailPreviewFrame" title="Email preview" sandbox=""></iframe>
                             </div>
-                        </div>
+                            <p class="email-preview-foot">This is exactly what recipients receive. The unsubscribe link is personalised per recipient when sent.</p>
+                        </aside>
                     </div>
                 </div>
 

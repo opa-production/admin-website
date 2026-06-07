@@ -1,337 +1,258 @@
-// js/pages/subscribers.js — extracted from dashboard.js during the per-page refactor.
-// Classic script (not a module): top-level functions and vars are global by design.
+// js/pages/subscribers.js — Email Service page (page key stays "subscribers").
+// Classic script: top-level functions are global by design.
+//
+// Compose a branded Ardena email and send it to all clients and/or all hosts.
+// The admin only writes the body (Markdown); the Ardena header + unsubscribe
+// footer are applied by the backend per the contract in emails.md. The live
+// preview here renders that exact template so it's WYSIWYG.
 
+const EMAIL_DOMAIN = "ardena.co.ke";
+const EMAIL_ALIASES = ["noreply", "info", "hello", "kelvin", "mokaya", "ceo"];
 
-// ==================== SUBSCRIBERS (NEWSLETTER) ====================
+let emailServiceWired = false;
+let emailReachCounts = { clients: null, hosts: null };
 
-let subscribersCurrentPage = 1;
-const subscribersLimit = 20;
-let subscribersHandlersAttached = false;
-let subscribersTrendChart = null;
-
-function attachSubscribersHandlers() {
-  if (subscribersHandlersAttached) return;
-  subscribersHandlersAttached = true;
-  const seeBtn = document.getElementById("seeSubscribersBtn");
-  const filterEl = document.getElementById("subscribersFilter");
-  const sendBtn = document.getElementById("sendNewsletterBtn");
-
-  // Write / Preview tab toggle
-  const writeTab = document.getElementById("newsletterWriteTab");
-  const previewTab = document.getElementById("newsletterPreviewTab");
-  const bodyEl = document.getElementById("newsletterBody");
-  const previewEl = document.getElementById("newsletterPreview");
-  if (writeTab && previewTab && bodyEl && previewEl) {
-    writeTab.addEventListener("click", () => setNewsletterMode("write"));
-    previewTab.addEventListener("click", () => setNewsletterMode("preview"));
-  }
-  if (seeBtn) {
-    seeBtn.addEventListener("click", () => {
-      const section = document.getElementById("subscribersListSection");
-      if (!section) return;
-      if (section.style.display === "none") {
-        section.style.display = "block";
-        seeBtn.textContent = "Hide subscribers";
-        loadSubscribersList(1);
-      } else {
-        section.style.display = "none";
-        seeBtn.textContent = "See subscribers";
-      }
-    });
-  }
-  if (filterEl)
-    filterEl.addEventListener("change", () => loadSubscribersList(1));
-  if (sendBtn) sendBtn.addEventListener("click", sendNewsletterToSubscribers);
+function emailAddressFor(alias) {
+  return `${alias}@${EMAIL_DOMAIN}`;
 }
 
-function createSubscribersTrendChart(labels, subscriptions, unsubscriptions) {
-  const canvas = document.getElementById("subscribersTrendChart");
-  if (!canvas) return;
-  if (subscribersTrendChart) subscribersTrendChart.destroy();
-
-  const ctx = canvas.getContext("2d");
-  const height = canvas.height || 280;
-
-  const subGradient = ctx.createLinearGradient(0, 0, 0, height);
-  subGradient.addColorStop(0, "rgba(37, 99, 235, 0.28)");
-  subGradient.addColorStop(1, "rgba(37, 99, 235, 0.02)");
-
-  const unsubGradient = ctx.createLinearGradient(0, 0, 0, height);
-  unsubGradient.addColorStop(0, "rgba(239, 68, 68, 0.22)");
-  unsubGradient.addColorStop(1, "rgba(239, 68, 68, 0.02)");
-
-  subscribersTrendChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: labels.map((l) => {
-        const d = new Date(l);
-        return d.toLocaleDateString(undefined, {
-          month: "short",
-          day: "numeric",
-        });
-      }),
-      datasets: [
-        {
-          label: "Subscribed",
-          data: subscriptions,
-          borderColor: "rgba(37, 99, 235, 1)",
-          backgroundColor: subGradient,
-          fill: true,
-          tension: 0.4,
-          borderWidth: 2.5,
-          pointRadius: 0,
-          pointHoverRadius: 6,
-          pointHoverBackgroundColor: "rgba(37, 99, 235, 1)",
-          pointHoverBorderColor: "#fff",
-          pointHoverBorderWidth: 2,
-        },
-        {
-          label: "Unsubscribed",
-          data: unsubscriptions,
-          borderColor: "rgba(239, 68, 68, 1)",
-          backgroundColor: unsubGradient,
-          fill: true,
-          tension: 0.4,
-          borderWidth: 2.5,
-          pointRadius: 0,
-          pointHoverRadius: 6,
-          pointHoverBackgroundColor: "rgba(239, 68, 68, 1)",
-          pointHoverBorderColor: "#fff",
-          pointHoverBorderWidth: 2,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { intersect: false, mode: "index" },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          padding: 12,
-          backgroundColor: "rgba(17, 24, 39, 0.95)",
-          titleFont: { size: 13, weight: "600" },
-          bodyFont: { size: 12 },
-          cornerRadius: 8,
-          displayColors: true,
-          boxPadding: 4,
-        },
-      },
-      scales: {
-        x: {
-          grid: { display: false, drawBorder: false },
-          ticks: {
-            maxRotation: 0,
-            autoSkipPadding: 18,
-            font: { size: 11 },
-            color: "#6b7280",
-          },
-        },
-        y: {
-          beginAtZero: true,
-          grid: {
-            color: "rgba(17, 24, 39, 0.05)",
-            drawBorder: false,
-            borderDash: [3, 3],
-          },
-          ticks: { precision: 0, font: { size: 11 }, color: "#6b7280" },
-        },
-      },
-      animation: { duration: 1000, easing: "easeOutQuart" },
-    },
-  });
-}
-
-async function loadSubscribersList(page) {
-  const tbody = document.getElementById("subscribersTableBody");
-  const paginationEl = document.getElementById("subscribersPagination");
-  if (!tbody || !paginationEl) return;
-  subscribersCurrentPage = page;
-  const filterEl = document.getElementById("subscribersFilter");
-  const subscribedOnly = filterEl && filterEl.value === "true";
-  tbody.innerHTML =
-    '<tr><td colspan="3" style="padding: 20px; color: #666; text-align: center;">Loading...</td></tr>';
+function markdownToHtml(md) {
+  if (typeof marked === "undefined") return escapeHtml(md || "").replace(/\n/g, "<br>");
   try {
-    const data = await api.getSubscribers({
-      page: page,
-      limit: subscribersLimit,
-      subscribed_only: subscribedOnly,
-    });
-    const list = data.subscribers || [];
-    const total = data.total || 0;
-    const totalPages = data.total_pages || 1;
-    if (list.length === 0) {
-      tbody.innerHTML =
-        '<tr><td colspan="3" style="padding: 20px; color: #666; text-align: center;">No subscribers found.</td></tr>';
-    } else {
-      tbody.innerHTML = list
-        .map(
-          (s) => `
-                <tr>
-                    <td>${escapeHtml(s.email)}</td>
-                    <td>${s.is_subscribed ? "Subscribed" : "Unsubscribed"}</td>
-                    <td>${s.created_at ? new Date(s.created_at).toLocaleString() : "—"}</td>
-                </tr>
-            `,
-        )
-        .join("");
-    }
-    paginationEl.innerHTML = "";
-    if (totalPages > 1) {
-      const prevBtn = document.createElement("button");
-      prevBtn.className = "btn btn-secondary";
-      prevBtn.textContent = "Previous";
-      prevBtn.disabled = page <= 1;
-      prevBtn.onclick = () => loadSubscribersList(page - 1);
-      const nextBtn = document.createElement("button");
-      nextBtn.className = "btn btn-secondary";
-      nextBtn.textContent = "Next";
-      nextBtn.disabled = page >= totalPages;
-      nextBtn.onclick = () => loadSubscribersList(page + 1);
-      const span = document.createElement("span");
-      span.textContent = `Page ${page} of ${totalPages} (${total} total)`;
-      span.style.marginLeft = "8px";
-      paginationEl.appendChild(prevBtn);
-      paginationEl.appendChild(nextBtn);
-      paginationEl.appendChild(span);
-    }
+    return marked.parse(md || "", { gfm: true, breaks: true });
   } catch (e) {
-    tbody.innerHTML =
-      '<tr><td colspan="3" style="padding: 20px; color: #c62828; text-align: center;">Error loading subscribers. ' +
-      (e.message || "") +
-      "</td></tr>";
+    return escapeHtml(md || "");
   }
 }
 
-// Render markdown → HTML (sanitized-ish: marked already escapes raw HTML when
-// configured, but admins author this, so we keep things permissive).
-function renderNewsletterMarkdown(md) {
-  if (typeof marked === "undefined") return md;
-  try {
-    return marked.parse(md, { gfm: true, breaks: true });
-  } catch (e) {
-    console.error("Markdown render failed:", e);
-    return md;
-  }
-}
-
-// Wrap rendered HTML in a minimal email template so every send looks consistent.
-function wrapNewsletterEmail(innerHtml, subject) {
-  const safeSubject = (subject || "").replace(
-    /[&<>"']/g,
-    (c) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      })[c],
-  );
+// The branded email template. This is the SAME template the backend must
+// produce (see emails.md) — keep them in sync. `unsubscribeUrl` is a placeholder
+// in the preview; the backend personalises it per recipient.
+function buildBrandedEmailHtml(innerHtml, subject, opts = {}) {
+  const logo = opts.logoUrl || "/js/assets/logo.png";
+  const unsub = opts.unsubscribeUrl || "#";
+  const safeSubject = escapeHtml(subject || "");
   return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${safeSubject}</title>
-</head>
-<body style="margin:0;padding:0;background:#f6f8fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1f2937;">
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f6f8fb;padding:32px 12px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;background:#ffffff;border:1px solid #eef2f7;border-radius:10px;">
-          <tr>
-            <td style="padding:32px 32px 24px;line-height:1.6;font-size:15px;color:#1f2937;">
-              ${innerHtml}
-            </td>
-          </tr>
-        </table>
-        <p style="margin:18px 0 0;font-size:12px;color:#9ca3af;">
-          You're receiving this because you subscribed to our newsletter.
-        </p>
-      </td>
-    </tr>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>${safeSubject}</title></head>
+<body style="margin:0;padding:0;background:#f4f6fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1f2937;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6fb;padding:28px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e7ebf2;">
+        <tr><td style="background:#0066cc;padding:24px 28px;text-align:center;">
+          <img src="${logo}" alt="Ardena" height="52" style="height:52px;display:inline-block;border:0;filter:brightness(0) invert(1);">
+        </td></tr>
+        <tr><td style="padding:30px 32px;font-size:15px;line-height:1.65;color:#1f2937;">
+          ${innerHtml || '<p style="color:#9ca3af;">Your email body will appear here as you type.</p>'}
+        </td></tr>
+        <tr><td style="padding:0 32px 30px;">
+          <div style="text-align:center;padding-top:22px;border-top:1px solid #eef2f7;">
+            <a href="${unsub}" style="display:inline-block;padding:10px 20px;border-radius:8px;background:#f1f5f9;color:#475569;text-decoration:none;font-size:13px;font-weight:600;">Unsubscribe</a>
+            <p style="margin:14px 0 0;font-size:12px;color:#9ca3af;line-height:1.5;">You received this because you have an Ardena account.<br>&copy; Ardena · Nairobi, Kenya</p>
+          </div>
+        </td></tr>
+      </table>
+    </td></tr>
   </table>
-</body>
-</html>`;
+</body></html>`;
 }
 
-function setNewsletterMode(mode) {
-  const writeTab = document.getElementById("newsletterWriteTab");
-  const previewTab = document.getElementById("newsletterPreviewTab");
-  const bodyEl = document.getElementById("newsletterBody");
-  const previewEl = document.getElementById("newsletterPreview");
-  if (!writeTab || !previewTab || !bodyEl || !previewEl) return;
+function selectedEmailAudiences() {
+  const audiences = [];
+  if (document.getElementById("emailToClients")?.checked) audiences.push("clients");
+  if (document.getElementById("emailToHosts")?.checked) audiences.push("hosts");
+  return audiences;
+}
 
-  const showPreview = mode === "preview";
-  writeTab.classList.toggle("active", !showPreview);
-  previewTab.classList.toggle("active", showPreview);
-  writeTab.setAttribute("aria-selected", String(!showPreview));
-  previewTab.setAttribute("aria-selected", String(showPreview));
+function updateEmailPreview() {
+  const subject = document.getElementById("emailSubject")?.value || "";
+  const body = document.getElementById("emailBody")?.value || "";
+  const alias = document.getElementById("emailFromAlias")?.value || "noreply";
+  const frame = document.getElementById("emailPreviewFrame");
+  const meta = document.getElementById("emailPreviewMeta");
 
-  if (showPreview) {
-    const html = renderNewsletterMarkdown(bodyEl.value.trim());
-    previewEl.innerHTML =
-      html ||
-      '<p style="color:#9ca3af;">Nothing to preview yet — write some Markdown first.</p>';
-    previewEl.hidden = false;
-    bodyEl.hidden = true;
-  } else {
-    previewEl.hidden = true;
-    bodyEl.hidden = false;
+  if (frame) {
+    frame.srcdoc = buildBrandedEmailHtml(markdownToHtml(body), subject);
+  }
+  if (meta) {
+    const aud = selectedEmailAudiences();
+    const audLabel =
+      aud.length === 2
+        ? "Clients + Hosts"
+        : aud.length === 1
+          ? aud[0] === "clients"
+            ? "Clients"
+            : "Hosts"
+          : "no audience";
+    meta.textContent = `From ${emailAddressFor(alias)} · ${audLabel}`;
   }
 }
 
-async function sendNewsletterToSubscribers() {
-  const subjectEl = document.getElementById("newsletterSubject");
-  const bodyEl = document.getElementById("newsletterBody");
-  const resultEl = document.getElementById("newsletterResult");
-  const sendBtn = document.getElementById("sendNewsletterBtn");
-  if (!subjectEl || !bodyEl || !resultEl || !sendBtn) return;
-  const subject = subjectEl.value.trim();
-  const markdown = bodyEl.value.trim();
-  if (!subject || !markdown) {
-    resultEl.className = "form-result error";
-    resultEl.textContent = "Please enter subject and body.";
+async function updateEmailReach() {
+  const el = document.getElementById("emailReachValue");
+  if (!el) return;
+  // Lazily fetch the totals once, then recompute from the checkboxes.
+  try {
+    if (emailReachCounts.clients == null) {
+      const c = await api.getClients({ page: 1, limit: 1 });
+      emailReachCounts.clients = c.total || 0;
+    }
+    if (emailReachCounts.hosts == null) {
+      const h = await api.getHosts({ page: 1, limit: 1 });
+      emailReachCounts.hosts = h.total || 0;
+    }
+  } catch (e) {
+    /* leave as-is */
+  }
+  const aud = selectedEmailAudiences();
+  let total = 0;
+  if (aud.includes("clients")) total += emailReachCounts.clients || 0;
+  if (aud.includes("hosts")) total += emailReachCounts.hosts || 0;
+  el.textContent = total ? `≈ ${total.toLocaleString()}` : "—";
+}
+
+function wireEmailService() {
+  if (emailServiceWired) return;
+  emailServiceWired = true;
+
+  ["emailSubject", "emailBody", "emailFromAlias"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", updateEmailPreview);
+    if (el) el.addEventListener("change", updateEmailPreview);
+  });
+  ["emailToClients", "emailToHosts"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el)
+      el.addEventListener("change", () => {
+        updateEmailPreview();
+        updateEmailReach();
+      });
+  });
+  const sendBtn = document.getElementById("sendEmailBtn");
+  if (sendBtn) sendBtn.addEventListener("click", sendBulkEmailCampaign);
+  const testBtn = document.getElementById("sendTestEmailBtn");
+  if (testBtn) testBtn.addEventListener("click", sendTestEmailCampaign);
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+// Send a single test email to one address using the current composer draft.
+async function sendTestEmailCampaign() {
+  const resultEl = document.getElementById("emailResult");
+  const testBtn = document.getElementById("sendTestEmailBtn");
+  const testEmail = (document.getElementById("emailTestAddress").value || "").trim();
+  const alias = document.getElementById("emailFromAlias").value;
+  const subject = document.getElementById("emailSubject").value.trim();
+  const body = document.getElementById("emailBody").value.trim();
+
+  const fail = (msg) => {
+    if (resultEl) {
+      resultEl.className = "form-result error";
+      resultEl.textContent = msg;
+    }
+  };
+
+  if (!isValidEmail(testEmail)) return fail("Enter a valid email address to test with.");
+  if (!subject) return fail("Please enter a subject first.");
+  if (!body) return fail("Please write the email body first.");
+
+  testBtn.disabled = true;
+  const original = testBtn.textContent;
+  testBtn.textContent = "Sending…";
+  try {
+    const res = await api.sendTestEmail({
+      test_email: testEmail,
+      from_alias: alias,
+      subject,
+      body_html: markdownToHtml(body),
+    });
+    const ok = res.email_sent !== false;
+    uiToast(
+      res.message || (ok ? `Test email sent to ${testEmail}.` : "Test email failed to send."),
+      ok ? "success" : "error",
+    );
+    if (resultEl) {
+      resultEl.className = "form-result " + (ok ? "success" : "error");
+      resultEl.textContent =
+        res.message || (ok ? `Test sent to ${testEmail}.` : "Test failed.");
+    }
+  } catch (e) {
+    fail(e.message || "Failed to send test email.");
+  } finally {
+    testBtn.disabled = false;
+    testBtn.textContent = original;
+  }
+}
+
+async function sendBulkEmailCampaign() {
+  const resultEl = document.getElementById("emailResult");
+  const sendBtn = document.getElementById("sendEmailBtn");
+  const alias = document.getElementById("emailFromAlias").value;
+  const subject = document.getElementById("emailSubject").value.trim();
+  const body = document.getElementById("emailBody").value.trim();
+  const audiences = selectedEmailAudiences();
+
+  const fail = (msg) => {
+    if (resultEl) {
+      resultEl.className = "form-result error";
+      resultEl.textContent = msg;
+    }
+  };
+
+  if (audiences.length === 0) return fail("Pick at least one audience (Clients or Hosts).");
+  if (!subject) return fail("Please enter a subject.");
+  if (!body) return fail("Please write the email body.");
+
+  const who =
+    audiences.length === 2
+      ? "all clients and hosts"
+      : audiences[0] === "clients"
+        ? "all clients"
+        : "all hosts";
+  if (
+    !(await uiConfirm(
+      `Send this email to ${who} from ${emailAddressFor(alias)}? Opted-out recipients are skipped.`,
+      { title: "Send email", confirmText: "Send email" },
+    ))
+  ) {
     return;
   }
+
   sendBtn.disabled = true;
-  resultEl.className = "form-result";
-  resultEl.textContent = "Sending…";
-  try {
-    const inner = renderNewsletterMarkdown(markdown);
-    const wrapped = wrapNewsletterEmail(inner, subject);
-    const data = await api.sendNewsletter({ subject, body_html: wrapped });
-    resultEl.className = "form-result success";
-    resultEl.textContent =
-      data.message || `Sent: ${data.sent || 0}, Failed: ${data.failed || 0}`;
-  } catch (e) {
-    resultEl.className = "form-result error";
-    resultEl.textContent = e.message || "Failed to send";
+  const original = sendBtn.textContent;
+  sendBtn.textContent = "Sending…";
+  if (resultEl) {
+    resultEl.className = "form-result";
+    resultEl.textContent = "Sending…";
   }
-  sendBtn.disabled = false;
+
+  try {
+    const res = await api.sendBulkEmail({
+      audiences,
+      from_alias: alias,
+      subject,
+      body_html: markdownToHtml(body),
+    });
+    if (resultEl) {
+      resultEl.className = "form-result success";
+      resultEl.textContent =
+        res.message ||
+        `Queued for ${res.recipients ?? "selected"} recipient${res.recipients === 1 ? "" : "s"}.`;
+    }
+    uiToast(res.message || "Email queued for delivery.", "success");
+  } catch (e) {
+    fail(e.message || "Failed to send email.");
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = original;
+  }
 }
 
-async function loadSubscribers() {
-  attachSubscribersHandlers();
-  const countEl = document.getElementById("subscribersCountDisplay");
-  try {
-    const [countData, trendsData] = await Promise.all([
-      api.getSubscriberCount({ subscribed_only: "true" }),
-      api.getSubscriberTrends({ days: 30 }),
-    ]);
-    if (countEl)
-      countEl.textContent = countData.count != null ? countData.count : "—";
-    const labels = trendsData.labels || [];
-    const subscriptions = trendsData.subscriptions || [];
-    const unsubscriptions = trendsData.unsubscriptions || [];
-    createSubscribersTrendChart(labels, subscriptions, unsubscriptions);
-  } catch (e) {
-    if (countEl) countEl.textContent = "—";
-    console.error("Error loading subscribers:", e);
-  }
-  const section = document.getElementById("subscribersListSection");
-  const seeBtn = document.getElementById("seeSubscribersBtn");
-  if (section) section.style.display = "none";
-  if (seeBtn) seeBtn.textContent = "See subscribers";
+// Entry point (loadPage case "subscribers").
+function loadSubscribers() {
+  wireEmailService();
+  updateEmailPreview();
+  updateEmailReach();
 }
