@@ -41,6 +41,9 @@ async function loadSupportConversations() {
 
   if (!content) return;
 
+  // Keep the sidebar "unread support" badge in sync after reads/replies.
+  if (typeof refreshNavBadges === "function") refreshNavBadges();
+
   content.innerHTML = '<div class="loading">Loading conversations...</div>';
 
   try {
@@ -364,9 +367,9 @@ async function closeSupportConversation() {
   }
 
   if (
-    !confirm(
+    !(await uiConfirm(
       "Are you sure you want to close this conversation? The host will not be able to send new messages until it is reopened.",
-    )
+    ))
   ) {
     return;
   }

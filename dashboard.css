@@ -2733,3 +2733,175 @@ body.admin-nav-open {
     .mod-filter-input { min-width: 0; }
     .mod-drawer-panel { width: 100%; }
 }
+
+/* ==================== Custom toasts (replaces native alert) ==================== */
+.ui-toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 4000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: min(360px, calc(100vw - 32px));
+}
+
+.ui-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #fff;
+    color: #1a2230;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+    border-left: 4px solid #94a3b8;
+    font-size: 14px;
+    line-height: 1.4;
+    opacity: 0;
+    transform: translateX(16px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.ui-toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.ui-toast-icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    margin-top: 1px;
+}
+
+.ui-toast-msg {
+    flex: 1;
+    word-break: break-word;
+}
+
+.ui-toast-close {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    font-size: 18px;
+    line-height: 1;
+    color: #9aa4b2;
+    cursor: pointer;
+    padding: 0 2px;
+}
+
+.ui-toast-close:hover { color: #5b6573; }
+
+.ui-toast-success { border-left-color: #1d7a36; }
+.ui-toast-success .ui-toast-icon { color: #1d7a36; }
+.ui-toast-error { border-left-color: #c0392b; }
+.ui-toast-error .ui-toast-icon { color: #c0392b; }
+.ui-toast-warning { border-left-color: #b97400; }
+.ui-toast-warning .ui-toast-icon { color: #b97400; }
+.ui-toast-info { border-left-color: #0066cc; }
+.ui-toast-info .ui-toast-icon { color: #0066cc; }
+
+/* ==================== Custom confirm/alert dialog ==================== */
+.ui-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 4100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.5);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.ui-dialog-overlay.show { opacity: 1; }
+
+.ui-dialog {
+    width: 100%;
+    max-width: 420px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    transform: translateY(8px) scale(0.98);
+    transition: transform 0.15s ease;
+}
+
+.ui-dialog-overlay.show .ui-dialog {
+    transform: translateY(0) scale(1);
+}
+
+.ui-dialog-title {
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a2230;
+}
+
+.ui-dialog-message {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #475569;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.ui-dialog-input {
+    width: 100%;
+    margin-top: 14px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: #1a2230;
+    border: 1px solid #d8dee6;
+    border-radius: 8px;
+    resize: vertical;
+}
+
+.ui-dialog-input:focus {
+    outline: none;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.12);
+}
+
+.ui-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+/* ==================== Sidebar notification badges ==================== */
+.nav-item {
+    position: relative;
+}
+
+.nav-badge {
+    margin-left: auto;
+    flex-shrink: 0;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #e11d48;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+}
+
+/* When collapsed, the badge becomes a small dot on the icon corner. */
+.dashboard-layout.sidebar-collapsed .nav-badge {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    margin: 0;
+    min-width: 0;
+    width: 9px;
+    height: 9px;
+    padding: 0;
+    font-size: 0;
+    line-height: 0;
+}

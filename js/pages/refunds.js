@@ -178,8 +178,15 @@ async function updateRefundStatus(id, newStatus) {
     newStatus === "completed"
       ? "Optional internal note (e.g. PSP reference, confirmation details):"
       : "Optional internal note for this status change:";
-  const note = window.prompt(reasonPrompt, "");
-  const ext = window.prompt("Optional PSP/Bank refund reference:", "");
+  const note = await uiPrompt(reasonPrompt, {
+    title: "Update refund",
+    placeholder: "Internal note (optional)",
+    multiline: true,
+  });
+  const ext = await uiPrompt("Optional PSP/Bank refund reference:", {
+    title: "Update refund",
+    placeholder: "PSP / Bank reference (optional)",
+  });
   try {
     await api.updateRefund(id, {
       status: newStatus,

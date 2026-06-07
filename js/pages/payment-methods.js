@@ -252,15 +252,15 @@ async function viewPaymentMethodDetails(paymentMethodId) {
 }
 
 // Delete payment method confirmation
-function deletePaymentMethodConfirm(
+async function deletePaymentMethodConfirm(
   paymentMethodId,
   paymentMethodName,
   reloadAfter = false,
 ) {
   if (
-    !confirm(
+    !(await uiConfirm(
       `Are you sure you want to permanently delete payment method "${paymentMethodName}"? This action cannot be undone.`,
-    )
+    ))
   ) {
     return;
   }

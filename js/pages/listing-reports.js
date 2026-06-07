@@ -320,9 +320,9 @@ async function setListingReportStatus(reportId, status) {
 
 async function deleteListingReportFromDrawer(reportId) {
   if (
-    !confirm(
+    !(await uiConfirm(
       `Permanently delete report #${reportId}? This cannot be undone — prefer "Dismiss" to keep the record.`,
-    )
+    ))
   )
     return;
   const footer = document.getElementById("modDrawerFooter");

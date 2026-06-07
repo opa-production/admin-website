@@ -242,7 +242,7 @@ async function viewHostDetails(hostId) {
 
 // Deactivate host
 async function deactivateHost(hostId, reloadAfter = false) {
-  if (!confirm("Are you sure you want to deactivate this host account?")) {
+  if (!(await uiConfirm("Are you sure you want to deactivate this host account?"))) {
     return;
   }
 
@@ -262,7 +262,7 @@ async function deactivateHost(hostId, reloadAfter = false) {
 
 // Activate host
 async function activateHost(hostId, reloadAfter = false) {
-  if (!confirm("Are you sure you want to activate this host account?")) {
+  if (!(await uiConfirm("Are you sure you want to activate this host account?"))) {
     return;
   }
 
@@ -281,11 +281,11 @@ async function activateHost(hostId, reloadAfter = false) {
 }
 
 // Delete host confirmation
-function deleteHostConfirm(hostId, hostName, reloadAfter = false) {
+async function deleteHostConfirm(hostId, hostName, reloadAfter = false) {
   if (
-    !confirm(
+    !(await uiConfirm(
       `Are you sure you want to permanently delete host "${hostName}"? This action cannot be undone.`,
-    )
+    ))
   ) {
     return;
   }

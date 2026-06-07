@@ -27,6 +27,10 @@ window.addEventListener("DOMContentLoaded", async () => {
   // Setup profile dropdown
   setupProfileDropdown();
 
+  // Surface attention-needed counts (support, cars) on the sidebar and keep
+  // them fresh.
+  startNavBadgePolling();
+
   // Load dashboard by default
   loadDashboard();
 });

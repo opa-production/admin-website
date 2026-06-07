@@ -405,7 +405,7 @@ function backToBookingsList() {
 
 // Confirm booking
 async function confirmBooking(bookingId) {
-  if (!confirm("Are you sure you want to confirm this booking?")) {
+  if (!(await uiConfirm("Are you sure you want to confirm this booking?"))) {
     return;
   }
 
@@ -423,8 +423,14 @@ async function confirmBooking(bookingId) {
 }
 
 // Cancel booking prompt
-function cancelBookingPrompt(bookingId) {
-  const reason = prompt("Enter cancellation reason (optional):");
+async function cancelBookingPrompt(bookingId) {
+  const reason = await uiPrompt("Enter cancellation reason (optional):", {
+    title: "Cancel booking",
+    placeholder: "Reason (optional)",
+    confirmText: "Cancel booking",
+    cancelText: "Keep booking",
+    multiline: true,
+  });
   if (reason !== null) {
     cancelBooking(bookingId, reason || null);
   }
@@ -446,7 +452,7 @@ async function cancelBooking(bookingId, reason = null) {
 }
 
 // Update booking status prompt
-function updateBookingStatusPrompt(bookingId, newStatus) {
+async function updateBookingStatusPrompt(bookingId, newStatus) {
   const statusLabels = {
     completed: "completed",
     cancelled: "cancelled",
@@ -454,7 +460,11 @@ function updateBookingStatusPrompt(bookingId, newStatus) {
   };
 
   const label = statusLabels[newStatus] || newStatus;
-  const reason = prompt(`Enter reason for marking as ${label} (optional):`);
+  const reason = await uiPrompt(`Enter reason for marking as ${label} (optional):`, {
+    title: `Mark booking ${label}`,
+    placeholder: "Reason (optional)",
+    multiline: true,
+  });
 
   if (reason !== null) {
     updateBookingStatus(bookingId, newStatus, reason || null);
@@ -477,11 +487,11 @@ async function updateBookingStatus(bookingId, newStatus, reason = null) {
 }
 
 // Delete booking prompt
-function deleteBookingPrompt(bookingId) {
+async function deleteBookingPrompt(bookingId) {
   if (
-    !confirm(
+    !(await uiConfirm(
       "Are you sure you want to permanently delete this booking? This action cannot be undone.",
-    )
+    ))
   ) {
     return;
   }

@@ -71,9 +71,60 @@ function renderSidebar() {
       `<a href="#" class="${cls}" data-page="${item.page}"${idAttr}${styleAttr} title="${item.label}">` +
       `<span class="nav-icon">${navIconSvgEl(item.icon)}</span>` +
       `<span class="nav-label">${item.label}</span>` +
+      `<span class="nav-badge" id="navBadge-${item.page}" style="display:none;"></span>` +
       `</a>`
     );
   }).join("");
+}
+
+// ---------------------------------------------------------------------------
+// Sidebar notification badges: surface work that needs the admin's attention
+// (unread support messages, cars awaiting verification) on the nav itself.
+// ---------------------------------------------------------------------------
+function setNavBadge(page, count) {
+  const el = document.getElementById("navBadge-" + page);
+  if (!el) return;
+  const n = Number(count) || 0;
+  if (n > 0) {
+    el.textContent = n > 99 ? "99+" : String(n);
+    el.style.display = "";
+    el.setAttribute("title", n + " need attention");
+  } else {
+    el.textContent = "";
+    el.style.display = "none";
+    el.removeAttribute("title");
+  }
+}
+
+let navBadgeTimer = null;
+
+// Fetch the counts that drive the badges. Each source is guarded so a role
+// without access (e.g. finance can't see Support) just skips that badge.
+async function refreshNavBadges() {
+  if (!localStorage.getItem("admin_token")) return;
+
+  // Cars awaiting verification (neither approved nor rejected yet).
+  try {
+    const stats = await api.getVerificationQueueStats();
+    setNavBadge("cars", stats.cars_awaiting_verification || 0);
+  } catch (e) {
+    /* no access / offline — leave badge as-is */
+  }
+
+  // Unread support conversations needing a reply.
+  try {
+    const res = await api.getSupportConversations({ page: 1, limit: 1 });
+    setNavBadge("support", res.unread_count || 0);
+  } catch (e) {
+    /* no access / offline */
+  }
+}
+
+// Poll periodically so the badges self-heal without a page reload.
+function startNavBadgePolling() {
+  refreshNavBadges();
+  if (navBadgeTimer) clearInterval(navBadgeTimer);
+  navBadgeTimer = setInterval(refreshNavBadges, 60000);
 }
 
 // Collapsible sidebar (desktop): icon-only rail when collapsed, state persisted.

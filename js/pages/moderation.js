@@ -322,7 +322,7 @@ async function openRatingDetail(ratingType, ratingId) {
 
 async function deleteRatingFromDrawer() {
   if (!modDrawerContext || modDrawerContext.kind !== "rating") return;
-  if (!confirm("Delete this rating? This cannot be undone.")) return;
+  if (!(await uiConfirm("Delete this rating? This cannot be undone."))) return;
   const footer = document.getElementById("modDrawerFooter");
   const btn = footer ? footer.querySelector("button") : null;
   if (btn) {
@@ -536,9 +536,9 @@ async function openSecondaryContactDetail(clientId) {
 async function clearSecondaryContactFromDrawer() {
   if (!modDrawerContext || modDrawerContext.kind !== "contact") return;
   if (
-    !confirm(
+    !(await uiConfirm(
       "Clear this secondary contact? The client will need to start the OTP flow again.",
-    )
+    ))
   )
     return;
   const footer = document.getElementById("modDrawerFooter");

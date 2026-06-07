@@ -175,6 +175,9 @@ async function loadCars() {
   // Setup search and filter if not already done
   setupCarSearch();
 
+  // Keep the sidebar "awaiting verification" badge in sync after actions.
+  if (typeof refreshNavBadges === "function") refreshNavBadges();
+
   try {
     const params = { limit: 50 };
     if (currentCarSearch) {
@@ -493,7 +496,7 @@ async function viewCarDetails(carId) {
 
 // Approve car
 async function approveCar(carId, reloadAfter = false) {
-  if (!confirm("Are you sure you want to approve this car listing?")) {
+  if (!(await uiConfirm("Are you sure you want to approve this car listing?"))) {
     return;
   }
 
@@ -511,8 +514,13 @@ async function approveCar(carId, reloadAfter = false) {
 }
 
 // Reject car prompt
-function rejectCarPrompt(carId, reloadAfter = false) {
-  const reason = prompt("Please provide a reason for rejection:");
+async function rejectCarPrompt(carId, reloadAfter = false) {
+  const reason = await uiPrompt("Please provide a reason for rejection:", {
+    title: "Reject car",
+    placeholder: "Reason for rejection",
+    confirmText: "Reject car",
+    multiline: true,
+  });
   if (reason && reason.trim()) {
     rejectCar(carId, reason.trim(), reloadAfter);
   } else if (reason !== null) {
@@ -537,7 +545,7 @@ async function rejectCar(carId, rejectionReason, reloadAfter = false) {
 
 // Hide car
 async function hideCar(carId, reloadAfter = false) {
-  if (!confirm("Are you sure you want to hide this car from public listing?")) {
+  if (!(await uiConfirm("Are you sure you want to hide this car from public listing?"))) {
     return;
   }
 
@@ -570,11 +578,11 @@ async function showCar(carId, reloadAfter = false) {
 }
 
 // Delete car confirmation
-function deleteCarConfirm(carId, carName, reloadAfter = false) {
+async function deleteCarConfirm(carId, carName, reloadAfter = false) {
   if (
-    !confirm(
+    !(await uiConfirm(
       `Are you sure you want to permanently delete car "${carName}"? This action cannot be undone.`,
-    )
+    ))
   ) {
     return;
   }

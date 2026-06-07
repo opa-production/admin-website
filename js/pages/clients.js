@@ -366,7 +366,7 @@ async function activateClient(clientId, reloadAfter = false) {
 
 // Deactivate client
 async function deactivateClient(clientId, reloadAfter = false) {
-  if (!confirm("Are you sure you want to deactivate this client account?")) {
+  if (!(await uiConfirm("Are you sure you want to deactivate this client account?"))) {
     return;
   }
 
@@ -384,11 +384,11 @@ async function deactivateClient(clientId, reloadAfter = false) {
 }
 
 // Delete client confirmation
-function deleteClientConfirm(clientId, clientName, reloadAfter = false) {
+async function deleteClientConfirm(clientId, clientName, reloadAfter = false) {
   if (
-    !confirm(
+    !(await uiConfirm(
       `Are you sure you want to permanently delete client "${clientName}"? This action cannot be undone.`,
-    )
+    ))
   ) {
     return;
   }

@@ -315,7 +315,7 @@ function closeAdminModal() {
 
 // Deactivate admin
 async function deactivateAdmin(adminId, reloadAfter = false) {
-  if (!confirm("Are you sure you want to deactivate this admin account?")) {
+  if (!(await uiConfirm("Are you sure you want to deactivate this admin account?"))) {
     return;
   }
 
@@ -334,7 +334,7 @@ async function deactivateAdmin(adminId, reloadAfter = false) {
 
 // Activate admin
 async function activateAdmin(adminId, reloadAfter = false) {
-  if (!confirm("Are you sure you want to activate this admin account?")) {
+  if (!(await uiConfirm("Are you sure you want to activate this admin account?"))) {
     return;
   }
 
@@ -352,11 +352,11 @@ async function activateAdmin(adminId, reloadAfter = false) {
 }
 
 // Delete admin confirmation
-function deleteAdminConfirm(adminId, adminName, reloadAfter = false) {
+async function deleteAdminConfirm(adminId, adminName, reloadAfter = false) {
   if (
-    !confirm(
+    !(await uiConfirm(
       `Are you sure you want to permanently delete admin "${adminName}"? This action cannot be undone.`,
-    )
+    ))
   ) {
     return;
   }
