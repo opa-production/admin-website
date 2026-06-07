@@ -21,6 +21,21 @@ async function loadMyProfile() {
     myProfileContent.innerHTML = `
             <div style="max-width: 600px;">
                 <div class="host-detail-section">
+                    <h3>Profile Photo</h3>
+                    <div class="avatar-uploader">
+                        <div class="profile-avatar profile-avatar-lg" id="myProfileAvatar"></div>
+                        <div class="avatar-uploader-actions">
+                            <input type="file" id="myProfileAvatarInput" accept="image/*" style="display:none;" onchange="onAdminAvatarSelected(event)">
+                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                <button type="button" class="btn btn-primary" onclick="triggerAdminAvatarUpload()">Upload photo</button>
+                                <button type="button" class="btn btn-secondary" id="myProfileAvatarRemove" onclick="removeAdminAvatarPhoto()">Remove</button>
+                            </div>
+                            <div class="avatar-uploader-hint">Saved on this device only. Square images look best (max ~5&nbsp;MB).</div>
+                            <div id="myProfileAvatarError" style="color:#d32f2f; margin-top:8px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="host-detail-section">
                     <h3>Profile Information</h3>
                     <form id="myProfileForm" onsubmit="saveMyProfile(event)">
                         <div class="form-group">
@@ -52,10 +67,59 @@ async function loadMyProfile() {
                 </div>
             </div>
         `;
+
+    refreshMyProfileAvatar(admin);
   } catch (error) {
     console.error("Error loading profile:", error);
     myProfileContent.innerHTML = `<div class="empty-state">Error loading profile: ${error.message}</div>`;
   }
+}
+
+// Render the My Profile avatar preview and toggle the Remove button.
+function refreshMyProfileAvatar(admin) {
+  const el = document.getElementById("myProfileAvatar");
+  if (!el) return;
+  const a = admin || currentAdminInfo();
+  renderAdminAvatar(el, a ? a.full_name || a.email : "A", a);
+  const removeBtn = document.getElementById("myProfileAvatarRemove");
+  if (removeBtn)
+    removeBtn.style.display = getStoredAdminAvatar(a) ? "inline-block" : "none";
+}
+
+function triggerAdminAvatarUpload() {
+  const input = document.getElementById("myProfileAvatarInput");
+  if (input) input.click();
+}
+
+function onAdminAvatarSelected(event) {
+  const errEl = document.getElementById("myProfileAvatarError");
+  if (errEl) errEl.textContent = "";
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  processAdminAvatarFile(file, 256, (dataUrl, errMsg) => {
+    // Allow re-selecting the same file later.
+    event.target.value = "";
+    if (!dataUrl) {
+      if (errEl) errEl.textContent = errMsg || "Could not use that image.";
+      return;
+    }
+    const admin = currentAdminInfo();
+    if (!setStoredAdminAvatar(dataUrl, admin)) {
+      if (errEl)
+        errEl.textContent =
+          "Couldn't save — this browser's storage is full. Try a smaller image.";
+      return;
+    }
+    refreshMyProfileAvatar(admin);
+    refreshHeaderAvatar();
+  });
+}
+
+function removeAdminAvatarPhoto() {
+  const admin = currentAdminInfo();
+  removeStoredAdminAvatar(admin);
+  refreshMyProfileAvatar(admin);
+  refreshHeaderAvatar();
 }
 
 // Save my profile

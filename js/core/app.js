@@ -52,13 +52,7 @@ async function loadAdminInfo() {
       localStorage.setItem("admin_info", JSON.stringify(admin));
       profileName.textContent = admin.full_name || "Admin";
       profileEmail.textContent = admin.email || "";
-      const initials = (admin.full_name || admin.email || "A")
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .substring(0, 2);
-      profileAvatar.textContent = initials;
+      renderAdminAvatar(profileAvatar, admin.full_name || admin.email, admin);
       console.log("Admin profile loaded successfully");
 
       // Cache role globally for access control
@@ -76,13 +70,11 @@ async function loadAdminInfo() {
       if (adminInfo && (adminInfo.full_name || adminInfo.email)) {
         profileName.textContent = adminInfo.full_name || "Admin";
         profileEmail.textContent = adminInfo.email || "";
-        const initials = (adminInfo.full_name || adminInfo.email || "A")
-          .split(" ")
-          .map((n) => n[0])
-          .join("")
-          .toUpperCase()
-          .substring(0, 2);
-        profileAvatar.textContent = initials;
+        renderAdminAvatar(
+          profileAvatar,
+          adminInfo.full_name || adminInfo.email,
+          adminInfo,
+        );
         console.log("Admin profile loaded from localStorage");
 
         // Cache role globally for access control

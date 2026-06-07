@@ -264,3 +264,112 @@ function formatDateLabel(dateString) {
     return "";
   }
 }
+
+// ---------------------------------------------------------------------------
+// Admin profile picture — stored LOCALLY in this browser (no backend).
+// Keyed per admin (by id, else email) so multiple admins on one machine don't
+// clash. The value is a compact square JPEG data URL. Trade-off: it does not
+// follow the admin to another device and clears with site data.
+// ---------------------------------------------------------------------------
+function currentAdminInfo() {
+  try {
+    return JSON.parse(localStorage.getItem("admin_info") || "null");
+  } catch (e) {
+    return null;
+  }
+}
+
+function adminAvatarStorageKey(admin) {
+  const a = admin || currentAdminInfo();
+  if (a && a.id != null) return "admin_avatar:id:" + a.id;
+  if (a && a.email) return "admin_avatar:em:" + a.email;
+  return "admin_avatar:default";
+}
+
+function getStoredAdminAvatar(admin) {
+  try {
+    return localStorage.getItem(adminAvatarStorageKey(admin));
+  } catch (e) {
+    return null;
+  }
+}
+
+function setStoredAdminAvatar(dataUrl, admin) {
+  try {
+    localStorage.setItem(adminAvatarStorageKey(admin), dataUrl);
+    return true;
+  } catch (e) {
+    return false; // e.g. QuotaExceededError
+  }
+}
+
+function removeStoredAdminAvatar(admin) {
+  try {
+    localStorage.removeItem(adminAvatarStorageKey(admin));
+  } catch (e) {
+    /* ignore */
+  }
+}
+
+// Render an avatar element as either the stored photo or text initials.
+function renderAdminAvatar(el, nameSource, admin) {
+  if (!el) return;
+  const url = getStoredAdminAvatar(admin);
+  if (url) {
+    el.style.backgroundImage = `url("${url}")`;
+    el.style.backgroundSize = "cover";
+    el.style.backgroundPosition = "center";
+    el.textContent = "";
+    el.classList.add("has-photo");
+  } else {
+    el.style.backgroundImage = "";
+    el.classList.remove("has-photo");
+    const initials = (nameSource || "A")
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
+    el.textContent = initials;
+  }
+}
+
+// Re-render the header avatar from the cached admin info (call after a change).
+function refreshHeaderAvatar() {
+  const el = document.getElementById("profileAvatar");
+  if (!el) return;
+  const a = currentAdminInfo();
+  renderAdminAvatar(el, a ? a.full_name || a.email : "A", a);
+}
+
+// Read an image File, center-crop to a square, downscale, and hand back a
+// compact JPEG data URL via callback(dataUrl | null, errorMessage).
+function processAdminAvatarFile(file, size, callback) {
+  if (!file || !/^image\//.test(file.type)) {
+    callback(null, "Please choose an image file.");
+    return;
+  }
+  const reader = new FileReader();
+  reader.onerror = () => callback(null, "Could not read that file.");
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onerror = () => callback(null, "That image could not be loaded.");
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      const min = Math.min(img.width, img.height);
+      const sx = (img.width - min) / 2;
+      const sy = (img.height - min) / 2;
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+      try {
+        callback(canvas.toDataURL("image/jpeg", 0.85), null);
+      } catch (err) {
+        callback(null, "Could not process that image.");
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
