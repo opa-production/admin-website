@@ -15,28 +15,13 @@
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h2>Admin Panel</h2>
+                <h2 class="sidebar-title">Admin Panel</h2>
+                <button type="button" class="sidebar-collapse-toggle" id="sidebarCollapseToggle" aria-label="Collapse sidebar" aria-expanded="true" title="Collapse sidebar">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
             </div>
-            <nav class="sidebar-nav">
-                <a href="#" class="nav-item active" data-page="dashboard">Dashboard</a>
-                <a href="#" class="nav-item" data-page="hosts">Hosts</a>
-                <a href="#" class="nav-item" data-page="clients">Clients</a>
-                <a href="#" class="nav-item" data-page="cars">Cars</a>
-                <a href="#" class="nav-item" data-page="feedback">Feedback</a>
-                <a href="#" class="nav-item" data-page="notifications">Notifications</a>
-                <a href="#" class="nav-item" data-page="payment-methods">Payment Methods</a>
-                <a href="#" class="nav-item" data-page="bookings">Bookings</a>
-                <a href="#" class="nav-item" data-page="withdrawals">Withdrawals</a>
-                <a href="#" class="nav-item" data-page="referrals">Referrals</a>
-                <a href="#" class="nav-item" data-page="referral-earnings">Referral Earnings</a>
-                <a href="#" class="nav-item" data-page="refunds">Refunds</a>
-                <a href="#" class="nav-item" data-page="subscribers">Subscribers</a>
-                <a href="#" class="nav-item" data-page="revenue">Revenue</a>
-                <a href="#" class="nav-item" data-page="support">Support</a>
-                <a href="#" class="nav-item" data-page="moderation">Moderation</a>
-                <a href="reports.html" class="nav-item" data-external="true" data-page="listing-reports">Listing Reports</a>
-                <a href="#" class="nav-item" data-page="admins" id="adminsNavItem" style="display: none;">Admins</a>
-            </nav>
+            <!-- Nav links are rendered once from NAV_ITEMS in js/core/shell.js (single source of truth). -->
+            <nav class="sidebar-nav" id="sidebarNav"></nav>
         </aside>
 
         <!-- Main Content -->
@@ -835,6 +820,7 @@
                     <div class="moderation-tabs" role="tablist">
                         <button type="button" class="moderation-tab active" role="tab" aria-selected="true" data-mod-tab="ratings" onclick="switchModerationTab('ratings')">Ratings</button>
                         <button type="button" class="moderation-tab" role="tab" aria-selected="false" data-mod-tab="contacts" onclick="switchModerationTab('contacts')">Secondary Contacts</button>
+                        <button type="button" class="moderation-tab" role="tab" aria-selected="false" data-mod-tab="reports" onclick="switchModerationTab('reports')">Listing Reports</button>
                     </div>
 
                     <!-- Ratings tab -->
@@ -901,6 +887,37 @@
                                 <div class="loading">Loading clients...</div>
                             </div>
                             <div id="contactsPagination" class="mod-pagination"></div>
+                        </div>
+                    </div>
+
+                    <!-- Listing reports tab -->
+                    <div id="moderationReportsPane" class="moderation-pane" style="display: none;">
+                        <div class="mod-stats-row" id="reportsStatsRow">
+                            <div class="loading">Loading stats...</div>
+                        </div>
+
+                        <div class="content-section">
+                            <div class="mod-filters">
+                                <select id="reportsStatusFilter" class="mod-filter-select">
+                                    <option value="open">Open (received + reviewing)</option>
+                                    <option value="received">Received</option>
+                                    <option value="reviewing">Reviewing</option>
+                                    <option value="resolved">Resolved (actioned + dismissed)</option>
+                                    <option value="actioned">Actioned</option>
+                                    <option value="dismissed">Dismissed</option>
+                                    <option value="">All reports</option>
+                                </select>
+                                <select id="reportsOrderFilter" class="mod-filter-select">
+                                    <option value="desc">Newest first</option>
+                                    <option value="asc">Oldest first</option>
+                                </select>
+                                <input type="number" id="reportsCarIdFilter" placeholder="Car ID" min="1" class="mod-filter-select" style="width: 120px;">
+                                <input type="number" id="reportsClientIdFilter" placeholder="Client ID" min="1" class="mod-filter-select" style="width: 130px;">
+                            </div>
+                            <div id="reportsContent">
+                                <div class="loading">Loading reports...</div>
+                            </div>
+                            <div id="reportsPagination" class="mod-pagination"></div>
                         </div>
                     </div>
                 </div>
@@ -1054,6 +1071,29 @@
     </div>
 
     <script src="api.js"></script>
-    <script src="dashboard.js"></script>
+    <!-- Core (shared helpers, shell chrome, bootstrap/router) -->
+    <script src="js/core/helpers.js"></script>
+    <script src="js/core/shell.js"></script>
+    <script src="js/core/app.js"></script>
+    <!-- Pages (one classic script per page; all functions are global) -->
+    <script src="js/pages/dashboard-home.js"></script>
+    <script src="js/pages/revenue.js"></script>
+    <script src="js/pages/hosts.js"></script>
+    <script src="js/pages/clients.js"></script>
+    <script src="js/pages/cars.js"></script>
+    <script src="js/pages/bookings.js"></script>
+    <script src="js/pages/withdrawals.js"></script>
+    <script src="js/pages/refunds.js"></script>
+    <script src="js/pages/payment-methods.js"></script>
+    <script src="js/pages/referrals.js"></script>
+    <script src="js/pages/referral-earnings.js"></script>
+    <script src="js/pages/notifications.js"></script>
+    <script src="js/pages/feedback.js"></script>
+    <script src="js/pages/subscribers.js"></script>
+    <script src="js/pages/support.js"></script>
+    <script src="js/pages/admins.js"></script>
+    <script src="js/pages/profile.js"></script>
+    <script src="js/pages/moderation.js"></script>
+    <script src="js/pages/listing-reports.js"></script>
 </body>
 </html>

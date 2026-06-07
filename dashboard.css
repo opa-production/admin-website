@@ -38,12 +38,47 @@ body {
 .sidebar-header {
     padding: 20px;
     border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 }
 
-.sidebar-header h2 {
+.sidebar-header h2,
+.sidebar-title {
     font-size: 18px;
     font-weight: 500;
     color: white;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar-collapse-toggle {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid #333;
+    border-radius: 6px;
+    color: #ccc;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.sidebar-collapse-toggle:hover {
+    background: #2a2a2a;
+    color: #fff;
+}
+
+/* The chevron flips when collapsed (points right = "expand"). */
+.dashboard-layout.sidebar-collapsed .sidebar-collapse-toggle svg {
+    transform: rotate(180deg);
 }
 
 .sidebar-nav {
@@ -52,12 +87,33 @@ body {
 }
 
 .nav-item {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 12px;
     padding: 12px 20px;
     color: #ccc;
     text-decoration: none;
+    white-space: nowrap;
     transition: background-color 0.2s, color 0.2s;
     border-left: 3px solid transparent;
+}
+
+.nav-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+}
+
+.nav-icon-svg {
+    display: block;
+}
+
+.nav-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .nav-item:hover {
@@ -1267,6 +1323,46 @@ body.admin-nav-open {
     overflow: hidden;
 }
 
+/* ==================== Collapsible sidebar (desktop) ==================== */
+/* Scoped to desktop so it never conflicts with the mobile off-canvas rules. */
+@media (min-width: 901px) {
+    .dashboard-layout.sidebar-collapsed .sidebar {
+        width: 72px;
+    }
+
+    .dashboard-layout.sidebar-collapsed .main-content {
+        margin-left: 72px;
+        width: calc(100% - 72px);
+    }
+
+    .dashboard-layout.sidebar-collapsed .sidebar-title {
+        display: none;
+    }
+
+    .dashboard-layout.sidebar-collapsed .sidebar-header {
+        justify-content: center;
+        padding: 20px 0;
+    }
+
+    .dashboard-layout.sidebar-collapsed .nav-item {
+        justify-content: center;
+        padding: 12px 0;
+        gap: 0;
+    }
+
+    .dashboard-layout.sidebar-collapsed .nav-label {
+        display: none;
+    }
+}
+
+/* The collapse toggle only makes sense on desktop; the mobile hamburger
+   handles small screens. */
+@media (max-width: 900px) {
+    .sidebar-collapse-toggle {
+        display: none;
+    }
+}
+
 /* ==================== Support Page (two-pane inbox) ==================== */
 
 .support-page-shell {
@@ -2441,6 +2537,12 @@ body.admin-nav-open {
 .mod-badge.status-verified { background: #ecfdf5; color: #047857; }
 .mod-badge.status-otp_sent { background: #fef3c7; color: #92400e; }
 .mod-badge.status-not_started { background: #f1f5f9; color: #475569; }
+
+/* Listing report statuses (received=blue, reviewing=amber, actioned=green, dismissed=grey) */
+.mod-badge.report-received { background: #eff6ff; color: #1d4ed8; }
+.mod-badge.report-reviewing { background: #fef3c7; color: #92400e; }
+.mod-badge.report-actioned { background: #ecfdf5; color: #047857; }
+.mod-badge.report-dismissed { background: #f1f5f9; color: #475569; }
 
 .mod-pagination {
     display: flex;

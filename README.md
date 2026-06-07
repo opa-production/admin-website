@@ -47,7 +47,7 @@ environment.
 ## Features
 
 The dashboard (`dashboard.html`) is a single page with a sidebar; each section is
-rendered by `dashboard.js`:
+rendered by its own script under `js/pages/` (see **Files** below):
 
 - **Dashboard** — stats, revenue, KYC and booking trend charts
 - **Hosts** — list with search, KYC status filter, and a with/without-cars
@@ -58,7 +58,11 @@ rendered by `dashboard.js`:
 - **Feedback**, **Notifications** (broadcasts + targeted sends),
   **Payment Methods**, **Bookings** (with pagination), **Withdrawals**,
   **Refunds**, **Subscribers** (newsletter), **Revenue**, **Support**,
-  **Moderation** (ratings), and **Admins** (super-admin only)
+  **Moderation** (Ratings · Secondary Contacts · Listing Reports tabs), and
+  **Admins** (super-admin only)
+
+The sidebar can be collapsed to an icon-only rail (toggle in the sidebar header);
+the state is remembered in `localStorage`.
 
 ### KYC status
 
@@ -73,13 +77,24 @@ search/filter/pagination client-side.
 | File | Purpose |
 |------|---------|
 | `index.html` / `login.js` / `styles.css` | Login page |
-| `dashboard.html` | Admin dashboard markup |
-| `dashboard.js` | All dashboard logic and rendering |
+| `dashboard.html` | Admin dashboard markup (SPA shell + page containers) |
 | `dashboard.css` | Dashboard styling |
 | `api.js` | API client (`API_BASE_URL`, auth, all endpoint methods) |
+| `js/core/helpers.js` | Shared helpers: formatting, escaping, badges, pagination, label constants |
+| `js/core/shell.js` | Sidebar `NAV_ITEMS` (single source of truth), icons, collapse, mobile nav, profile menu |
+| `js/core/app.js` | Bootstrap, auth/profile load, router (`loadPage`), role-based access |
+| `js/pages/*.js` | One classic script per page (hosts, clients, cars, bookings, moderation, …) |
 | `subscribers.html` | Standalone subscribers/newsletter view |
+| `reports.md` | Listing-reports (moderation) API notes — see the Moderation → Listing Reports tab |
 | `kyccheckmd` | KYC backend integration notes |
 | `bookings.md` | Bookings API notes |
+
+> All `js/**` files are **classic scripts** (not ES modules): every top-level
+> function/variable is global, which is what lets inline `onclick=` handlers and
+> cross-file calls work. Load order is set in `dashboard.html` (core before pages).
+> To add a page: create `js/pages/<name>.js`, add a `<script>` tag, a `NAV_ITEMS`
+> entry in `js/core/shell.js`, a `case` in `loadPage` (`js/core/app.js`), and a
+> `.page-content` container in `dashboard.html`.
 
 ## CORS
 
