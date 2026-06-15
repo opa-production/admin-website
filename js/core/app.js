@@ -9,6 +9,11 @@ window.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
+  if (typeof isSessionExpired === "function" && isSessionExpired()) {
+    logoutAndRedirect("Session expired. Please sign in again.");
+    return;
+  }
+
   // Render the sidebar from the single NAV_ITEMS config before anything reads
   // or wires the .nav-item elements.
   renderSidebar();
@@ -33,6 +38,21 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   // Load dashboard by default
   loadDashboard();
+
+  // Start expiration watcher so sessions are revoked even if the user stays
+  // on the dashboard for more than 30 minutes.
+  if (typeof getSessionExpiry === "function") {
+    const expiry = getSessionExpiry();
+    const remaining = expiry - Date.now();
+    if (remaining <= 0) {
+      logoutAndRedirect("Session expired. Please sign in again.");
+    } else {
+      setTimeout(() => {
+        alert("Your session has expired. Please sign in again.");
+        logoutAndRedirect("Session expired. Please sign in again.");
+      }, remaining);
+    }
+  }
 });
 
 // Load admin info
