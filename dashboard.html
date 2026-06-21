@@ -696,26 +696,42 @@
 
                 <div id="revenuePage" class="page-content" style="display: none;">
                     <div class="content-section">
-                        <h2 style="margin-bottom: 24px;">Revenue Stream</h2>
+                        <h2 style="margin-bottom: 4px;">Revenue</h2>
+                        <p class="section-subtitle">Commission is our revenue — processed cash is what we handle on behalf of hosts.</p>
                         <div class="stats-grid" id="revenueStatsGrid">
                             <div class="loading">Loading revenue...</div>
                         </div>
                         <div class="revenue-graphs-section">
-                            <div class="graph-container revenue-chart-wrap">
-                                <h3>Revenue Over Time</h3>
-                                <canvas id="revenueStreamChart"></canvas>
+                            <div class="graph-container revenue-chart-wrap revenue-chart-full revenue-chart-hero">
+                                <div class="graph-header graph-header-row">
+                                    <div>
+                                        <h3>Revenue Over Time</h3>
+                                        <span class="graph-subtitle">Net commission earned each month</span>
+                                    </div>
+                                    <span class="graph-pill graph-pill--revenue">Our revenue</span>
+                                </div>
+                                <canvas id="revenueTrendChart"></canvas>
+                            </div>
+                            <div class="graph-container revenue-chart-wrap revenue-chart-full">
+                                <div class="graph-header">
+                                    <h3>Cash Flow Breakdown</h3>
+                                    <span class="graph-subtitle">Processed cash each month = host payout + commission</span>
+                                </div>
+                                <canvas id="cashFlowChart"></canvas>
                             </div>
                             <div class="graph-container revenue-chart-wrap">
-                                <h3>Money Flow</h3>
-                                <canvas id="moneyFlowChart"></canvas>
+                                <div class="graph-header">
+                                    <h3>Booking Volume</h3>
+                                    <span class="graph-subtitle">Paid bookings per month</span>
+                                </div>
+                                <canvas id="bookingVolumeChart"></canvas>
                             </div>
                             <div class="graph-container revenue-chart-wrap">
-                                <h3>Paid Bookings Over Time</h3>
-                                <canvas id="paidBookingsChart"></canvas>
-                            </div>
-                            <div class="graph-container revenue-chart-wrap">
-                                <h3>Revenue Composition</h3>
-                                <canvas id="revenueCompositionChart"></canvas>
+                                <div class="graph-header">
+                                    <h3>Where the Money Goes</h3>
+                                    <span class="graph-subtitle">All-time split of processed cash</span>
+                                </div>
+                                <canvas id="revenueSplitChart"></canvas>
                             </div>
                         </div>
                     </div>

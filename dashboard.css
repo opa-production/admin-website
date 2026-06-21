@@ -1103,19 +1103,85 @@ td.row-actions {
 }
 
 /* Revenue page */
+.section-subtitle {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 0 0 22px;
+}
+
 .revenue-graphs-section {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
+    gap: 20px;
 }
 
 .revenue-chart-wrap {
-    min-height: 280px;
+    height: 300px;
+}
+
+/* Charts that read better full-width (timelines, stacked flows) */
+.revenue-chart-full {
+    grid-column: 1 / -1;
+}
+
+/* Premium stat cards on the revenue page */
+#revenueStatsGrid .stat-card {
+    border-radius: 12px;
+    padding: 18px 20px;
+    border: 1px solid rgba(17, 24, 39, 0.06);
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 4px 16px rgba(17, 24, 39, 0.04);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+#revenueStatsGrid .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(17, 24, 39, 0.06), 0 12px 28px rgba(17, 24, 39, 0.08);
+}
+
+#revenueStatsGrid .stat-card--revenue .stat-value {
+    color: #047857;
+}
+
+/* Premium graph cards */
+.revenue-graphs-section .graph-container {
+    border-radius: 14px;
+    padding: 20px 22px 18px;
+    border: 1px solid rgba(17, 24, 39, 0.06);
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 6px 20px rgba(17, 24, 39, 0.05);
+    transition: box-shadow 0.18s ease;
+}
+
+.revenue-graphs-section .graph-container:hover {
+    box-shadow: 0 2px 4px rgba(17, 24, 39, 0.06), 0 14px 32px rgba(17, 24, 39, 0.08);
+}
+
+.revenue-chart-hero {
+    background:
+        radial-gradient(120% 140% at 0% 0%, rgba(16, 185, 129, 0.05), rgba(255, 255, 255, 0) 55%),
+        #fff;
+}
+
+.graph-pill {
+    align-self: flex-start;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.graph-pill--revenue {
+    color: #047857;
+    background: rgba(16, 185, 129, 0.12);
 }
 
 @media (max-width: 900px) {
     .revenue-graphs-section {
         grid-template-columns: 1fr;
+    }
+
+    .revenue-chart-full {
+        grid-column: auto;
     }
 }
 
