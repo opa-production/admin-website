@@ -42,6 +42,7 @@ const NAV_ICONS = {
     '<path d="M12 3l8 3v5c0 4.5-3.2 8-8 10-4.8-2-8-5.5-8-10V6z"></path>',
   admins:
     '<circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3.3 2.7-5 6-5 1.2 0 2.3.2 3.2.7"></path><circle cx="17.5" cy="16.5" r="3"></circle><line x1="17.5" y1="11.8" x2="17.5" y2="13.5"></line><line x1="17.5" y1="19.5" x2="17.5" y2="21.2"></line><line x1="21.5" y1="16.5" x2="19.8" y2="16.5"></line><line x1="15.2" y1="16.5" x2="13.5" y2="16.5"></line>',
+  b2b: '<path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 9h1.5M9 12h1.5M9 15h1.5M13.5 9H15M13.5 12H15M13.5 15H15"></path>',
 };
 
 // Single source of truth for the sidebar. Order = display order.
@@ -70,6 +71,7 @@ const NAV_ITEMS = [
   { page: "revenue", label: "Revenue", icon: "revenue" },
   { page: "support", label: "Support", icon: "support" },
   { page: "moderation", label: "Moderation", icon: "moderation" },
+  { page: "b2b", label: "B2B Businesses", icon: "b2b" },
   {
     page: "admins",
     label: "Admins",

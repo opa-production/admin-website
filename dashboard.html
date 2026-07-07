@@ -915,6 +915,46 @@
                     </div>
                 </div>
 
+                <!-- B2B (Ardena for Business) -->
+                <div id="b2bPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                            <h2 style="margin: 0;">B2B Businesses</h2>
+                            <button class="btn btn-primary" onclick="showCreateB2BBusinessModal()">Create Business</button>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+                            <button id="b2bRequestsTab" class="referrals-tab active" onclick="switchB2BTab('requests')">Access Requests</button>
+                            <button id="b2bBusinessesTab" class="referrals-tab" onclick="switchB2BTab('businesses')">Businesses</button>
+                        </div>
+
+                        <div id="b2bRequestsPanel">
+                            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                                <select id="b2bRequestStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                    <option value="pending">Pending</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="rejected">Rejected</option>
+                                    <option value="">All Status</option>
+                                </select>
+                                <input type="text" id="b2bRequestSearch" placeholder="Search by reference, business, contact, or email..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 350px;">
+                            </div>
+                            <div id="b2bRequestsContent">
+                                <div class="loading">Loading access requests...</div>
+                            </div>
+                            <div id="b2bRequestsPagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;"></div>
+                        </div>
+
+                        <div id="b2bBusinessesPanel" style="display: none;">
+                            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                                <input type="text" id="b2bBusinessSearch" placeholder="Search by business name..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 350px;">
+                            </div>
+                            <div id="b2bBusinessesContent">
+                                <div class="loading">Loading businesses...</div>
+                            </div>
+                            <div id="b2bBusinessesPagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Moderation detail drawer -->
                 <div id="moderationDrawer" class="mod-drawer" style="display: none;" aria-hidden="true">
                     <div class="mod-drawer-backdrop" onclick="closeModerationDrawer()"></div>
@@ -1057,6 +1097,118 @@
         </div>
     </div>
 
+    <!-- B2B: approve access request -->
+    <div id="b2bApproveModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2>Approve Access Request</h2>
+                <button class="modal-close" onclick="closeB2BApproveModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="b2bApproveRequestId" value="">
+                <p id="b2bApproveSummary" style="margin-bottom: 16px;"></p>
+                <div class="form-group" style="background:#eef4ff; border:1px solid #d6e4ff; border-radius:8px; padding:10px 12px; font-size:13px; color:#33415c;">
+                    The credentials are emailed from <strong>info@ardena.co.ke</strong> and also shown to you once after approval, in case the email fails.
+                </div>
+                <div id="b2bApproveError" style="color: #d32f2f; margin-bottom: 15px;"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeB2BApproveModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="b2bApproveConfirmBtn" onclick="confirmB2BApprove()">Approve &amp; Create Credentials</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- B2B: reject access request -->
+    <div id="b2bRejectModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <h2>Reject Access Request</h2>
+                <button class="modal-close" onclick="closeB2BRejectModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="b2bRejectRequestId" value="">
+                <p id="b2bRejectSummary" style="margin-bottom: 16px;"></p>
+                <div class="form-group">
+                    <label for="b2bRejectReason">Reason (optional)</label>
+                    <textarea id="b2bRejectReason" rows="3" maxlength="2000" placeholder="e.g. could not verify business (KYB)..." style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                </div>
+                <div id="b2bRejectError" style="color: #d32f2f; margin-bottom: 15px;"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeB2BRejectModal()">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="b2bRejectConfirmBtn" onclick="confirmB2BReject()">Reject</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- B2B: create business directly -->
+    <div id="b2bCreateModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>Create B2B Business</h2>
+                <button class="modal-close" onclick="closeB2BCreateModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="b2bCreateForm" onsubmit="saveB2BBusiness(event)">
+                    <div class="form-group">
+                        <label for="b2bCreateName">Business Name *</label>
+                        <input type="text" id="b2bCreateName" required maxlength="255" placeholder="e.g. Prime Fleet Ltd">
+                    </div>
+                    <div class="form-group">
+                        <label for="b2bCreateLocation">Location</label>
+                        <input type="text" id="b2bCreateLocation" maxlength="255" placeholder="e.g. Nairobi">
+                    </div>
+                    <div class="form-group">
+                        <label for="b2bCreateOwnerName">Owner Name *</label>
+                        <input type="text" id="b2bCreateOwnerName" required maxlength="255" placeholder="Full name of the workspace owner">
+                    </div>
+                    <div class="form-group">
+                        <label for="b2bCreateOwnerEmail">Owner Email *</label>
+                        <input type="email" id="b2bCreateOwnerEmail" required placeholder="Their dashboard login email">
+                    </div>
+                    <div class="form-group" style="background:#eef4ff; border:1px solid #d6e4ff; border-radius:8px; padding:10px 12px; font-size:13px; color:#33415c;">
+                        A temporary password is generated automatically, emailed to the owner, and shown to you once after creation.
+                    </div>
+                    <div id="b2bCreateError" style="color: #d32f2f; margin-bottom: 15px;"></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeB2BCreateModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="b2bCreateSaveBtn">Create &amp; Send Credentials</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- B2B: credentials handover (shown once) -->
+    <div id="b2bCredentialsModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 560px;">
+            <div class="modal-header">
+                <h2>Login Credentials</h2>
+                <button class="modal-close" onclick="closeB2BCredentialsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="b2bCredentialsBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="closeB2BCredentialsModal()">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- B2B: business users -->
+    <div id="b2bUsersModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 760px;">
+            <div class="modal-header">
+                <h2 id="b2bUsersModalTitle">Users</h2>
+                <button class="modal-close" onclick="closeB2BUsersModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="b2bUsersModalBody"></div>
+            </div>
+        </div>
+    </div>
+
     <script src="api.js"></script>
     <!-- Core (shared helpers, shell chrome, bootstrap/router) -->
     <script src="js/core/helpers.js"></script>
@@ -1082,6 +1234,7 @@
     <script src="js/pages/admins.js"></script>
     <script src="js/pages/profile.js"></script>
     <script src="js/pages/moderation.js"></script>
+    <script src="js/pages/b2b.js"></script>
     <script src="js/pages/listing-reports.js"></script>
 </body>
 </html>

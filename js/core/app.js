@@ -216,6 +216,7 @@ function loadPage(page) {
     revenue: "Revenue",
     support: "Support",
     moderation: "Moderation",
+    b2b: "B2B Businesses",
     admins: "Admins",
   };
   document.getElementById("pageTitle").textContent =
@@ -293,6 +294,9 @@ function loadPage(page) {
       break;
     case "moderation":
       initModerationPage();
+      break;
+    case "b2b":
+      initB2BPage();
       break;
   }
 }

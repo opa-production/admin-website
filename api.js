@@ -468,6 +468,57 @@ const api = {
   clearSecondaryContact: (clientId) =>
     apiRequest(`/admin/secondary-contacts/${clientId}`, { method: "DELETE" }),
 
+  // B2B (Ardena for Business) — access requests, workspaces, credentials. See b2b.md
+  getB2BAccessRequests: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(
+      `/admin/b2b/access-requests${queryString ? "?" + queryString : ""}`,
+    );
+  },
+  getB2BAccessRequest: (id) => apiRequest(`/admin/b2b/access-requests/${id}`),
+  // Approve: server creates the business + Owner login, emails the credentials
+  // and returns them ONCE for manual handover.
+  approveB2BAccessRequest: (id, data = {}) =>
+    apiRequest(`/admin/b2b/access-requests/${id}/approve`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  rejectB2BAccessRequest: (id, reason = null) =>
+    apiRequest(`/admin/b2b/access-requests/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+  getB2BBusinesses: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(
+      `/admin/b2b/businesses${queryString ? "?" + queryString : ""}`,
+    );
+  },
+  // Direct creation (sales-led onboarding, no access request)
+  createB2BBusiness: (data) =>
+    apiRequest("/admin/b2b/businesses", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  getB2BBusinessUsers: (businessId) =>
+    apiRequest(`/admin/b2b/businesses/${businessId}/users`),
+  resetB2BUserPassword: (userId) =>
+    apiRequest(`/admin/b2b/users/${userId}/reset-password`, {
+      method: "POST",
+    }),
+  activateB2BUser: (userId) =>
+    apiRequest(`/admin/b2b/users/${userId}/activate`, { method: "PUT" }),
+  deactivateB2BUser: (userId) =>
+    apiRequest(`/admin/b2b/users/${userId}/deactivate`, { method: "PUT" }),
+  activateB2BBusiness: (businessId) =>
+    apiRequest(`/admin/b2b/businesses/${businessId}/activate`, {
+      method: "PUT",
+    }),
+  deactivateB2BBusiness: (businessId) =>
+    apiRequest(`/admin/b2b/businesses/${businessId}/deactivate`, {
+      method: "PUT",
+    }),
+
   // Listing reports (moderation queue) — see reports.md
   getListingReports: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
