@@ -88,7 +88,7 @@ async function loadSupportConversations() {
         conv.messages && conv.messages.length > 0
           ? conv.messages[conv.messages.length - 1]
           : null;
-      const hostName = conv.host_name || "Unknown Host";
+      const hostName = conv.host_name || conv.client_name || "Unknown Host";
       const initials = getInitials(hostName);
       const avatarColor = getAvatarColor(hostName);
       const isUnread = !conv.is_read_by_admin;
@@ -104,7 +104,12 @@ async function loadSupportConversations() {
       let previewHtml =
         '<span style="font-style:italic;color:#b0b8c9;">No messages yet</span>';
       if (lastMessage) {
-        const sender = lastMessage.sender_type === "host" ? "Host" : "You";
+        const sender =
+          lastMessage.sender_type === "host"
+            ? "Host"
+            : lastMessage.sender_type === "client"
+              ? "Client"
+              : "You";
         const preview = escapeHtml(lastMessage.message.substring(0, 85));
         previewHtml = `<strong>${sender}:</strong> ${preview}${lastMessage.message.length > 85 ? "…" : ""}`;
       }
@@ -194,8 +199,15 @@ async function viewSupportConversation(conversationId) {
   try {
     const conversation = await api.getSupportConversation(conversationId);
 
-    // Render header info
-    const hostName = conversation.host_name || "Unknown Host";
+    // Render header info (conversation belongs to either a host or a client)
+    const isClientConv = !conversation.host_id && !!conversation.client_id;
+    const hostName =
+      conversation.host_name || conversation.client_name || "Unknown Host";
+    const personEmail = isClientConv
+      ? conversation.client_email
+      : conversation.host_email;
+    const personId = isClientConv ? conversation.client_id : conversation.host_id;
+    const personLabel = isClientConv ? "Client" : "Host";
     const initials = getInitials(hostName);
     const avatarColor = getAvatarColor(hostName);
     const statusBadge =
@@ -208,9 +220,9 @@ async function viewSupportConversation(conversationId) {
             <div class="support-chat-host-details">
                 <div class="support-chat-host-name">${escapeHtml(hostName)}</div>
                 <div class="support-chat-host-sub">
-                    <span>${escapeHtml(conversation.host_email || "")}</span>
+                    <span>${escapeHtml(personEmail || "")}</span>
                     <span class="dot">·</span>
-                    <span>ID: ${conversation.host_id}</span>
+                    <span>${personLabel} ID: ${personId != null ? personId : "—"}</span>
                     <span class="dot">·</span>
                     ${statusBadge}
                 </div>
@@ -250,7 +262,8 @@ async function viewSupportConversation(conversationId) {
       let lastDateLabel = "";
 
       conversation.messages.forEach((msg) => {
-        const isHost = msg.sender_type === "host";
+        const isHost =
+          msg.sender_type === "host" || msg.sender_type === "client";
         const senderName = escapeHtml(
           msg.sender_name || (isHost ? hostName : "Admin"),
         );
