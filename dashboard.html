@@ -56,8 +56,29 @@
             <!-- Content -->
             <div class="content" id="contentArea">
                 <div id="dashboardPage" class="page-content">
-                    <div class="stats-grid" id="statsGrid">
-                        <div class="loading">Loading statistics...</div>
+                    <!-- Skeleton placeholders paint before the stats request resolves;
+                         dashboard-home.js swaps them for the real cards. -->
+                    <div class="stats-grid" id="statsGrid" aria-busy="true">
+                        <div class="sk-stat-card skeleton" aria-hidden="true">
+                            <span class="sk-line sk-label"></span>
+                            <span class="sk-line sk-value"></span>
+                            <span class="sk-line sk-subvalue"></span>
+                        </div>
+                        <div class="sk-stat-card skeleton" aria-hidden="true">
+                            <span class="sk-line sk-label"></span>
+                            <span class="sk-line sk-value"></span>
+                            <span class="sk-line sk-subvalue"></span>
+                        </div>
+                        <div class="sk-stat-card skeleton" aria-hidden="true">
+                            <span class="sk-line sk-label"></span>
+                            <span class="sk-line sk-value"></span>
+                            <span class="sk-line sk-subvalue"></span>
+                        </div>
+                        <div class="sk-stat-card skeleton" aria-hidden="true">
+                            <span class="sk-line sk-label"></span>
+                            <span class="sk-line sk-value"></span>
+                            <span class="sk-line sk-subvalue"></span>
+                        </div>
                     </div>
                     <div class="graphs-section graphs-section-kyc">
                         <div class="graph-container">

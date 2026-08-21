@@ -31,9 +31,77 @@ function normalizeKycSeries(rows) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Loading skeletons
+// Placeholders shown while the overview's stats and charts are in flight. The
+// shimmer lives on the card/wrapper (.skeleton), so each card sweeps as one
+// surface instead of every block animating separately.
+// ---------------------------------------------------------------------------
+
+// Bar heights for the chart placeholders. Fixed rather than random so the
+// skeleton doesn't reshuffle on every re-render.
+const SKELETON_BAR_HEIGHTS = [
+  42, 58, 36, 71, 49, 84, 62, 45, 77, 53, 66, 39,
+];
+
+function skeletonStatCardMarkup() {
+  return `
+    <div class="sk-stat-card skeleton" aria-hidden="true">
+        <span class="sk-line sk-label"></span>
+        <span class="sk-line sk-value"></span>
+        <span class="sk-line sk-subvalue"></span>
+    </div>`;
+}
+
+function skeletonChartMarkup() {
+  const bars = SKELETON_BAR_HEIGHTS.map(
+    (h) => `<span style="height: ${h}%"></span>`
+  ).join("");
+  const labels = SKELETON_BAR_HEIGHTS.map(() => "<span></span>").join("");
+  return `
+    <div class="sk-chart skeleton" aria-hidden="true">
+        <div class="sk-chart-bars">${bars}</div>
+        <div class="sk-chart-axis"></div>
+        <div class="sk-chart-labels">${labels}</div>
+    </div>`;
+}
+
+function showDashboardSkeleton() {
+  const statsGrid = document.getElementById("statsGrid");
+  if (statsGrid) {
+    statsGrid.setAttribute("aria-busy", "true");
+    statsGrid.innerHTML = skeletonStatCardMarkup().repeat(4);
+  }
+
+  document
+    .querySelectorAll("#dashboardPage .graph-container")
+    .forEach((container) => {
+      if (container.querySelector(".sk-chart")) return; // already showing one
+      container.classList.add("is-loading");
+      container.setAttribute("aria-busy", "true");
+      container.insertAdjacentHTML("beforeend", skeletonChartMarkup());
+    });
+}
+
+function hideDashboardSkeleton() {
+  const statsGrid = document.getElementById("statsGrid");
+  if (statsGrid) statsGrid.removeAttribute("aria-busy");
+
+  document
+    .querySelectorAll("#dashboardPage .graph-container")
+    .forEach((container) => {
+      container.classList.remove("is-loading");
+      container.removeAttribute("aria-busy");
+      const sk = container.querySelector(".sk-chart");
+      if (sk) sk.remove();
+    });
+}
+
 // Load dashboard
 async function loadDashboard() {
   const statsGrid = document.getElementById("statsGrid");
+
+  showDashboardSkeleton();
 
   try {
     const [stats, kyc, bookingTrends] = await Promise.all([
@@ -47,6 +115,8 @@ async function loadDashboard() {
         return null;
       }),
     ]);
+
+    hideDashboardSkeleton();
 
     statsGrid.innerHTML = `
             <div class="stat-card">
@@ -80,6 +150,7 @@ async function loadDashboard() {
     }
   } catch (error) {
     console.error("Error loading dashboard:", error);
+    hideDashboardSkeleton();
     statsGrid.innerHTML =
       '<div class="empty-state">Error loading statistics</div>';
   }

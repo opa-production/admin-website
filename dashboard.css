@@ -198,7 +198,7 @@ body {
 .profile-avatar {
     width: 32px;
     height: 32px;
-    border-radius: 50%;
+    border-radius: 0;
     background-color: #0066cc;
     color: white;
     display: flex;
@@ -415,7 +415,7 @@ body {
 .legend-dot {
     width: 10px;
     height: 10px;
-    border-radius: 50%;
+    border-radius: 0;
     display: inline-block;
 }
 
@@ -663,7 +663,7 @@ textarea.form-input-clean {
 .subscribers-count-dot {
     width: 8px;
     height: 8px;
-    border-radius: 50%;
+    border-radius: 0;
     background: #10b981;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
 }
@@ -1635,7 +1635,7 @@ body.admin-nav-open {
 .support-conv-avatar {
     width: 36px;
     height: 36px;
-    border-radius: 50%;
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1796,7 +1796,7 @@ body.admin-nav-open {
 .support-chat-host-avatar {
     width: 44px;
     height: 44px;
-    border-radius: 50%;
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1880,7 +1880,7 @@ body.admin-nav-open {
 .support-msg-avatar-sm {
     width: 34px;
     height: 34px;
-    border-radius: 50%;
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2382,7 +2382,7 @@ body.admin-nav-open {
 .notif-preview-icon {
     width: 30px;
     height: 30px;
-    border-radius: 50%;
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3089,4 +3089,131 @@ body.admin-nav-open {
     padding: 0;
     font-size: 0;
     line-height: 0;
+}
+
+/* ==================== Loading skeletons ====================
+   YouTube-style placeholders: flat grey blocks with a single highlight sweep
+   travelling across each group, so a whole card shimmers as one surface rather
+   than every block pulsing on its own. Square corners, like the rest of the UI. */
+
+@keyframes skeleton-sweep {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(100%); }
+}
+
+/* Put this on the container that should read as one shimmering surface. */
+.skeleton {
+    position: relative;
+    overflow: hidden;
+}
+
+.skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.75) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: skeleton-sweep 1.5s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* A single grey block. Width/height are set inline or by a modifier. */
+.sk-line {
+    display: block;
+    height: 10px;
+    background: #e7ebf0;
+    border-radius: 0;
+}
+
+.sk-line + .sk-line {
+    margin-top: 8px;
+}
+
+/* ---------- Stat card skeleton ---------- */
+.sk-stat-card {
+    background: #fff;
+    padding: 14px 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.sk-stat-card .sk-label    { width: 58%; height: 10px; }
+.sk-stat-card .sk-value    { width: 42%; height: 22px; margin-top: 10px; }
+.sk-stat-card .sk-subvalue { width: 76%; height: 9px;  margin-top: 10px; }
+
+/* ---------- Graph skeleton ----------
+   Swapped in for the canvas while a chart's data is in flight. The bars are
+   plain grey; the sweep lives on the wrapper so it crosses all of them at once. */
+.graph-container.is-loading canvas,
+.graph-container.is-loading .graph-legend {
+    display: none;
+}
+
+/* Subtitles hold placeholder text ("—") until data lands — show a block instead. */
+.graph-container.is-loading .graph-subtitle {
+    display: inline-block;
+    width: 150px;
+    height: 10px;
+    background: #e7ebf0;
+    color: transparent;
+    user-select: none;
+}
+
+.sk-chart {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.sk-chart-bars {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.sk-chart-bars span {
+    flex: 1;
+    background: #e7ebf0;
+    border-radius: 0;
+}
+
+/* Baseline under the bars, standing in for the x-axis. */
+.sk-chart-axis {
+    height: 1px;
+    background: #eceff3;
+    flex-shrink: 0;
+}
+
+.sk-chart-labels {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.sk-chart-labels span {
+    flex: 1;
+    height: 7px;
+    background: #eef1f5;
+}
+
+@media (max-width: 900px) {
+    .sk-chart-bars span:nth-child(n + 9),
+    .sk-chart-labels span:nth-child(n + 9) {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton::after {
+        animation: none;
+    }
 }
