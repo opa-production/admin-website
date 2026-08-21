@@ -113,15 +113,15 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                             <h2 style="margin: 0;">Hosts</h2>
                             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                <input type="text" id="hostSearch" placeholder="Search by name or email..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 300px;">
-                                <select id="hostKycFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <input type="text" id="hostSearch" placeholder="Search by name or email..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 300px;">
+                                <select id="hostKycFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
                                     <option value="">All KYC</option>
                                     <option value="approved">Verified</option>
                                     <option value="pending">Pending</option>
                                     <option value="declined">Failed</option>
                                     <option value="not_started">Not Started</option>
                                 </select>
-                                <select id="hostCarsFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <select id="hostCarsFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
                                     <option value="">All Hosts</option>
                                     <option value="with">With cars</option>
                                     <option value="without">Without cars</option>
@@ -152,8 +152,8 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                             <h2 style="margin: 0;">Clients</h2>
                             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                <input type="text" id="clientSearch" placeholder="Search by name or email..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 300px;">
-                                <select id="clientKycFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <input type="text" id="clientSearch" placeholder="Search by name or email..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 300px;">
+                                <select id="clientKycFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
                                     <option value="">All KYC</option>
                                     <option value="approved">Verified</option>
                                     <option value="pending">Pending</option>
@@ -174,13 +174,13 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                             <h2 style="margin: 0;">Cars</h2>
                             <div style="display: flex; gap: 10px;">
-                                <select id="carStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <select id="carStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
                                     <option value="">All Status</option>
                                     <option value="awaiting">Awaiting</option>
                                     <option value="verified">Verified</option>
                                     <option value="denied">Denied</option>
                                 </select>
-                                <input type="text" id="carSearch" placeholder="Search by name or model..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 300px;">
+                                <input type="text" id="carSearch" placeholder="Search by name or model..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 300px;">
                             </div>
                         </div>
                         <div id="carsContent">
@@ -399,19 +399,19 @@
                             <h2 style="margin: 0;">Admins</h2>
                             <div style="display: flex; gap: 10px;">
                                 <button class="btn btn-primary" id="createAdminBtn" onclick="showCreateAdminForm()">Invite Admin</button>
-                                <select id="adminRoleFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <select id="adminRoleFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
                                     <option value="">All Roles</option>
                                     <option value="super_admin">Super Admin</option>
                                     <option value="manager">Manager</option>
                                     <option value="finance">Finance</option>
                                     <option value="customer_service">Customer Care</option>
                                 </select>
-                                <select id="adminStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <select id="adminStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
                                     <option value="">All Status</option>
                                     <option value="true">Active</option>
                                     <option value="false">Inactive</option>
                                 </select>
-                                <input type="text" id="adminSearch" placeholder="Search by name or email..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 300px;">
+                                <input type="text" id="adminSearch" placeholder="Search by name or email..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 300px;">
                             </div>
                         </div>
                         <div id="adminsContent">
@@ -446,14 +446,14 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                             <h2 style="margin: 0;">Payment Methods</h2>
                             <div style="display: flex; gap: 10px;">
-                                <select id="paymentMethodTypeFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <select id="paymentMethodTypeFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
                                     <option value="">All Types</option>
                                     <option value="mpesa">M-Pesa</option>
                                     <option value="visa">Visa</option>
                                     <option value="mastercard">Mastercard</option>
                                 </select>
-                                <input type="number" id="paymentMethodHostFilter" placeholder="Host ID..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 150px;">
-                                <input type="text" id="paymentMethodSearch" placeholder="Search by name or host..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 300px;">
+                                <input type="number" id="paymentMethodHostFilter" placeholder="Host ID..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 150px;">
+                                <input type="text" id="paymentMethodSearch" placeholder="Search by name or host..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 300px;">
                             </div>
                         </div>
                         <div id="paymentMethodsContent">
@@ -479,7 +479,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                             <h2 style="margin: 0;">Bookings</h2>
                             <div style="display: flex; gap: 10px;">
-                                <select id="bookingStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <select id="bookingStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
                                     <option value="">All Status</option>
                                     <option value="pending">Pending</option>
                                     <option value="confirmed">Confirmed</option>
@@ -488,7 +488,7 @@
                                     <option value="cancelled">Cancelled</option>
                                     <option value="rejected">Rejected</option>
                                 </select>
-                                <input type="text" id="bookingSearch" placeholder="Search by booking ID, client, host, or car..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 350px;">
+                                <input type="text" id="bookingSearch" placeholder="Search by booking ID, client, host, or car..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 350px;">
                             </div>
                         </div>
                         <div id="bookingsContent">
@@ -515,14 +515,14 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                             <h2 style="margin: 0;">Withdrawals</h2>
                             <div style="display: flex; gap: 10px;">
-                                <select id="withdrawalStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <select id="withdrawalStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
                                     <option value="">All Status</option>
                                     <option value="pending">Pending</option>
                                     <option value="completed">Completed</option>
                                     <option value="rejected">Rejected</option>
                                     <option value="cancelled">Cancelled</option>
                                 </select>
-                                <input type="number" id="withdrawalHostIdFilter" placeholder="Host ID..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 120px;">
+                                <input type="number" id="withdrawalHostIdFilter" placeholder="Host ID..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 120px;">
                             </div>
                         </div>
                         <div id="withdrawalsContent">
@@ -536,7 +536,7 @@
                     <div class="content-section">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
                             <h2 style="margin: 0;">Referrals</h2>
-                            <input type="text" id="referrerSearch" placeholder="Search name or email..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 260px;">
+                            <input type="text" id="referrerSearch" placeholder="Search name or email..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 260px;">
                         </div>
                         <div class="referrals-tabs" style="display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid #eee;">
                             <button class="referrals-tab active" data-rtab="host" onclick="switchReferralTab('host')">Host referrers</button>
@@ -567,19 +567,19 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
                             <h2 style="margin: 0;">Client Referral Earnings</h2>
                             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                <select id="clientEarningStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <select id="clientEarningStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
                                     <option value="">All Status</option>
                                     <option value="pending">Pending</option>
                                     <option value="approved">Approved</option>
                                     <option value="reversed">Reversed</option>
                                 </select>
-                                <select id="clientEarningKindFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <select id="clientEarningKindFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
                                     <option value="">All Kinds</option>
                                     <option value="listing">Listing</option>
                                     <option value="first_booking">First booking</option>
                                 </select>
-                                <input type="number" id="clientEarningReferrerFilter" placeholder="Referrer client ID..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 170px;">
-                                <input type="number" id="clientEarningReferredFilter" placeholder="Referred host ID..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 170px;">
+                                <input type="number" id="clientEarningReferrerFilter" placeholder="Referrer client ID..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 170px;">
+                                <input type="number" id="clientEarningReferredFilter" placeholder="Referred host ID..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 170px;">
                             </div>
                         </div>
                         <div id="clientEarningsContent">
@@ -594,7 +594,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                             <h2 style="margin: 0;">Refunds</h2>
                             <div style="display: flex; gap: 10px;">
-                                <select id="refundStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <select id="refundStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
                                     <option value="">All Status</option>
                                     <option value="pending">Pending</option>
                                     <option value="processing">Processing</option>
@@ -602,8 +602,8 @@
                                     <option value="failed">Failed</option>
                                     <option value="cancelled">Cancelled</option>
                                 </select>
-                                <input type="text" id="refundBookingCodeFilter" placeholder="Booking code (BK‑…)" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 200px;">
-                                <input type="text" id="refundClientEmailFilter" placeholder="Client email" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 220px;">
+                                <input type="text" id="refundBookingCodeFilter" placeholder="Booking code (BK‑…)" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 200px;">
+                                <input type="text" id="refundClientEmailFilter" placeholder="Client email" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 220px;">
                             </div>
                         </div>
                         <div id="refundsContent">
@@ -929,13 +929,13 @@
 
                         <div id="b2bRequestsPanel">
                             <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                                <select id="b2bRequestStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <select id="b2bRequestStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
                                     <option value="pending">Pending</option>
                                     <option value="approved">Approved</option>
                                     <option value="rejected">Rejected</option>
                                     <option value="">All Status</option>
                                 </select>
-                                <input type="text" id="b2bRequestSearch" placeholder="Search by reference, business, contact, or email..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 350px;">
+                                <input type="text" id="b2bRequestSearch" placeholder="Search by reference, business, contact, or email..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 350px;">
                             </div>
                             <div id="b2bRequestsContent">
                                 <div class="loading">Loading access requests...</div>
@@ -945,7 +945,7 @@
 
                         <div id="b2bBusinessesPanel" style="display: none;">
                             <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                                <input type="text" id="b2bBusinessSearch" placeholder="Search by business name..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 350px;">
+                                <input type="text" id="b2bBusinessSearch" placeholder="Search by business name..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 350px;">
                             </div>
                             <div id="b2bBusinessesContent">
                                 <div class="loading">Loading businesses...</div>
@@ -991,7 +991,7 @@
                         <label for="adminEmail">Email *</label>
                         <input type="email" id="adminEmail" required placeholder="Enter email address">
                     </div>
-                    <div id="adminInviteNote" class="form-group" style="background:#eef4ff; border:1px solid #d6e4ff; border-radius:8px; padding:10px 12px; font-size:13px; color:#33415c;">
+                    <div id="adminInviteNote" class="form-group" style="background:#eef4ff; border:1px solid #d6e4ff; border-radius: 0; padding:10px 12px; font-size:13px; color:#33415c;">
                         A temporary password is generated automatically and emailed to this address from <strong>info@ardena.co.ke</strong>. The admin sets their own password after first sign-in — you don't enter one here.
                     </div>
                     <div class="form-group">
@@ -1063,7 +1063,7 @@
                 <p id="withdrawalStatusModalSummary" style="margin-bottom: 16px;"></p>
                 <div class="form-group">
                     <label for="withdrawalStatusAdminNotes">Notes (optional)</label>
-                    <textarea id="withdrawalStatusAdminNotes" rows="3" placeholder="e.g. M-Pesa ref, bank ref..." style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                    <textarea id="withdrawalStatusAdminNotes" rows="3" placeholder="e.g. M-Pesa ref, bank ref..." style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 0;"></textarea>
                 </div>
                 <div id="withdrawalStatusFormError" style="color: #d32f2f; margin-bottom: 15px;"></div>
                 <div class="modal-footer">
@@ -1086,7 +1086,7 @@
                 <p id="reverseEarningSummary" style="margin-bottom: 16px;"></p>
                 <div class="form-group">
                     <label for="reverseEarningReason">Reason (required, 3–500 characters)</label>
-                    <textarea id="reverseEarningReason" rows="3" maxlength="500" placeholder="e.g. duplicate / fraud / ..." style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                    <textarea id="reverseEarningReason" rows="3" maxlength="500" placeholder="e.g. duplicate / fraud / ..." style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 0;"></textarea>
                 </div>
                 <div id="reverseEarningError" style="color: #d32f2f; margin-bottom: 15px;"></div>
                 <div class="modal-footer">
@@ -1107,7 +1107,7 @@
             <div class="modal-body">
                 <input type="hidden" id="b2bApproveRequestId" value="">
                 <p id="b2bApproveSummary" style="margin-bottom: 16px;"></p>
-                <div class="form-group" style="background:#eef4ff; border:1px solid #d6e4ff; border-radius:8px; padding:10px 12px; font-size:13px; color:#33415c;">
+                <div class="form-group" style="background:#eef4ff; border:1px solid #d6e4ff; border-radius: 0; padding:10px 12px; font-size:13px; color:#33415c;">
                     The credentials are emailed from <strong>info@ardena.co.ke</strong> and also shown to you once after approval, in case the email fails.
                 </div>
                 <div id="b2bApproveError" style="color: #d32f2f; margin-bottom: 15px;"></div>
@@ -1131,7 +1131,7 @@
                 <p id="b2bRejectSummary" style="margin-bottom: 16px;"></p>
                 <div class="form-group">
                     <label for="b2bRejectReason">Reason (optional)</label>
-                    <textarea id="b2bRejectReason" rows="3" maxlength="2000" placeholder="e.g. could not verify business (KYB)..." style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                    <textarea id="b2bRejectReason" rows="3" maxlength="2000" placeholder="e.g. could not verify business (KYB)..." style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 0;"></textarea>
                 </div>
                 <div id="b2bRejectError" style="color: #d32f2f; margin-bottom: 15px;"></div>
                 <div class="modal-footer">
@@ -1167,7 +1167,7 @@
                         <label for="b2bCreateOwnerEmail">Owner Email *</label>
                         <input type="email" id="b2bCreateOwnerEmail" required placeholder="Their dashboard login email">
                     </div>
-                    <div class="form-group" style="background:#eef4ff; border:1px solid #d6e4ff; border-radius:8px; padding:10px 12px; font-size:13px; color:#33415c;">
+                    <div class="form-group" style="background:#eef4ff; border:1px solid #d6e4ff; border-radius: 0; padding:10px 12px; font-size:13px; color:#33415c;">
                         A temporary password is generated automatically, emailed to the owner, and shown to you once after creation.
                     </div>
                     <div id="b2bCreateError" style="color: #d32f2f; margin-bottom: 15px;"></div>

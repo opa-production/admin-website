@@ -202,7 +202,7 @@ async function viewHostDetails(hostId) {
             
             <div class="host-detail-section">
                 <h3>Bio</h3>
-                <div class="detail-value" style="padding: 12px; background-color: #f9f9f9; border-radius: 4px; min-height: 60px;">
+                <div class="detail-value" style="padding: 12px; background-color: #f9f9f9; border-radius: 0; min-height: 60px;">
                     ${host.bio || "No bio provided"}
                 </div>
             </div>

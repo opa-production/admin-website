@@ -65,7 +65,7 @@ body {
     padding: 0;
     background: transparent;
     border: 1px solid #333;
-    border-radius: 6px;
+    border-radius: 0;
     color: #ccc;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s;
@@ -171,7 +171,7 @@ body {
     padding: 8px 12px;
     background: none;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 0;
     cursor: pointer;
     transition: background-color 0.2s;
 }
@@ -242,7 +242,7 @@ body {
     right: 0;
     background: white;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     min-width: 200px;
     display: none;
@@ -290,7 +290,7 @@ body {
 .content-section {
     background: white;
     padding: 24px;
-    border-radius: 4px;
+    border-radius: 0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     margin-bottom: 24px;
     width: 100%;
@@ -315,7 +315,7 @@ body {
 .stat-card {
     background: white;
     padding: 14px 16px;
-    border-radius: 4px;
+    border-radius: 0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -350,7 +350,7 @@ body {
 .graph-container {
     background: white;
     padding: 18px 20px 16px;
-    border-radius: 8px;
+    border-radius: 0;
     box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 1px 3px rgba(17, 24, 39, 0.06);
     border: 1px solid rgba(17, 24, 39, 0.04);
     display: flex;
@@ -479,7 +479,7 @@ table tr:hover {
     padding: 8px 16px;
     font-size: 14px;
     border: none;
-    border-radius: 4px;
+    border-radius: 0;
     cursor: pointer;
     transition: background-color 0.2s;
 }
@@ -520,7 +520,7 @@ table tr:hover {
     align-items: center;
     justify-content: center;
     border: none;
-    border-radius: 4px;
+    border-radius: 0;
     cursor: pointer;
     transition: background-color 0.2s;
     background-color: transparent;
@@ -577,7 +577,7 @@ table tr:hover {
     padding: 10px 12px;
     font-size: 14px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 0;
     font-family: inherit;
 }
 .form-input:focus,
@@ -592,7 +592,7 @@ textarea.form-input {
 .form-result {
     margin-top: 12px;
     padding: 10px 12px;
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 14px;
 }
 .form-result.success {
@@ -609,7 +609,7 @@ textarea.form-input {
     max-width: none;
     padding: 11px 14px;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 14px;
     color: #111827;
     background: #fff;
@@ -657,7 +657,7 @@ textarea.form-input-clean {
     padding: 8px 14px;
     background: #fff;
     border: 1px solid #e5e7eb;
-    border-radius: 999px;
+    border-radius: 0;
     box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
 }
 .subscribers-count-dot {
@@ -691,7 +691,7 @@ textarea.form-input-clean {
     margin-bottom: 0;
     border: 1px solid rgba(17, 24, 39, 0.04);
     box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 1px 3px rgba(17, 24, 39, 0.06);
-    border-radius: 8px;
+    border-radius: 0;
 }
 .newsletter-card-header { margin-bottom: 14px; }
 .newsletter-card-header h2,
@@ -751,7 +751,7 @@ textarea.form-input-clean {
     padding: 3px;
     background: #f1f5f9;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 0;
 }
 .newsletter-tab {
     padding: 5px 12px;
@@ -760,7 +760,7 @@ textarea.form-input-clean {
     color: #6b7280;
     background: transparent;
     border: none;
-    border-radius: 6px;
+    border-radius: 0;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
 }
@@ -784,7 +784,7 @@ textarea.form-input-clean {
 .newsletter-hint code {
     background: #f1f5f9;
     border: 1px solid #e5e7eb;
-    border-radius: 4px;
+    border-radius: 0;
     padding: 1px 5px;
     font-size: 11.5px;
     color: #374151;
@@ -793,7 +793,7 @@ textarea.form-input-clean {
     min-height: 220px;
     padding: 16px 18px;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 0;
     background: #fff;
     font-size: 14px;
     color: #1f2937;
@@ -822,7 +822,7 @@ textarea.form-input-clean {
 .newsletter-preview code {
     background: #f1f5f9;
     padding: 1px 5px;
-    border-radius: 4px;
+    border-radius: 0;
     font-size: 12.5px;
 }
 .newsletter-preview blockquote {
@@ -852,7 +852,7 @@ textarea.form-input-clean {
 
 .modal-content {
     background: white;
-    border-radius: 4px;
+    border-radius: 0;
     width: 90%;
     max-width: 800px;
     max-height: 90vh;
@@ -909,7 +909,7 @@ textarea.form-input-clean {
     margin-bottom: 24px;
     padding: 20px;
     background-color: #fafafa;
-    border-radius: 4px;
+    border-radius: 0;
     border: 1px solid #eee;
 }
 
@@ -936,7 +936,7 @@ textarea.form-input-clean {
 
 .car-media-skeleton {
     height: 130px;
-    border-radius: 8px;
+    border-radius: 0;
     border: 1px solid #e5e7eb;
     background: linear-gradient(90deg, #f4f4f4 25%, #ececec 37%, #f4f4f4 63%);
     background-size: 400% 100%;
@@ -979,7 +979,7 @@ textarea.form-input-clean {
 .status-badge {
     display: inline-block;
     padding: 4px 12px;
-    border-radius: 12px;
+    border-radius: 0;
     font-size: 12px;
     font-weight: 500;
     white-space: nowrap;
@@ -1080,7 +1080,7 @@ td.row-actions {
     padding: 10px 12px;
     font-size: 14px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 0;
     font-family: inherit;
 }
 
@@ -1126,7 +1126,7 @@ td.row-actions {
 
 /* Premium stat cards on the revenue page */
 #revenueStatsGrid .stat-card {
-    border-radius: 12px;
+    border-radius: 0;
     padding: 18px 20px;
     border: 1px solid rgba(17, 24, 39, 0.06);
     box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 4px 16px rgba(17, 24, 39, 0.04);
@@ -1144,7 +1144,7 @@ td.row-actions {
 
 /* Premium graph cards */
 .revenue-graphs-section .graph-container {
-    border-radius: 14px;
+    border-radius: 0;
     padding: 20px 22px 18px;
     border: 1px solid rgba(17, 24, 39, 0.06);
     box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 6px 20px rgba(17, 24, 39, 0.05);
@@ -1166,7 +1166,7 @@ td.row-actions {
     font-size: 11px;
     font-weight: 600;
     padding: 4px 10px;
-    border-radius: 999px;
+    border-radius: 0;
     white-space: nowrap;
 }
 
@@ -1218,7 +1218,7 @@ td.row-actions {
     height: 44px;
     padding: 0;
     border: 1px solid #ddd;
-    border-radius: 6px;
+    border-radius: 0;
     background: #fff;
     cursor: pointer;
     flex-shrink: 0;
@@ -1236,7 +1236,7 @@ td.row-actions {
     width: 20px;
     height: 2px;
     background: #333;
-    border-radius: 1px;
+    border-radius: 0;
 }
 
 .sidebar-backdrop {
@@ -1510,7 +1510,7 @@ body.admin-nav-open {
     font-size: 11px;
     font-weight: 700;
     padding: 2px 9px;
-    border-radius: 20px;
+    border-radius: 0;
 }
 
 .support-refresh-btn {
@@ -1522,7 +1522,7 @@ body.admin-nav-open {
     height: 28px;
     padding: 0;
     border: 1px solid #e5e7eb;
-    border-radius: 6px;
+    border-radius: 0;
     background: #fff;
     color: #6b7280;
     cursor: pointer;
@@ -1551,7 +1551,7 @@ body.admin-nav-open {
     gap: 8px;
     padding: 7px 12px;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 0;
     background: #fff;
     transition: border-color 0.2s;
 }
@@ -1572,7 +1572,7 @@ body.admin-nav-open {
     flex: 1;
     padding: 7px 28px 7px 12px;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 12.5px;
     color: #374151;
     background: #fff;
@@ -1591,7 +1591,7 @@ body.admin-nav-open {
     flex: 1;
     padding: 7px 12px;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 12.5px;
     color: #374151;
     outline: none;
@@ -1613,7 +1613,7 @@ body.admin-nav-open {
     align-items: center;
     gap: 10px;
     padding: 10px 10px;
-    border-radius: 8px;
+    border-radius: 0;
     cursor: pointer;
     border: 1px solid transparent;
     transition: background 0.15s, border-color 0.15s;
@@ -1696,7 +1696,7 @@ body.admin-nav-open {
     font-size: 10px;
     font-weight: 700;
     padding: 2px 7px;
-    border-radius: 10px;
+    border-radius: 0;
 }
 .badge-status-closed {
     background: #f1f5f9;
@@ -1704,7 +1704,7 @@ body.admin-nav-open {
     font-size: 10px;
     font-weight: 700;
     padding: 2px 7px;
-    border-radius: 10px;
+    border-radius: 0;
 }
 .badge-unread {
     background: #ef4444;
@@ -1712,7 +1712,7 @@ body.admin-nav-open {
     font-size: 10px;
     font-weight: 700;
     padding: 2px 7px;
-    border-radius: 10px;
+    border-radius: 0;
 }
 
 .support-pagination-bar {
@@ -1780,7 +1780,7 @@ body.admin-nav-open {
     padding: 6px;
     cursor: pointer;
     color: #374151;
-    border-radius: 6px;
+    border-radius: 0;
     flex-shrink: 0;
 }
 .support-back-mobile:hover { background: #f3f4f6; }
@@ -1839,7 +1839,7 @@ body.admin-nav-open {
     align-items: center;
     gap: 6px;
     padding: 8px 16px;
-    border-radius: 10px;
+    border-radius: 0;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -1908,7 +1908,7 @@ body.admin-nav-open {
 
 .support-msg-bubble {
     padding: 12px 16px;
-    border-radius: 18px;
+    border-radius: 0;
     font-size: 14px;
     line-height: 1.6;
     word-wrap: break-word;
@@ -1990,7 +1990,7 @@ body.admin-nav-open {
     gap: 10px;
     background: #f6f8fb;
     border: 1.5px solid #e2e8f0;
-    border-radius: 16px;
+    border-radius: 0;
     padding: 10px 10px 10px 16px;
     transition: border-color 0.2s, background 0.2s;
 }
@@ -2017,7 +2017,7 @@ body.admin-nav-open {
 .support-send-btn {
     width: 40px;
     height: 40px;
-    border-radius: 10px;
+    border-radius: 0;
     background: #007ffa;
     border: none;
     color: #fff;
@@ -2076,7 +2076,7 @@ body.admin-nav-open {
     display: inline-flex;
     padding: 4px;
     background: #f1f5f9;
-    border-radius: 10px;
+    border-radius: 0;
     border: 1px solid #e5e7eb;
 }
 .notif-seg-btn {
@@ -2086,7 +2086,7 @@ body.admin-nav-open {
     padding: 7px 16px;
     background: transparent;
     border: none;
-    border-radius: 7px;
+    border-radius: 0;
     font-size: 13px;
     font-weight: 600;
     color: #6b7280;
@@ -2117,7 +2117,7 @@ body.admin-nav-open {
 .notif-card {
     background: #fff;
     border: 1px solid rgba(17, 24, 39, 0.06);
-    border-radius: 12px;
+    border-radius: 0;
     padding: 18px 20px;
     box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
     display: flex;
@@ -2155,7 +2155,7 @@ body.admin-nav-open {
     color: #111827;
     background: #fff;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 0;
     font-family: inherit;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -2192,7 +2192,7 @@ body.admin-nav-open {
     padding: 7px 14px;
     border: 1px solid #e5e7eb;
     background: #fff;
-    border-radius: 999px;
+    border-radius: 0;
     font-size: 12.5px;
     font-weight: 600;
     color: #6b7280;
@@ -2218,7 +2218,7 @@ body.admin-nav-open {
     gap: 10px;
     padding: 12px 14px;
     border: 1.5px solid #e5e7eb;
-    border-radius: 10px;
+    border-radius: 0;
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
     background: #fff;
@@ -2258,7 +2258,7 @@ body.admin-nav-open {
     cursor: pointer;
     list-style: none;
     user-select: none;
-    border-radius: 12px;
+    border-radius: 0;
     transition: background 0.15s;
 }
 .notif-accordion-summary::-webkit-details-marker { display: none; }
@@ -2304,7 +2304,7 @@ body.admin-nav-open {
     padding: 11px 22px;
     font-size: 14px;
     font-weight: 600;
-    border-radius: 10px;
+    border-radius: 0;
 }
 .notif-spinner {
     width: 14px;
@@ -2327,7 +2327,7 @@ body.admin-nav-open {
 .notif-result-warning,
 .notif-result-error {
     padding: 10px 14px;
-    border-radius: 8px;
+    border-radius: 0;
     border: 1px solid transparent;
 }
 .notif-result-success { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
@@ -2339,7 +2339,7 @@ body.admin-nav-open {
 .notif-preview-card {
     background: #fff;
     border: 1px solid rgba(17, 24, 39, 0.06);
-    border-radius: 12px;
+    border-radius: 0;
     padding: 18px;
 }
 .notif-preview-header {
@@ -2374,7 +2374,7 @@ body.admin-nav-open {
     width: 100%;
     background: #fff;
     border: 1px solid #eef2f7;
-    border-radius: 10px;
+    border-radius: 0;
     padding: 12px 14px;
     display: flex;
     gap: 11px;
@@ -2447,7 +2447,7 @@ body.admin-nav-open {
     gap: 2px;
     padding: 4px;
     background: #f1f5f9;
-    border-radius: 10px;
+    border-radius: 0;
     margin-bottom: 18px;
 }
 
@@ -2458,7 +2458,7 @@ body.admin-nav-open {
     font-size: 13px;
     font-weight: 600;
     padding: 8px 16px;
-    border-radius: 7px;
+    border-radius: 0;
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -2483,7 +2483,7 @@ body.admin-nav-open {
 .mod-stat-card {
     background: #fff;
     border: 1px solid rgba(17, 24, 39, 0.05);
-    border-radius: 10px;
+    border-radius: 0;
     padding: 14px 16px;
     box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
 }
@@ -2523,7 +2523,7 @@ body.admin-nav-open {
 .mod-filter-input {
     padding: 8px 12px;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 13px;
     color: #111827;
     background: #fff;
@@ -2616,7 +2616,7 @@ body.admin-nav-open {
 .mod-badge {
     display: inline-block;
     padding: 3px 9px;
-    border-radius: 999px;
+    border-radius: 0;
     font-size: 11px;
     font-weight: 600;
     text-transform: capitalize;
@@ -2768,7 +2768,7 @@ body.admin-nav-open {
     background: #f9fafb;
     border: 1px solid #f1f5f9;
     padding: 10px 12px;
-    border-radius: 6px;
+    border-radius: 0;
     line-height: 1.5;
     white-space: pre-wrap;
 }
@@ -2778,7 +2778,7 @@ body.admin-nav-open {
     color: #fff;
     border: 0;
     padding: 8px 16px;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -2820,7 +2820,7 @@ body.admin-nav-open {
     padding: 10px 18px;
     background: #eef4ff;
     border: 1px solid #d6e4ff;
-    border-radius: 10px;
+    border-radius: 0;
 }
 .email-reach-value { font-size: 20px; font-weight: 700; color: #0066cc; }
 .email-reach-label { font-size: 11px; color: #5b6573; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -2845,7 +2845,7 @@ body.admin-nav-open {
     gap: 8px;
     padding: 10px 16px;
     border: 1px solid #dfe4ea;
-    border-radius: 8px;
+    border-radius: 0;
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
@@ -2875,7 +2875,7 @@ body.admin-nav-open {
 .email-preview-meta { font-size: 12px; color: #6b7787; }
 .email-preview-frame {
     border: 1px solid #e2e6ec;
-    border-radius: 12px;
+    border-radius: 0;
     overflow: hidden;
     background: #f4f6fb;
 }
@@ -2907,7 +2907,7 @@ body.admin-nav-open {
 .role-badge {
     display: inline-block;
     padding: 3px 10px;
-    border-radius: 999px;
+    border-radius: 0;
     font-size: 12px;
     font-weight: 600;
     white-space: nowrap;
@@ -2936,7 +2936,7 @@ body.admin-nav-open {
     align-items: flex-start;
     gap: 10px;
     padding: 12px 14px;
-    border-radius: 10px;
+    border-radius: 0;
     background: #fff;
     color: #1a2230;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
@@ -3006,7 +3006,7 @@ body.admin-nav-open {
     width: 100%;
     max-width: 420px;
     background: #fff;
-    border-radius: 12px;
+    border-radius: 0;
     padding: 24px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
     transform: translateY(8px) scale(0.98);
@@ -3040,7 +3040,7 @@ body.admin-nav-open {
     font-family: inherit;
     color: #1a2230;
     border: 1px solid #d8dee6;
-    border-radius: 8px;
+    border-radius: 0;
     resize: vertical;
 }
 
@@ -3068,7 +3068,7 @@ body.admin-nav-open {
     min-width: 18px;
     height: 18px;
     padding: 0 6px;
-    border-radius: 999px;
+    border-radius: 0;
     background: #e11d48;
     color: #fff;
     font-size: 11px;

@@ -93,7 +93,7 @@ function renderCarMediaHtml(mediaData) {
                                 src="${safe}"
                                 alt="Car image ${index + 1}"
                                 class="car-media-thumb"
-                                style="width: 100%; height: 130px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; background: #f5f5f5; display: block;"
+                                style="width: 100%; height: 130px; object-fit: cover; border-radius: 0; border: 1px solid #e5e7eb; background: #f5f5f5; display: block;"
                                 loading="lazy"
                             />
                         </a>`;
@@ -113,7 +113,7 @@ function renderCarMediaHtml(mediaData) {
                         return `
                         <div>
                             <div class="detail-label" style="margin-bottom: 6px;">Video ${index + 1}</div>
-                            <video controls preload="metadata" style="width: 100%; max-width: 520px; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <video controls preload="metadata" style="width: 100%; max-width: 520px; border-radius: 0; border: 1px solid #e5e7eb;">
                                 <source src="${safe}" />
                                 Your browser does not support the video tag.
                             </video>
@@ -397,7 +397,7 @@ async function viewCarDetails(carId) {
             
             <div class="host-detail-section">
                 <h3>Description</h3>
-                <div class="detail-value" style="padding: 12px; background-color: #f9f9f9; border-radius: 4px; min-height: 60px;">
+                <div class="detail-value" style="padding: 12px; background-color: #f9f9f9; border-radius: 0; min-height: 60px;">
                     ${car.description || "No description provided"}
                 </div>
             </div>
@@ -407,7 +407,7 @@ async function viewCarDetails(carId) {
                 ? `
             <div class="host-detail-section">
                 <h3>Rules</h3>
-                <div class="detail-value" style="padding: 12px; background-color: #f9f9f9; border-radius: 4px; min-height: 60px;">
+                <div class="detail-value" style="padding: 12px; background-color: #f9f9f9; border-radius: 0; min-height: 60px;">
                     ${car.rules}
                 </div>
             </div>

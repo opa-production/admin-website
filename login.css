@@ -1,6 +1,6 @@
-/* login.css — corporate split-screen sign-in.
+/* login.css — corporate centred sign-in.
    Linked ONLY by index.html so it never affects the dashboard (which shares
-   styles.css). Left: clean form + logo. Right: landing.jpg brand panel. */
+   styles.css). Single card centred in the viewport, square corners throughout. */
 
 :root {
     --auth-accent: #0066cc;
@@ -27,23 +27,20 @@ body {
 
 .auth-shell {
     display: flex;
-    min-height: 100vh;
-}
-
-/* ---------- Left: form ---------- */
-.auth-left {
-    flex: 1 1 46%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
     align-items: center;
-    padding: 48px 32px;
-    background: #ffffff;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 40px 20px;
 }
 
 .auth-card {
     width: 100%;
-    max-width: 380px;
+    max-width: 400px;
+    padding: 40px 36px;
+    background: #ffffff;
+    border: 1px solid var(--auth-border);
+    border-radius: 0;
+    box-shadow: 0 1px 3px rgba(26, 34, 48, 0.06);
 }
 
 .auth-logo {
@@ -102,7 +99,7 @@ input[type="text"] {
     color: var(--auth-ink);
     background: #fff;
     border: 1px solid var(--auth-border);
-    border-radius: 8px;
+    border-radius: 0;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 
@@ -139,7 +136,7 @@ input::placeholder {
     background: none;
     border: none;
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 0;
     white-space: nowrap;
 }
 
@@ -168,7 +165,7 @@ input::placeholder {
     color: white;
     background-color: var(--auth-accent);
     border: none;
-    border-radius: 8px;
+    border-radius: 0;
     cursor: pointer;
     transition: background-color 0.15s, transform 0.05s;
 }
@@ -193,46 +190,14 @@ input::placeholder {
     text-align: center;
 }
 
-/* ---------- Right: brand image ---------- */
-.auth-right {
-    flex: 1 1 54%;
-    position: relative;
-    overflow: hidden;
-    background: #0a1e3c; /* shown until the video paints / if it can't play */
-}
-
-/* Looping background video filling the panel. */
-.auth-video {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-/* Brand tint over the video for depth and contrast. */
-.auth-right-overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(10, 30, 60, 0.45), rgba(0, 102, 204, 0.35));
-    pointer-events: none;
-}
-
 /* ---------- Responsive ---------- */
-@media (max-width: 880px) {
-    .auth-right {
-        display: none;
-    }
-
-    .auth-left {
-        flex: 1 1 100%;
-    }
-}
-
 @media (max-width: 420px) {
-    .auth-left {
-        padding: 32px 20px;
+    .auth-shell {
+        padding: 24px 16px;
+    }
+
+    .auth-card {
+        padding: 32px 24px;
     }
 
     .auth-heading {

@@ -385,7 +385,7 @@ function showB2BCredentialsModal(result) {
             <tr><td style="padding: 6px 12px 6px 0;"><strong>Business</strong></td><td>${escapeHtml(result.business.name)}</td></tr>
             <tr><td style="padding: 6px 12px 6px 0;"><strong>Login email</strong></td><td>${escapeHtml(result.user.email)}</td></tr>
             <tr><td style="padding: 6px 12px 6px 0;"><strong>Temporary password</strong></td>
-                <td><code id="b2bTempPassword" style="background:#f2f2f2;padding:4px 8px;border-radius:4px;font-size:15px;">${escapeHtml(result.temp_password)}</code>
+                <td><code id="b2bTempPassword" style="background:#f2f2f2;padding:4px 8px;border-radius: 0;font-size:15px;">${escapeHtml(result.temp_password)}</code>
                     <button class="btn btn-small btn-secondary" style="margin-left:8px;" onclick="copyB2BTempPassword()">Copy</button></td></tr>
         </table>
         <p style="font-size: 13px; color: #666;">This password is shown only once and is not stored in plaintext. The owner should change it after first sign-in.</p>

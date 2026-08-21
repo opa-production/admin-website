@@ -133,7 +133,7 @@ function faceMatchPct(score) {
 // Render a single document thumbnail (or a placeholder when the URL is absent)
 function clientDocThumb(label, url) {
   const placeholderStyle =
-    "width: 100%; height: 140px; border-radius: 8px; border: 1px dashed #d1d5db; background: #f9fafb; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 13px; text-align: center; padding: 0 8px;";
+    "width: 100%; height: 140px; border-radius: 0; border: 1px dashed #d1d5db; background: #f9fafb; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 13px; text-align: center; padding: 0 8px;";
   const inner = url
     ? (() => {
         const safe = escapeHtmlAttr(url);
@@ -144,7 +144,7 @@ function clientDocThumb(label, url) {
           <a href="${safe}" target="_blank" rel="noopener noreferrer" title="Open ${label}">
             <img src="${safe}" alt="${label}" loading="lazy" referrerpolicy="no-referrer"
               onerror="${onerror}"
-              style="width: 100%; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; background: #f5f5f5; display: block;" />
+              style="width: 100%; height: 140px; object-fit: cover; border-radius: 0; border: 1px solid #e5e7eb; background: #f5f5f5; display: block;" />
           </a>`;
       })()
     : `<div style="${placeholderStyle}">Not provided</div>`;

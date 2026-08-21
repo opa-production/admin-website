@@ -9,45 +9,34 @@
 </head>
 <body>
     <div class="auth-shell">
-        <!-- Left: sign-in form -->
-        <div class="auth-left">
-            <div class="auth-card">
-                <div class="auth-logo">
-                    <img src="js/assets/logo.png" alt="Company logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
-                    <span class="auth-logo-fallback" style="display:none;">Admin</span>
-                </div>
-
-                <h1 class="auth-heading">Welcome back</h1>
-                <p class="auth-subheading">Sign in to your admin account to continue.</p>
-
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" placeholder="you@company.com" required autocomplete="email">
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <div class="password-input-wrapper">
-                            <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
-                            <button type="button" class="password-toggle" id="passwordToggle" title="Show password" aria-label="Show password">
-                                Show
-                            </button>
-                        </div>
-                    </div>
-                    <div id="errorMessage" class="error-message"></div>
-                    <button type="submit" class="login-button">Sign In</button>
-                </form>
-
-                <p class="auth-footnote">Authorized personnel only.</p>
+        <div class="auth-card">
+            <div class="auth-logo">
+                <img src="js/assets/logo.png" alt="Company logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                <span class="auth-logo-fallback" style="display:none;">Admin</span>
             </div>
-        </div>
 
-        <!-- Right: looping brand video (landing.mp4), with the image as poster fallback -->
-        <div class="auth-right" aria-hidden="true">
-            <video class="auth-video" autoplay loop muted playsinline preload="auto" poster="js/assets/landing.jpg">
-                <source src="js/assets/landing.mp4" type="video/mp4">
-            </video>
-            <div class="auth-right-overlay"></div>
+            <h1 class="auth-heading">Welcome back</h1>
+            <p class="auth-subheading">Sign in to your admin account to continue.</p>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="you@company.com" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+                        <button type="button" class="password-toggle" id="passwordToggle" title="Show password" aria-label="Show password">
+                            Show
+                        </button>
+                    </div>
+                </div>
+                <div id="errorMessage" class="error-message"></div>
+                <button type="submit" class="login-button">Sign In</button>
+            </form>
+
+            <p class="auth-footnote">Authorized personnel only.</p>
         </div>
     </div>
     <script src="login.js"></script>
