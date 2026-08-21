@@ -39,6 +39,18 @@ function goToHostPage(page) {
   renderHosts();
 }
 
+// Column headers, shared by the real table and its loading skeleton so the
+// placeholder columns line up with the loaded ones.
+const HOST_TABLE_HEADERS = [
+  "Name",
+  "Email",
+  "Status",
+  "KYC",
+  "Cars",
+  "Payment Methods",
+  "Actions",
+];
+
 async function loadHosts() {
   const content = document.getElementById("hostsContent");
 
@@ -46,7 +58,7 @@ async function loadHosts() {
   setupHostFilters();
 
   try {
-    content.innerHTML = '<div class="loading">Loading hosts...</div>';
+    content.innerHTML = skTable(HOST_TABLE_HEADERS);
     hostsAll = await fetchAllPaged(api.getHosts, "hosts");
     renderHosts();
   } catch (error) {

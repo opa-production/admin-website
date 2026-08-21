@@ -540,10 +540,63 @@ table tr:hover {
 }
 
 /* Loading */
+/* Loading blocks render a ScaleLoader; js/core/ui.js injects the bars into any
+   element with this class, including ones added later via innerHTML. */
 .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
     text-align: center;
     padding: 40px;
     color: #666;
+}
+
+/* ScaleLoader — five bars scaling in a staggered wave (react-spinners
+   geometry: 4x35px bars, 2px margins, 1s cubic-bezier cycle). */
+.scale-loader {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 35px;
+}
+
+.scale-loader > span {
+    display: block;
+    width: 4px;
+    height: 35px;
+    background-color: #007ffa;
+    border-radius: 0;
+    animation: scale-loader-stretch 1s cubic-bezier(0.2, 0.68, 0.18, 1.08) infinite;
+}
+
+.scale-loader > span:nth-child(1) { animation-delay: 0s; }
+.scale-loader > span:nth-child(2) { animation-delay: 0.1s; }
+.scale-loader > span:nth-child(3) { animation-delay: 0.2s; }
+.scale-loader > span:nth-child(4) { animation-delay: 0.3s; }
+.scale-loader > span:nth-child(5) { animation-delay: 0.4s; }
+
+@keyframes scale-loader-stretch {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.4); }
+}
+
+.loading-text {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+/* Keep an indicator without the scaling motion. */
+@media (prefers-reduced-motion: reduce) {
+    .scale-loader > span {
+        animation: scale-loader-fade 1.4s ease-in-out infinite;
+    }
+    @keyframes scale-loader-fade {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.35; }
+    }
 }
 
 /* Empty State */
@@ -2800,124 +2853,393 @@ body.admin-nav-open {
     .mod-drawer-panel { width: 100%; }
 }
 
-/* ==================== Email Service page ==================== */
-.email-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-bottom: 20px;
+/* ==================== Email Service page ====================
+   Compose on the left, settings docked permanently on the right. Sending goes
+   through the preview modal, which renders the exact branded template and
+   doubles as the send confirmation — so there is no second confirm dialog. */
+.email-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 20px;
+    align-items: stretch;
 }
 
-.email-title { margin: 0 0 4px; font-size: 22px; font-weight: 600; color: #1a2230; }
-.email-subtitle { margin: 0; font-size: 14px; color: #6b7787; max-width: 640px; }
-
-.email-reach {
+.email-main {
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: 10px 18px;
-    background: #eef4ff;
-    border: 1px solid #d6e4ff;
-    border-radius: 0;
-}
-.email-reach-value { font-size: 20px; font-weight: 700; color: #0066cc; }
-.email-reach-label { font-size: 11px; color: #5b6573; text-transform: uppercase; letter-spacing: 0.04em; }
-
-.email-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 20px;
-    align-items: start;
 }
 
-.email-from-select { max-width: 320px; }
-
-.email-audience {
+/* ---------- Compose sheet ---------- */
+.email-compose-sheet {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(17, 24, 39, 0.06);
     display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
 }
-.email-aud-opt {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    border: 1px solid #dfe4ea;
+
+.email-subject-input {
+    border: 0;
+    border-bottom: 1px solid #eef1f5;
     border-radius: 0;
-    cursor: pointer;
-    font-size: 14px;
+    padding: 20px 28px;
+    font-size: 19px;
+    font-weight: 600;
+    color: #111827;
+    background: transparent;
+    width: 100%;
+}
+
+.email-subject-input::placeholder {
+    color: #b8c0cb;
     font-weight: 500;
-    transition: border-color 0.15s, background 0.15s;
 }
-.email-aud-opt:has(input:checked) {
-    border-color: #0066cc;
-    background: #f4f8ff;
-    color: #0052a3;
-}
-.email-aud-hint { margin: 8px 0 0; font-size: 12px; color: #8a93a0; }
 
-.email-preview-col { position: sticky; top: 80px; }
-.email-preview-head {
+.email-subject-input:focus {
+    outline: none;
+    border-bottom-color: #c3cad3;
+}
+
+.email-body-input {
+    border: 0;
+    border-radius: 0;
+    padding: 22px 28px;
+    flex: 1;
+    min-height: 400px;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #1f2937;
+    background: transparent;
+    resize: vertical;
+    width: 100%;
+    font-family: inherit;
+}
+
+.email-body-input::placeholder { color: #b8c0cb; }
+.email-body-input:focus { outline: none; }
+
+.email-compose-foot {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 8px;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 14px 28px;
+    border-top: 1px solid #eef1f5;
+    background: #fbfcfd;
+    flex-shrink: 0;
 }
-.email-preview-eyebrow {
+
+.email-preview-btn {
+    padding: 10px 28px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.email-compose-hint { font-size: 12px; color: #8a93a0; }
+
+.email-compose-hint code {
+    background: #eef1f5;
+    padding: 1px 5px;
+    font-size: 11.5px;
+    color: #475569;
+}
+
+.email-main .form-result { margin-top: 16px; }
+
+/* ---------- Docked details panel ---------- */
+.email-side {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(17, 24, 39, 0.06);
+    padding: 20px 22px;
+    display: flex;
+    flex-direction: column;
+}
+
+.email-side-title {
+    margin: 0 0 18px;
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #8a93a0;
 }
-.email-preview-meta { font-size: 12px; color: #6b7787; }
-.email-preview-frame {
-    border: 1px solid #e2e6ec;
-    border-radius: 0;
-    overflow: hidden;
-    background: #f4f6fb;
-}
-.email-preview-frame iframe {
-    width: 100%;
-    height: 560px;
-    border: 0;
-    display: block;
-}
-.email-preview-foot { margin: 10px 2px 0; font-size: 12px; color: #9aa4b2; }
 
-.email-test-row {
+.email-panel-divider {
+    height: 1px;
+    background: #eef1f5;
+    margin: 20px 0;
+}
+
+.email-reach {
     display: flex;
-    gap: 10px;
     align-items: center;
-    margin-top: 8px;
-}
-.email-test-row .form-input-clean { flex: 1; min-width: 0; }
-.email-test-row .btn { flex-shrink: 0; }
-.email-test-hint { margin: 6px 2px 0; font-size: 12px; color: #8a93a0; }
-
-@media (max-width: 980px) {
-    .email-grid { grid-template-columns: 1fr; }
-    .email-preview-col { position: static; }
-    .email-preview-frame iframe { height: 460px; }
-}
-
-/* ==================== Admin role badges ==================== */
-.role-badge {
-    display: inline-block;
-    padding: 3px 10px;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
     border-radius: 0;
-    font-size: 12px;
+}
+.email-reach-icon { color: #8a93a0; flex-shrink: 0; }
+.email-reach-value { font-size: 19px; font-weight: 700; color: #111827; line-height: 1; }
+.email-reach-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* Three-way segmented control: Clients | Hosts | All. Exactly one is active,
+   and "All" stands for both audiences. */
+.email-segmented {
+    display: flex;
+    border: 1px solid #dfe4ea;
+    background: #f7f8fa;
+}
+
+.email-seg {
+    flex: 1;
+    padding: 9px 8px;
+    border: 0;
+    border-right: 1px solid #dfe4ea;
+    background: transparent;
+    color: #6b7280;
+    font-size: 13px;
     font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.email-seg:last-child { border-right: 0; }
+
+.email-seg:hover { color: #111827; }
+
+.email-seg.is-active {
+    background: #111827;
+    color: #fff;
+}
+
+.email-seg:focus-visible {
+    outline: 2px solid #111827;
+    outline-offset: -2px;
+}
+
+.email-aud-hint { margin: 8px 0 0; font-size: 12px; color: #8a93a0; }
+
+/* ---------- Custom select (replaces the native dropdown) ---------- */
+.ui-select {
+    position: relative;
+    width: 100%;
+}
+
+.ui-select-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 0;
+    background: #fff;
+    color: #111827;
+    font-size: 14px;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.ui-select-trigger:hover { border-color: #c3cad3; }
+
+.ui-select.is-open .ui-select-trigger { border-color: #111827; }
+
+.ui-select-trigger:focus-visible {
+    outline: none;
+    border-color: #111827;
+}
+
+.ui-select-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.role-badge.role-super_admin { background: #fde8e8; color: #b91c1c; }
-.role-badge.role-manager { background: #f3e8ff; color: #7c3aed; }
-.role-badge.role-finance { background: #e3f0ff; color: #1d4ed8; }
-.role-badge.role-customer_service { background: #e6f6ea; color: #1d7a36; }
-.role-badge.role-unknown { background: #f1f5f9; color: #475569; }
+.ui-select-chevron {
+    color: #8a93a0;
+    flex-shrink: 0;
+    transition: transform 0.15s;
+}
+
+.ui-select.is-open .ui-select-chevron { transform: rotate(180deg); }
+
+.ui-select-menu {
+    position: absolute;
+    top: calc(100% - 1px);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    margin: 0;
+    padding: 4px 0;
+    list-style: none;
+    background: #fff;
+    border: 1px solid #111827;
+    border-radius: 0;
+    box-shadow: 0 8px 20px rgba(17, 24, 39, 0.12);
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.ui-select-option {
+    padding: 9px 14px;
+    font-size: 14px;
+    color: #374151;
+    cursor: pointer;
+}
+
+.ui-select-option:hover,
+.ui-select-option:focus {
+    outline: none;
+    background: #f4f5f7;
+    color: #111827;
+}
+
+.ui-select-option[aria-selected="true"] {
+    background: #111827;
+    color: #fff;
+    font-weight: 600;
+}
+
+/* The panel is narrow, so the test row stacks rather than squeezing. */
+.email-test-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.email-test-row .form-input-clean { width: 100%; }
+.email-test-group { margin-bottom: 0; margin-top: auto; }
+.email-test-hint { margin: 8px 0 0; font-size: 12px; color: #8a93a0; }
+
+/* ---------- Preview modal ---------- */
+.email-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+}
+
+.email-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    animation: modBackdropIn 0.18s ease;
+}
+
+.email-modal-panel {
+    position: relative;
+    width: 100%;
+    max-width: 720px;
+    max-height: 100%;
+    background: #fff;
+    border-radius: 0;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+    display: flex;
+    flex-direction: column;
+    animation: emailModalIn 0.18s ease;
+}
+
+@keyframes emailModalIn {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.email-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 24px;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+}
+
+.email-modal-heading h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.01em;
+}
+
+.email-modal-meta {
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    color: #6b7787;
+}
+
+/* The rendered email sits on the same grey a real client shows. */
+.email-modal-body {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    background: #f4f6fb;
+}
+
+.email-modal-body iframe {
+    width: 100%;
+    height: 100%;
+    min-height: 420px;
+    border: 0;
+    display: block;
+}
+
+.email-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding: 14px 24px;
+    border-top: 1px solid #e5e7eb;
+    flex-shrink: 0;
+}
+
+.email-modal-note {
+    font-size: 12px;
+    color: #9aa4b2;
+    flex: 1;
+    min-width: 180px;
+}
+
+.email-modal-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 980px) {
+    .email-layout { grid-template-columns: 1fr; }
+    .email-side { order: -1; }
+    .email-test-group { margin-top: 0; }
+    .email-test-row { flex-direction: row; align-items: center; }
+    .email-test-row .form-input-clean { flex: 1; min-width: 0; }
+    .email-test-row .btn { flex-shrink: 0; }
+}
+
+@media (max-width: 720px) {
+    .email-subject-input,
+    .email-body-input { padding-left: 18px; padding-right: 18px; }
+    .email-compose-foot { padding: 12px 18px; }
+    .email-compose-hint { display: none; }
+    .email-preview-btn { width: 100%; }
+    .email-modal { padding: 0; }
+    .email-modal-panel { max-width: none; height: 100%; }
+    .email-modal-footer { justify-content: flex-end; }
+    .email-modal-note { display: none; }
+}
 
 /* ==================== Custom toasts (replaces native alert) ==================== */
 .ui-toast-container {
@@ -3092,16 +3414,16 @@ body.admin-nav-open {
 }
 
 /* ==================== Loading skeletons ====================
-   YouTube-style placeholders: flat grey blocks with a single highlight sweep
-   travelling across each group, so a whole card shimmers as one surface rather
-   than every block pulsing on its own. Square corners, like the rest of the UI. */
+   Flat grey blocks laid out in the same shape as the content they stand in
+   for, with one highlight sweep per card. Nothing decorative: a skeleton's job
+   is to hold the exact space the real content will take. */
 
 @keyframes skeleton-sweep {
     from { transform: translateX(-100%); }
     to   { transform: translateX(100%); }
 }
 
-/* Put this on the container that should read as one shimmering surface. */
+/* Goes on the container that should read as one shimmering surface. */
 .skeleton {
     position: relative;
     overflow: hidden;
@@ -3115,50 +3437,50 @@ body.admin-nav-open {
     background: linear-gradient(
         90deg,
         rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0.75) 50%,
+        rgba(255, 255, 255, 0.7) 50%,
         rgba(255, 255, 255, 0) 100%
     );
-    animation: skeleton-sweep 1.5s ease-in-out infinite;
+    animation: skeleton-sweep 1.6s ease-in-out infinite;
     pointer-events: none;
+    z-index: 1;
 }
 
-/* A single grey block. Width/height are set inline or by a modifier. */
+/* The single grey block every skeleton is built from. */
 .sk-line {
     display: block;
-    height: 10px;
-    background: #e7ebf0;
+    height: 11px;
+    background: #e9ecf0;
     border-radius: 0;
 }
 
-.sk-line + .sk-line {
-    margin-top: 8px;
-}
+.sk-line + .sk-line { margin-top: 9px; }
 
-/* ---------- Stat card skeleton ---------- */
+/* ---------- Tables (hosts, clients, and any other list page) ---------- */
+/* Reuses the page's own table styles, so columns line up with the real rows. */
+.sk-table td { height: 45px; }
+.sk-table td .sk-line { margin: 0; }
+
+/* ---------- Stat tiles ---------- */
 .sk-stat-card {
     background: #fff;
     padding: 14px 16px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.sk-stat-card .sk-label    { width: 58%; height: 10px; }
-.sk-stat-card .sk-value    { width: 42%; height: 22px; margin-top: 10px; }
-.sk-stat-card .sk-subvalue { width: 76%; height: 9px;  margin-top: 10px; }
+.sk-stat-card .sk-line + .sk-line { margin-top: 10px; }
 
-/* ---------- Graph skeleton ----------
-   Swapped in for the canvas while a chart's data is in flight. The bars are
-   plain grey; the sweep lives on the wrapper so it crosses all of them at once. */
+/* ---------- Charts ---------- */
 .graph-container.is-loading canvas,
 .graph-container.is-loading .graph-legend {
     display: none;
 }
 
-/* Subtitles hold placeholder text ("—") until data lands — show a block instead. */
+/* Subtitles hold placeholder text until data lands — show a block instead. */
 .graph-container.is-loading .graph-subtitle {
     display: inline-block;
     width: 150px;
     height: 10px;
-    background: #e7ebf0;
+    background: #e9ecf0;
     color: transparent;
     user-select: none;
 }
@@ -3167,53 +3489,70 @@ body.admin-nav-open {
     flex: 1;
     min-height: 0;
     display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    gap: 8px;
 }
 
-.sk-chart-bars {
+.sk-plot {
     flex: 1;
-    min-height: 0;
+    background: #e9ecf0;
+}
+
+/* ---------- Support inbox rows ---------- */
+.sk-conv-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid transparent;
+}
+
+.sk-conv-avatar {
+    width: 36px;
+    height: 36px;
+    background: #e9ecf0;
+    flex-shrink: 0;
+}
+
+.sk-conv-body { flex: 1; min-width: 0; }
+
+.sk-conv-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+}
+
+.sk-conv-top .sk-line { margin: 0; }
+
+/* ---------- Support chat transcript ---------- */
+.sk-msg-row {
     display: flex;
     align-items: flex-end;
-    gap: 6px;
+    gap: 10px;
+    margin-bottom: 14px;
 }
 
-.sk-chart-bars span {
-    flex: 1;
-    background: #e7ebf0;
-    border-radius: 0;
-}
+.sk-msg-admin { justify-content: flex-end; }
+.sk-msg-admin .sk-msg-avatar { order: 2; }
 
-/* Baseline under the bars, standing in for the x-axis. */
-.sk-chart-axis {
-    height: 1px;
-    background: #eceff3;
+.sk-msg-avatar {
+    width: 34px;
+    height: 34px;
+    background: #e9ecf0;
     flex-shrink: 0;
 }
 
-.sk-chart-labels {
-    display: flex;
-    gap: 6px;
-    flex-shrink: 0;
-}
+.sk-msg-bubble { background: #e9ecf0; }
 
-.sk-chart-labels span {
-    flex: 1;
-    height: 7px;
-    background: #eef1f5;
-}
-
-@media (max-width: 900px) {
-    .sk-chart-bars span:nth-child(n + 9),
-    .sk-chart-labels span:nth-child(n + 9) {
-        display: none;
-    }
+/* ---------- Inline value placeholder (e.g. the email recipient count) ---------- */
+.sk-inline {
+    display: inline-block;
+    min-width: 64px;
+    height: 18px;
+    background: #e9ecf0;
+    vertical-align: middle;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .skeleton::after {
-        animation: none;
-    }
+    .skeleton::after { animation: none; }
 }

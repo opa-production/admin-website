@@ -199,6 +199,10 @@ function loadPage(page) {
     p.style.display = "none";
   });
 
+  // Overlays belong to the page that opened them, so don't let a modal
+  // survive a navigation.
+  if (typeof closeEmailPreview === "function") closeEmailPreview();
+
   // Update page title
   const titles = {
     dashboard: "Dashboard",

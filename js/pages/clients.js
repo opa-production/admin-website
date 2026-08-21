@@ -32,6 +32,9 @@ function goToClientPage(page) {
   renderClients();
 }
 
+// Column headers, shared by the real table and its loading skeleton.
+const CLIENT_TABLE_HEADERS = ["Name", "Email", "Status", "KYC", "Actions"];
+
 // Load clients
 async function loadClients() {
   const content = document.getElementById("clientsContent");
@@ -40,7 +43,7 @@ async function loadClients() {
   setupClientFilters();
 
   try {
-    content.innerHTML = '<div class="loading">Loading clients...</div>';
+    content.innerHTML = skTable(CLIENT_TABLE_HEADERS);
     clientsAll = await fetchAllPaged(api.getClients, "clients");
     renderClients();
   } catch (error) {

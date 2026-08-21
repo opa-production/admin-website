@@ -44,7 +44,7 @@ async function loadSupportConversations() {
   // Keep the sidebar "unread support" badge in sync after reads/replies.
   if (typeof refreshNavBadges === "function") refreshNavBadges();
 
-  content.innerHTML = '<div class="loading">Loading conversations...</div>';
+  content.innerHTML = skConversationRows(7);
 
   try {
     const statusFilter =
@@ -193,8 +193,11 @@ async function viewSupportConversation(conversationId) {
   const messagesEl = document.getElementById("supportMessages");
   const replyForm = document.getElementById("supportReplyForm");
 
-  infoEl.innerHTML = '<div class="loading">Loading conversation...</div>';
-  messagesEl.innerHTML = '<div class="loading">Loading messages...</div>';
+  infoEl.innerHTML = '<div class="sk-conv-row skeleton" aria-hidden="true">' +
+    '<span class="sk-conv-avatar"></span>' +
+    '<div class="sk-conv-body"><span class="sk-line" style="width: 40%"></span>' +
+    '<span class="sk-line" style="width: 26%; height: 9px"></span></div></div>';
+  messagesEl.innerHTML = skMessageBubbles(5);
 
   try {
     const conversation = await api.getSupportConversation(conversationId);

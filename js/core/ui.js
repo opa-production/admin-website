@@ -199,3 +199,138 @@ window.alert = function (message) {
   const text = String(message == null ? "" : message);
   uiToast(text, inferToastType(text));
 };
+
+// ------------------------------------------------- Custom select (listbox) ----
+// Replaces a native <select> with a styled listbox. The markup is:
+//
+//   <div class="ui-select"><button class="ui-select-trigger">…</button>
+//     <ul class="ui-select-menu" role="listbox">
+//       <li class="ui-select-option" data-value="x">Label</li> …</ul></div>
+//
+// The chosen value is mirrored into `hiddenInput` so callers can keep reading
+// a plain `.value`, exactly as they did with the <select> it replaced.
+function initCustomSelect(root, hiddenInput, onChange) {
+  if (!root || root.dataset.wired === "true") return;
+  root.dataset.wired = "true";
+
+  const trigger = root.querySelector(".ui-select-trigger");
+  const valueEl = root.querySelector(".ui-select-value");
+  const menu = root.querySelector(".ui-select-menu");
+  const options = Array.from(root.querySelectorAll(".ui-select-option"));
+  if (!trigger || !menu || options.length === 0) return;
+
+  const isOpen = () => !menu.hidden;
+
+  const open = () => {
+    menu.hidden = false;
+    root.classList.add("is-open");
+    trigger.setAttribute("aria-expanded", "true");
+    const active = options.find((o) => o.getAttribute("aria-selected") === "true");
+    (active || options[0]).focus();
+  };
+
+  const close = (refocus) => {
+    menu.hidden = true;
+    root.classList.remove("is-open");
+    trigger.setAttribute("aria-expanded", "false");
+    if (refocus) trigger.focus();
+  };
+
+  const select = (option) => {
+    options.forEach((o) => o.setAttribute("aria-selected", String(o === option)));
+    if (valueEl) valueEl.textContent = option.textContent.trim();
+    if (hiddenInput) hiddenInput.value = option.dataset.value || "";
+    close(true);
+    if (typeof onChange === "function") onChange(option.dataset.value || "");
+  };
+
+  trigger.addEventListener("click", () => (isOpen() ? close(false) : open()));
+
+  options.forEach((option) => {
+    option.tabIndex = -1;
+    option.addEventListener("click", () => select(option));
+  });
+
+  // Roving focus through the options; Enter/Space commits, Escape backs out.
+  menu.addEventListener("keydown", (e) => {
+    const current = options.indexOf(document.activeElement);
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      const next = (current + step + options.length) % options.length;
+      options[next].focus();
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (current >= 0) select(options[current]);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      close(true);
+    } else if (e.key === "Tab") {
+      close(false);
+    }
+  });
+
+  trigger.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      open();
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (isOpen() && !root.contains(e.target)) close(false);
+  });
+}
+
+// ------------------------------------------------------------ ScaleLoader ----
+// Every `<div class="loading">…</div>` in the app renders as a ScaleLoader:
+// five bars scaling in a staggered wave. Rather than edit ~50 call sites (and
+// every future one), the markup is upgraded in place — the same approach as the
+// alert() override above, so existing code gets the new look for free.
+const SCALE_LOADER_BARS = 5;
+
+function upgradeLoadingElement(el) {
+  if (!el || el.dataset.loaderReady === "true") return;
+  el.dataset.loaderReady = "true";
+
+  // Keep whatever message the caller wrote ("Loading hosts...") as a caption.
+  const message = el.textContent.trim();
+  el.textContent = "";
+
+  const bars = document.createElement("span");
+  bars.className = "scale-loader";
+  bars.setAttribute("aria-hidden", "true");
+  for (let i = 0; i < SCALE_LOADER_BARS; i++) {
+    bars.appendChild(document.createElement("span"));
+  }
+  el.appendChild(bars);
+
+  if (message) {
+    const label = document.createElement("span");
+    label.className = "loading-text";
+    label.textContent = message;
+    el.appendChild(label);
+  }
+  el.setAttribute("role", "status");
+}
+
+function upgradeLoadingWithin(node) {
+  if (!node || node.nodeType !== 1) return;
+  if (node.classList.contains("loading")) upgradeLoadingElement(node);
+  node.querySelectorAll(".loading").forEach(upgradeLoadingElement);
+}
+
+// Page scripts drop `.loading` blocks in via innerHTML long after load, so watch
+// for them rather than upgrading only what exists at startup.
+function watchLoadingElements() {
+  upgradeLoadingWithin(document.body);
+  new MutationObserver((records) => {
+    records.forEach((record) => record.addedNodes.forEach(upgradeLoadingWithin));
+  }).observe(document.body, { childList: true, subtree: true });
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", watchLoadingElements);
+} else {
+  watchLoadingElements();
+}
