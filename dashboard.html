@@ -84,14 +84,14 @@
                         <div class="graph-container">
                             <div class="graph-header">
                                 <h3>Verified Hosts (KYC)</h3>
-                                <span class="graph-subtitle" id="verifiedHostsSubtitle">—</span>
+                                <span class="graph-subtitle graph-subtitle-pending" id="verifiedHostsSubtitle">—</span>
                             </div>
                             <canvas id="verifiedHostsChart"></canvas>
                         </div>
                         <div class="graph-container">
                             <div class="graph-header">
                                 <h3>Verified Clients (KYC)</h3>
-                                <span class="graph-subtitle" id="verifiedClientsSubtitle">—</span>
+                                <span class="graph-subtitle graph-subtitle-pending" id="verifiedClientsSubtitle">—</span>
                             </div>
                             <canvas id="verifiedClientsChart"></canvas>
                         </div>
@@ -710,10 +710,29 @@
 
                 <div id="revenuePage" class="page-content" style="display: none;">
                     <div class="content-section">
-                        <h2 style="margin-bottom: 4px;">Revenue</h2>
-                        <p class="section-subtitle">Commission is our revenue — processed cash is what we handle on behalf of hosts.</p>
-                        <div class="stats-grid" id="revenueStatsGrid">
-                            <div class="loading">Loading revenue...</div>
+                        <!-- Skeletons paint before the revenue request resolves;
+                             revenue.js swaps them for the real cards. -->
+                        <div class="stats-grid" id="revenueStatsGrid" aria-busy="true">
+                            <div class="sk-stat-card skeleton" aria-hidden="true">
+                                <span class="sk-line" style="width: 58%; height: 10px"></span>
+                                <span class="sk-line" style="width: 42%; height: 22px"></span>
+                                <span class="sk-line" style="width: 76%; height: 9px"></span>
+                            </div>
+                            <div class="sk-stat-card skeleton" aria-hidden="true">
+                                <span class="sk-line" style="width: 58%; height: 10px"></span>
+                                <span class="sk-line" style="width: 42%; height: 22px"></span>
+                                <span class="sk-line" style="width: 76%; height: 9px"></span>
+                            </div>
+                            <div class="sk-stat-card skeleton" aria-hidden="true">
+                                <span class="sk-line" style="width: 58%; height: 10px"></span>
+                                <span class="sk-line" style="width: 42%; height: 22px"></span>
+                                <span class="sk-line" style="width: 76%; height: 9px"></span>
+                            </div>
+                            <div class="sk-stat-card skeleton" aria-hidden="true">
+                                <span class="sk-line" style="width: 58%; height: 10px"></span>
+                                <span class="sk-line" style="width: 42%; height: 22px"></span>
+                                <span class="sk-line" style="width: 76%; height: 9px"></span>
+                            </div>
                         </div>
                         <div class="revenue-graphs-section">
                             <div class="graph-container revenue-chart-wrap revenue-chart-full revenue-chart-hero">

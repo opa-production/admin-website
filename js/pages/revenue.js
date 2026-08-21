@@ -79,13 +79,30 @@ const doughnutCenterText = {
   },
 };
 
+// Revenue skeletons: four stat tiles plus a plot placeholder in each of the
+// page's chart cards. See js/core/skeletons.js.
+function showRevenueSkeleton() {
+  const statsGrid = document.getElementById("revenueStatsGrid");
+  if (statsGrid) {
+    statsGrid.setAttribute("aria-busy", "true");
+    statsGrid.innerHTML = skStatCards(4);
+  }
+  skShowCharts("#revenuePage");
+}
+
+function hideRevenueSkeleton() {
+  document.getElementById("revenueStatsGrid")?.removeAttribute("aria-busy");
+  skHideCharts("#revenuePage");
+}
+
 // Load revenue page
 async function loadRevenue() {
   const statsGrid = document.getElementById("revenueStatsGrid");
   if (!statsGrid) return;
 
+  showRevenueSkeleton();
+
   try {
-    statsGrid.innerHTML = '<div class="loading">Loading revenue...</div>';
     const data = await api.getRevenueStats();
 
     const ratePct = ((data.commission_rate || 0) * 100).toFixed(
@@ -115,12 +132,15 @@ async function loadRevenue() {
             </div>
         `;
 
+    hideRevenueSkeleton();
+
     createRevenueTrendChart(data);
     createCashFlowChart(data);
     createBookingVolumeChart(data);
     createRevenueSplitChart(data);
   } catch (error) {
     console.error("Error loading revenue:", error);
+    hideRevenueSkeleton();
     statsGrid.innerHTML = `<div class="empty-state">Error loading revenue: ${error.message}</div>`;
   }
 }

@@ -1156,12 +1156,6 @@ td.row-actions {
 }
 
 /* Revenue page */
-.section-subtitle {
-    font-size: 13px;
-    color: #6b7280;
-    margin: 0 0 22px;
-}
-
 .revenue-graphs-section {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -3471,12 +3465,14 @@ body.admin-nav-open {
 
 /* ---------- Charts ---------- */
 .graph-container.is-loading canvas,
-.graph-container.is-loading .graph-legend {
+.graph-container.is-loading .graph-legend,
+.graph-container.is-loading .graph-pill {
     display: none;
 }
 
-/* Subtitles hold placeholder text until data lands — show a block instead. */
-.graph-container.is-loading .graph-subtitle {
+/* Only subtitles that are still placeholders ("—") become blocks; cards whose
+   subtitle is fixed descriptive text keep showing it while data loads. */
+.graph-container.is-loading .graph-subtitle-pending {
     display: inline-block;
     width: 150px;
     height: 10px;
