@@ -988,6 +988,31 @@
                     </div>
                 </div>
 
+                <!-- B2B Fleet: what business accounts have put on the consumer app.
+                     Two gates decide visibility (their listing status, our review);
+                     the "On the app" column shows the outcome and which gate blocks it. -->
+                <div id="b2bFleetPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="margin-bottom: 20px;">
+                            <h2 style="margin: 0 0 4px;">Ardena for Business — fleet on the app</h2>
+                            <p style="margin: 0; color: #6b7280; font-size: 13px;">Vehicles business accounts have listed on the Ardena consumer app. Approving one puts it in front of renters.</p>
+                        </div>
+
+                        <div id="b2bFleetStats" class="mod-stats-row"></div>
+
+                        <div id="b2bFleetTabs" style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;"></div>
+
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                            <input type="text" id="b2bFleetSearch" placeholder="Search by plate, vehicle, or business name..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 350px;">
+                        </div>
+
+                        <div id="b2bFleetContent">
+                            <div class="loading">Loading fleet listings...</div>
+                        </div>
+                        <div id="b2bFleetPagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;"></div>
+                    </div>
+                </div>
+
                 <!-- Email service: preview + send modal -->
                 <div id="emailPreviewModal" class="email-modal" style="display: none;" aria-hidden="true">
                     <div class="email-modal-backdrop" onclick="closeEmailPreview()"></div>
@@ -1293,6 +1318,7 @@
     <script src="js/pages/profile.js"></script>
     <script src="js/pages/moderation.js"></script>
     <script src="js/pages/b2b.js"></script>
+    <script src="js/pages/b2b-fleet.js"></script>
     <script src="js/pages/listing-reports.js"></script>
 </body>
 </html>

@@ -3552,3 +3552,11 @@ body.admin-nav-open {
 @media (prefers-reduced-motion: reduce) {
     .skeleton::after { animation: none; }
 }
+
+/* B2B Fleet — business-standing warning under the business name. Amber, not
+   red: an unverified or suspended workspace is a reason to look before
+   approving a car onto the app, not an error in itself. */
+.b2b-fleet-warn {
+    color: #b45309;
+    font-weight: 600;
+}

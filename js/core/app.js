@@ -221,6 +221,7 @@ function loadPage(page) {
     support: "Support",
     moderation: "Moderation",
     b2b: "B2B Businesses",
+    "b2b-fleet": "B2B Fleet",
     admins: "Admins",
   };
   document.getElementById("pageTitle").textContent =
@@ -301,6 +302,9 @@ function loadPage(page) {
       break;
     case "b2b":
       initB2BPage();
+      break;
+    case "b2b-fleet":
+      initB2BFleetPage();
       break;
   }
 }

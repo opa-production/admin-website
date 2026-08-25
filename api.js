@@ -519,6 +519,38 @@ const api = {
       method: "PUT",
     }),
 
+  // B2B fleet on the consumer marketplace — what business accounts have put on
+  // the Ardena app, and the review action that makes a car visible there.
+  // Two independent gates decide visibility (see the backend module docstring):
+  // the business's own listing status, and our verification_status. `blocked_by`
+  // on each row says which one is holding a car back.
+  getB2BFleetCars: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(
+      `/admin/b2b/fleet/cars${queryString ? "?" + queryString : ""}`,
+    );
+  },
+  getB2BFleetStats: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(
+      `/admin/b2b/fleet/cars/stats${queryString ? "?" + queryString : ""}`,
+    );
+  },
+  getB2BFleetCar: (listingId) =>
+    apiRequest(`/admin/b2b/fleet/cars/${listingId}`),
+  // "Make visible in the Ardena app". Returns { car, message } — read the
+  // message: approving a car the business has hidden themselves does NOT put it
+  // on the app, and the message is what says so.
+  approveB2BFleetCar: (listingId) =>
+    apiRequest(`/admin/b2b/fleet/cars/${listingId}/approve`, {
+      method: "POST",
+    }),
+  rejectB2BFleetCar: (listingId, reason) =>
+    apiRequest(`/admin/b2b/fleet/cars/${listingId}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
   // Listing reports (moderation queue) — see reports.md
   getListingReports: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();

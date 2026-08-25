@@ -60,6 +60,13 @@ rendered by its own script under `js/pages/` (see **Files** below):
   **Refunds**, **Subscribers** (newsletter), **Revenue**, **Support**,
   **Moderation** (Ratings · Secondary Contacts · Listing Reports tabs), and
   **Admins** (super-admin only)
+- **B2B Fleet** — vehicles that Ardena-for-Business accounts have listed on the
+  consumer app. Two independent gates decide whether one is actually rentable:
+  the business publishing the listing, and Ardena approving the car. Only the
+  second is ours, and "Make visible" moves it — so a car can come back
+  *approved but still hidden* when the business is the one holding it back. The
+  **On the app** column shows the outcome and which gate blocks it. See
+  `b2b-fleet.md`.
 
 The sidebar can be collapsed to an icon-only rail (toggle in the sidebar header);
 the state is remembered in `localStorage`.
@@ -76,18 +83,19 @@ search/filter/pagination client-side.
 
 | File | Purpose |
 |------|---------|
-| `index.html` / `login.js` / `styles.css` | Login page |
+| `js/pages/*.js` | One classic script per page (hosts, clients, cars, bookings, moderation, b2b-fleet, …) |
 | `dashboard.html` | Admin dashboard markup (SPA shell + page containers) |
 | `dashboard.css` | Dashboard styling |
 | `api.js` | API client (`API_BASE_URL`, auth, all endpoint methods) |
 | `js/core/helpers.js` | Shared helpers: formatting, escaping, badges, pagination, label constants |
 | `js/core/shell.js` | Sidebar `NAV_ITEMS` (single source of truth), icons, collapse, mobile nav, profile menu |
 | `js/core/app.js` | Bootstrap, auth/profile load, router (`loadPage`), role-based access |
-| `js/pages/*.js` | One classic script per page (hosts, clients, cars, bookings, moderation, …) |
+| `js/pages/*.js` | One classic script per page (hosts, clients, cars, bookings, moderation, b2b-fleet, …) |
 | `subscribers.html` | Standalone subscribers/newsletter view |
 | `reports.md` | Listing-reports (moderation) API notes — see the Moderation → Listing Reports tab |
 | `kyccheckmd` | KYC backend integration notes |
 | `bookings.md` | Bookings API notes |
+| `b2b-fleet.md` | B2B fleet-on-the-app API notes — see the B2B Fleet page |
 
 > All `js/**` files are **classic scripts** (not ES modules): every top-level
 > function/variable is global, which is what lets inline `onclick=` handlers and
