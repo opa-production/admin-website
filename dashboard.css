@@ -2841,6 +2841,13 @@ body.admin-nav-open {
     cursor: not-allowed;
 }
 
+/* .btn-danger is declared after .btn-small and restates padding/font-size, so
+   danger buttons sitting in table rows need the small sizing put back. */
+.btn-small.btn-danger {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
 @media (max-width: 640px) {
     .mod-filters { flex-direction: column; align-items: stretch; }
     .mod-filter-input { min-width: 0; }
@@ -3560,4 +3567,95 @@ body.admin-nav-open {
 .b2b-fleet-warn {
     color: #b45309;
     font-weight: 600;
+}
+
+/* ==================== Icon action buttons ====================
+   Table rows carry several actions; as labelled buttons they wrap onto two
+   lines and stretch the row. Icons keep every action on one line. Each carries
+   a `title` and an `aria-label`, so the meaning is available on hover and to a
+   screen reader. */
+.row-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid #dfe4ea;
+    border-radius: 0;
+    background: #fff;
+    color: #4b5563;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.icon-btn:hover {
+    background: #f4f5f7;
+    border-color: #111827;
+    color: #111827;
+}
+
+.icon-btn:focus-visible {
+    outline: 2px solid #111827;
+    outline-offset: 1px;
+}
+
+.icon-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.icon-btn:disabled:hover {
+    background: #fff;
+    border-color: #dfe4ea;
+    color: #4b5563;
+}
+
+.icon-btn--primary:hover {
+    background: #0066cc;
+    border-color: #0066cc;
+    color: #fff;
+}
+
+.icon-btn--danger:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #fff;
+}
+
+/* Placeholder where a row has no available actions. */
+.row-actions-none {
+    color: #b8c0cb;
+    font-size: 13px;
+}
+
+/* ==================== Status dot ====================
+   Stands in for a short status caption in dense tables. The label lives in the
+   `title`, so the row stays quiet until you hover. */
+.status-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    flex-shrink: 0;
+    background: #9ca3af;
+    cursor: help;
+    vertical-align: middle;
+}
+
+.status-dot--warn { background: #f59e0b; }
+.status-dot--danger { background: #ef4444; }
+.status-dot--ok { background: #10b981; }
+
+.status-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 6px;
 }

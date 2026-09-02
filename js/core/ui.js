@@ -88,7 +88,7 @@ function uiPrompt(message, opts = {}) {
         : '<input type="text" class="ui-dialog-input">') +
       '<div class="ui-dialog-actions">' +
       '<button type="button" class="btn btn-secondary ui-dialog-cancel"></button>' +
-      '<button type="button" class="btn btn-primary ui-dialog-ok"></button>' +
+      `<button type="button" class="btn ${opts.danger ? "btn-danger" : "btn-primary"} ui-dialog-ok"></button>` +
       "</div></div>";
 
     if (opts.title) overlay.querySelector(".ui-dialog-title").textContent = opts.title;
@@ -333,4 +333,44 @@ if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", watchLoadingElements);
 } else {
   watchLoadingElements();
+}
+
+// ------------------------------------------------------------- Row icons ----
+// Feather-style glyphs for table row actions. Icons keep several actions on one
+// line where labelled buttons would wrap and stretch the row.
+const UI_ICON_PATHS = {
+  users:
+    '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M9 3.5a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.63a4 4 0 0 1 0 7.75"/>',
+  deactivate:
+    '<circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/>',
+  activate:
+    '<circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
+  trash:
+    '<path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M6 6v14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6"/><path d="M10 11v6"/><path d="M14 11v6"/>',
+  eye:
+    '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+  eyeOff:
+    '<path d="M10.6 6.2A9.9 9.9 0 0 1 12 6c6.4 0 10 6 10 6a18.5 18.5 0 0 1-3 3.6"/><path d="M6.6 6.6A18.6 18.6 0 0 0 2 12s3.6 6 10 6a9.8 9.8 0 0 0 4.2-.9"/><path d="m3 3 18 18"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+};
+
+// `action` picks the glyph; `label` becomes both the hover title and the
+// accessible name, so an icon-only button still says what it does.
+function uiIconButton(action, label, onclick, variant) {
+  const path = UI_ICON_PATHS[action];
+  if (!path) return "";
+  const cls = "icon-btn" + (variant ? ` icon-btn--${variant}` : "");
+  const safeLabel = escapeHtmlAttr(label);
+  return (
+    `<button type="button" class="${cls}" onclick="${onclick}" title="${safeLabel}" aria-label="${safeLabel}">` +
+    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    path +
+    "</svg></button>"
+  );
+}
+
+// A bare coloured dot whose meaning shows on hover, for statuses that would
+// otherwise need a caption in every row.
+function uiStatusDot(label, tone) {
+  return `<span class="status-dot status-dot--${tone || "warn"}" title="${escapeHtmlAttr(label)}" role="img" aria-label="${escapeHtmlAttr(label)}"></span>`;
 }

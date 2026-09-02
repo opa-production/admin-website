@@ -519,6 +519,13 @@ const api = {
       method: "PUT",
     }),
 
+  // Permanently deletes a workspace and everything under it. Backend endpoint
+  // is specified in b2b.md — not implemented server-side yet.
+  deleteB2BBusiness: (businessId) =>
+    apiRequest(`/admin/b2b/businesses/${businessId}`, {
+      method: "DELETE",
+    }),
+
   // B2B fleet: every vehicle in every business fleet, and how far it has got
   // towards the Ardena consumer app. Rows are keyed on vehicle_id, NOT on the
   // marketplace listing — a vehicle a business has added but never offered has
@@ -551,6 +558,13 @@ const api = {
     apiRequest(`/admin/b2b/fleet/cars/${vehicleId}/reject`, {
       method: "POST",
       body: JSON.stringify({ reason }),
+
+  // Permanently removes a fleet vehicle, its listing and its app car. Backend
+  // endpoint is specified in b2b.md — not implemented server-side yet.
+  deleteB2BFleetVehicle: (vehicleId) =>
+    apiRequest(`/admin/b2b/fleet/cars/${vehicleId}`, {
+      method: "DELETE",
+    }),
     }),
 
   // Listing reports (moderation queue) — see reports.md

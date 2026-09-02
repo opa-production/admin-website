@@ -13,6 +13,9 @@ let currentB2BTab = "requests";
 let currentB2BRequestPage = 1;
 let currentB2BRequestStatus = "pending";
 let currentB2BRequestSearch = "";
+// Last rendered businesses, by id — the delete flow needs the name and counts
+// without threading them through inline onclick attributes.
+let b2bBusinessRows = {};
 let currentB2BBusinessPage = 1;
 let currentB2BBusinessSearch = "";
 const B2B_PAGE_SIZE = 20;
@@ -161,6 +164,11 @@ async function loadB2BBusinesses() {
     if (currentB2BBusinessSearch) params.search = currentB2BBusinessSearch;
     const data = await api.getB2BBusinesses(params);
 
+    b2bBusinessRows = {};
+    (data.businesses || []).forEach((b) => {
+      b2bBusinessRows[b.id] = b;
+    });
+
     if (data.businesses && data.businesses.length > 0) {
       content.innerHTML = `
                 <div class="table-container">
@@ -182,8 +190,8 @@ async function loadB2BBusinesses() {
                             ${data.businesses
                               .map((b) => {
                                 const toggle = b.is_active
-                                  ? `<button class="btn btn-small btn-secondary" onclick="toggleB2BBusiness(${b.id}, false)">Deactivate</button>`
-                                  : `<button class="btn btn-small btn-primary" onclick="toggleB2BBusiness(${b.id}, true)">Activate</button>`;
+                                  ? uiIconButton("deactivate", "Deactivate business", `toggleB2BBusiness(${b.id}, false)`)
+                                  : uiIconButton("activate", "Activate business", `toggleB2BBusiness(${b.id}, true)`, "primary");
                                 return `<tr>
                                     <td>${b.id}</td>
                                     <td><strong>${escapeHtml(b.name)}</strong></td>
@@ -194,8 +202,11 @@ async function loadB2BBusinesses() {
                                     <td><span class="status-badge ${b.is_active ? "active" : "inactive"}">${b.is_active ? "Active" : "Inactive"}</span></td>
                                     <td>${b.created_at ? new Date(b.created_at).toLocaleDateString() : "—"}</td>
                                     <td>
-                                        <button class="btn btn-small btn-primary" onclick="openB2BUsersModal(${b.id}, '${escapeHtml(b.name)}')">Users</button>
-                                        ${toggle}
+                                        <div class="row-actions">
+                                            ${uiIconButton("users", "Manage users", `openB2BUsersModal(${b.id}, '${escapeHtml(b.name)}')`, "primary")}
+                                            ${toggle}
+                                            ${uiIconButton("trash", "Delete business", `deleteB2BBusiness(${b.id})`, "danger")}
+                                        </div>
                                     </td>
                                 </tr>`;
                               })
@@ -241,21 +252,58 @@ function goToB2BBusinessPage(page) {
 
 async function toggleB2BBusiness(id, activate) {
   const verb = activate ? "activate" : "deactivate";
-  if (
-    !activate &&
-    !confirm("Deactivate this business? All its users lose dashboard access immediately.")
-  ) {
-    return;
+  const name = (b2bBusinessRows[id] || {}).name || "this business";
+
+  if (!activate) {
+    const ok = await uiConfirm(
+      `Deactivate ${name}? All its users lose dashboard access immediately.`,
+      { title: "Deactivate business", confirmText: "Deactivate", danger: true },
+    );
+    if (!ok) return;
   }
+
   try {
     if (activate) {
       await api.activateB2BBusiness(id);
     } else {
       await api.deactivateB2BBusiness(id);
     }
+    uiToast(`Business ${activate ? "activated" : "deactivated"}.`, "success");
     loadB2BBusinesses();
   } catch (error) {
-    alert(`Failed to ${verb} business: ${error.message}`);
+    uiToast(`Failed to ${verb} business: ${error.message}`, "error");
+  }
+}
+
+// Permanent removal of a workspace, its users and its fleet. Deactivate is the
+// reversible option; this one is not, so it asks for the business name to be
+// typed rather than settling for an OK/Cancel an admin can click through.
+async function deleteB2BBusiness(id) {
+  const business = b2bBusinessRows[id] || {};
+  const name = business.name || "";
+
+  const typed = await uiPrompt(
+    `This permanently deletes ${name || "this business"}, its ${business.users_count ?? 0} user login(s) and its ${business.vehicles_count ?? 0} vehicle(s). This cannot be undone.\n\nType the business name to confirm.`,
+    {
+      title: "Delete business",
+      confirmText: "Delete permanently",
+      placeholder: name,
+      danger: true,
+    },
+  );
+  if (typed === null) return;
+
+  if (typed.trim() !== name) {
+    uiToast("The name didn't match — nothing was deleted.", "error");
+    return;
+  }
+
+  try {
+    await api.deleteB2BBusiness(id);
+    uiToast(`${name} was deleted.`, "success");
+    loadB2BBusinesses();
+  } catch (error) {
+    uiToast(`Failed to delete business: ${error.message}`, "error");
   }
 }
 
@@ -483,19 +531,17 @@ function closeB2BUsersModal() {
 }
 
 async function resetB2BUserPassword(userId) {
-  if (
-    !confirm(
-      "Reset this user's password? A new temporary password is generated and emailed to them (and shown to you once).",
-    )
-  ) {
-    return;
-  }
+  const ok = await uiConfirm(
+    "Reset this user's password? A new temporary password is generated, emailed to them, and shown to you once.",
+    { title: "Reset password", confirmText: "Reset password", danger: false },
+  );
+  if (!ok) return;
   try {
     const result = await api.resetB2BUserPassword(userId);
     closeB2BUsersModal();
     showB2BCredentialsModal(result);
   } catch (error) {
-    alert(`Password reset failed: ${error.message}`);
+    uiToast(`Password reset failed: ${error.message}`, "error");
   }
 }
 
@@ -508,6 +554,6 @@ async function toggleB2BUser(userId, activate, businessId, businessName) {
     }
     openB2BUsersModal(businessId, businessName);
   } catch (error) {
-    alert(`Update failed: ${error.message}`);
+    uiToast(`Update failed: ${error.message}`, "error");
   }
 }

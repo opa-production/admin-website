@@ -13,9 +13,9 @@
 //   1. the business's intent  — they published the listing
 //   2. Ardena's review        — we approved the car
 //
-// Only the second is ours to move, and "Make visible" moves it. When a car is
-// still not on the app afterwards, `blocked_by` on the row says why, and the
-// server's message repeats it — so approving something the business has hidden
+// Only the second is ours to move, and "Make visible" moves it. The row shows
+// the outcome as Visible/Hidden; the server's message after an approval says
+// whether it actually went live, so approving a car the business has hidden
 // never reads as "it's live now".
 
 // ==================== B2B FLEET ====================
@@ -37,30 +37,20 @@ const B2B_FLEET_PAGE_SIZE = 20;
 // option reading 4 always shows 4 rows.
 const B2B_FLEET_FILTERS = [
   { key: "", label: "All vehicles", count: "total_vehicles" },
-  { key: "pending_review", label: "Awaiting our review", count: "pending_review" },
-  { key: "live", label: "On the app", count: "live" },
+  { key: "pending_review", label: "Awaiting review", count: "pending_review" },
+  { key: "live", label: "Visible", count: "live" },
   { key: "hidden_by_business", label: "Hidden by business", count: "hidden_by_business" },
   { key: "rejected", label: "Rejected", count: "rejected" },
-  { key: "not_submitted", label: "Listing unfinished", count: "not_submitted" },
-  { key: "not_listed", label: "Not offered to the app", count: "not_listed" },
+  { key: "not_submitted", label: "Unfinished", count: "not_submitted" },
+  { key: "not_listed", label: "Not offered", count: "not_listed" },
 ];
 
 const B2B_FLEET_REVIEW_LABEL = {
   approved: "Approved",
   pending_review: "Awaiting review",
   rejected: "Rejected",
-  not_submitted: "Listing unfinished",
+  not_submitted: "Unfinished",
   not_listed: "Not offered",
-};
-
-// Why a car isn't on the app, in words an admin can act on. Keyed on the
-// server's `blocked_by`.
-const B2B_FLEET_BLOCKED_LABEL = {
-  not_listed: "Not offered to the app",
-  not_submitted: "Listing unfinished",
-  review: "Waiting on our review",
-  business: "Business has it hidden",
-  admin_hidden: "Hidden manually in Cars",
 };
 
 function initB2BFleetPage() {
@@ -176,10 +166,10 @@ function renderB2BFleetStats() {
             ${sub ? `<div class="mod-stat-sub">${sub}</div>` : ""}
         </div>`;
   el.innerHTML = [
-    card("On the app", s.live, `of ${s.total_vehicles} fleet vehicle${s.total_vehicles === 1 ? "" : "s"}`),
-    card("Awaiting review", s.pending_review, s.pending_review ? "needs a decision" : "queue is clear"),
-    card("Hidden by business", s.hidden_by_business, "approved, but they pulled it"),
-    card("Not offered", s.not_listed, `never sent to the app · ${s.businesses} business${s.businesses === 1 ? "" : "es"}`),
+    card("Visible", s.live, `of ${s.total_vehicles}`),
+    card("Awaiting review", s.pending_review),
+    card("Hidden by business", s.hidden_by_business),
+    card("Not offered", s.not_listed),
   ].join("");
 }
 
@@ -210,35 +200,41 @@ function renderB2BFleetRow(car) {
 
   const live = car.is_live
     ? '<span class="status-badge active">Visible</span>'
-    : `<span class="status-badge inactive">Hidden</span><br><small>${escapeHtml(B2B_FLEET_BLOCKED_LABEL[car.blocked_by] || "—")}</small>`;
+    : '<span class="status-badge inactive">Hidden</span>';
 
   // No Car row means nothing exists on the app to approve or reject — the
-  // buttons would only produce a 400 the admin can't act on. The two reasons
-  // need different words: one business hasn't started, the other hasn't finished.
-  let actions;
-  if (!car.car_id) {
-    const why = car.listing_id
-      ? "The business is still filling in the listing"
-      : "The business hasn't offered this vehicle to the app";
-    actions = `<span title="${escapeHtmlAttr(why)}">—</span>`;
-  } else {
-    const approve =
-      car.review === "approved"
-        ? ""
-        : `<button class="btn btn-small btn-primary" onclick="approveB2BFleetCar(${car.vehicle_id})">Make visible</button> `;
-    const reject =
-      car.review === "rejected"
-        ? ""
-        : `<button class="btn btn-small btn-secondary" onclick="rejectB2BFleetCar(${car.vehicle_id})">Remove</button>`;
-    actions = approve + reject || "—";
+  // buttons would only produce a 400 the admin can't act on.
+  const buttons = [];
+  if (car.car_id) {
+    if (car.review !== "approved") {
+      buttons.push(
+        uiIconButton("eye", "Make visible on the app", `approveB2BFleetCar(${car.vehicle_id})`, "primary"),
+      );
+    }
+    if (car.review !== "rejected") {
+      buttons.push(
+        uiIconButton("eyeOff", "Remove from the app", `rejectB2BFleetCar(${car.vehicle_id})`),
+      );
+    }
   }
+  buttons.push(
+    uiIconButton("trash", "Delete vehicle", `deleteB2BFleetVehicle(${car.vehicle_id})`, "danger"),
+  );
+
+  // With no Car row there is nothing on the app to approve or reject, so only
+  // delete is offered; the note says why the other actions are missing.
+  const note = !car.car_id
+    ? `<span class="row-actions-none" title="${escapeHtmlAttr(car.listing_id ? "Listing still being filled in" : "Not offered")}">—</span>`
+    : "";
+  const actions = `<div class="row-actions">${note}${buttons.join("")}</div>`;
 
   // The workspace's own standing is worth showing here: an unverified or
   // suspended business shouldn't have cars approved onto the app, and this is
-  // where an admin would otherwise approve one without noticing.
-  const bizFlags = [];
-  if (!car.business_verified) bizFlags.push("KYB pending");
-  if (!car.business_active) bizFlags.push("suspended");
+  // where an admin would otherwise approve one without noticing. Shown as dots
+  // so the column stays quiet — the reason is on hover.
+  const bizDots = [];
+  if (!car.business_verified) bizDots.push(uiStatusDot("KYC pending", "warn"));
+  if (!car.business_active) bizDots.push(uiStatusDot("Business suspended", "danger"));
 
   return `<tr>
         <td>
@@ -247,7 +243,7 @@ function renderB2BFleetRow(car) {
         </td>
         <td>
             ${escapeHtml(car.business_name)}
-            ${bizFlags.length ? `<br><small class="b2b-fleet-warn">${escapeHtml(bizFlags.join(" · "))}</small>` : ""}
+            ${bizDots.length ? `<span class="status-dots">${bizDots.join("")}</span>` : ""}
         </td>
         <td>${fmtKes(car.daily_rate)}<small>/day</small></td>
         <td><span class="status-badge ${reviewClass}">${reviewLabel}</span>${reason}</td>
@@ -277,7 +273,7 @@ function renderB2BFleetPagination(total, limit, skip) {
 async function approveB2BFleetCar(vehicleId) {
   const plate = (b2bFleetRows[vehicleId] || {}).plate || "this vehicle";
   const ok = await uiConfirm(
-    `Approve ${plate} for the Ardena app? Renters will be able to book it as soon as the business has it published.`,
+    `Approve ${plate} for the Ardena app?`,
     { title: "Make visible", confirmText: "Make visible", danger: false },
   );
   if (!ok) return;
@@ -296,7 +292,7 @@ async function approveB2BFleetCar(vehicleId) {
 async function rejectB2BFleetCar(vehicleId) {
   const plate = (b2bFleetRows[vehicleId] || {}).plate || "this vehicle";
   const reason = await uiPrompt(
-    `Why is ${plate} being removed from the Ardena app? The business sees this in their dashboard.`,
+    `Why is ${plate} being removed? The business sees this reason.`,
     { title: "Remove from app", multiline: true, confirmText: "Remove", placeholder: "e.g. Cover photo doesn't show the vehicle" },
   );
   if (reason === null) return;
@@ -310,5 +306,22 @@ async function rejectB2BFleetCar(vehicleId) {
     loadB2BFleet();
   } catch (error) {
     uiToast(error.message || "Could not remove this vehicle", "error");
+  }
+}
+
+async function deleteB2BFleetVehicle(vehicleId) {
+  const car = b2bFleetRows[vehicleId] || {};
+  const plate = car.plate || "this vehicle";
+  const ok = await uiConfirm(
+    `Permanently delete ${plate} from ${car.business_name || "this business"}'s fleet? Its listing and app car go with it. This cannot be undone.`,
+    { title: "Delete vehicle", confirmText: "Delete permanently", danger: true },
+  );
+  if (!ok) return;
+  try {
+    const result = await api.deleteB2BFleetVehicle(vehicleId);
+    uiToast(result?.message || `${plate} was deleted.`, "success");
+    loadB2BFleet();
+  } catch (error) {
+    uiToast(error.message || "Could not delete this vehicle", "error");
   }
 }
