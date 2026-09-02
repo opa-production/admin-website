@@ -60,10 +60,11 @@ rendered by its own script under `js/pages/` (see **Files** below):
   **Refunds**, **Subscribers** (newsletter), **Revenue**, **Support**,
   **Moderation** (Ratings · Secondary Contacts · Listing Reports tabs), and
   **Admins** (super-admin only)
-- **B2B Fleet** — vehicles that Ardena-for-Business accounts have listed on the
-  consumer app. Two independent gates decide whether one is actually rentable:
-  the business publishing the listing, and Ardena approving the car. Only the
-  second is ours, and "Make visible" moves it — so a car can come back
+- **B2B Fleet** — every vehicle in every business fleet, listed on the consumer
+  app or not (a workspace mid-onboarding has cars and no listings, and those
+  rows are the point). Two independent gates decide whether one is actually
+  rentable: the business publishing the listing, and Ardena approving the car.
+  Only the second is ours, and "Make visible" moves it — so a car can come back
   *approved but still hidden* when the business is the one holding it back. The
   **On the app** column shows the outcome and which gate blocks it. See
   `b2b-fleet.md`.

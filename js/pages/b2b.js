@@ -171,6 +171,7 @@ async function loadB2BBusinesses() {
                                 <th>Name</th>
                                 <th>Owner Email</th>
                                 <th>Users</th>
+                                <th>Cars</th>
                                 <th>Location</th>
                                 <th>Status</th>
                                 <th>Created</th>
@@ -188,6 +189,7 @@ async function loadB2BBusinesses() {
                                     <td><strong>${escapeHtml(b.name)}</strong></td>
                                     <td>${escapeHtml(b.owner_email || "—")}</td>
                                     <td>${b.users_count}</td>
+                                    <td>${b2bBusinessFleetCell(b)}</td>
                                     <td>${escapeHtml(b.location || "—")}</td>
                                     <td><span class="status-badge ${b.is_active ? "active" : "inactive"}">${b.is_active ? "Active" : "Inactive"}</span></td>
                                     <td>${b.created_at ? new Date(b.created_at).toLocaleDateString() : "—"}</td>
@@ -211,6 +213,25 @@ async function loadB2BBusinesses() {
     console.error("Error loading B2B businesses:", error);
     content.innerHTML = `<div class="empty-state">Error loading businesses: ${error.message}</div>`;
   }
+}
+
+// Fleet size, and how much of it renters can actually see. Both numbers, because
+// either alone misleads: 12 cars sounds like a working partner until you see 0
+// of them are on the app, and "0 live" sounds like a dead account until you see
+// they have not added anything yet.
+//
+// `live_on_app_count` is counted off Car.is_hidden — what the consumer queries
+// actually filter on — not off the listing status, so a car the business
+// published but we have not approved is correctly not counted as live.
+function b2bBusinessFleetCell(b) {
+  const total = b.vehicles_count || 0;
+  if (total === 0) return '<span title="No vehicles added yet">0</span>';
+  const live = b.live_on_app_count || 0;
+  const sub =
+    live === 0
+      ? '<small class="b2b-fleet-warn">none on the app</small>'
+      : `<small>${live} on the app</small>`;
+  return `<strong>${total}</strong><br>${sub}`;
 }
 
 function goToB2BBusinessPage(page) {

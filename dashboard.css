@@ -3553,9 +3553,10 @@ body.admin-nav-open {
     .skeleton::after { animation: none; }
 }
 
-/* B2B Fleet — business-standing warning under the business name. Amber, not
-   red: an unverified or suspended workspace is a reason to look before
-   approving a car onto the app, not an error in itself. */
+/* B2B — amber "worth a look" note, used under a business name on the fleet page
+   and under the car count on the businesses list. Not red: an unverified
+   workspace, or one with nothing on the app, is a reason to look before
+   approving a car, not an error in itself. */
 .b2b-fleet-warn {
     color: #b45309;
     font-weight: 600;

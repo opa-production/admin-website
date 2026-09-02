@@ -1,11 +1,13 @@
 // js/pages/b2b-fleet.js — B2B fleet on the Ardena consumer app.
 // Classic script (not a module): top-level functions and vars are global by design.
 //
-// Business accounts build a fleet in the Ardena for Business dashboard and pick
-// which vehicles to sell on the consumer app. This page is the review desk for
-// those picks — backed by /admin/b2b/fleet/cars.
+// One row per fleet **vehicle**, not per marketplace listing — backed by
+// /admin/b2b/fleet/cars. A business that has added twelve cars and listed none
+// has zero listings, and listing every one of those vehicles is the point: that
+// is what a partner looks like all through onboarding, and it used to show here
+// as nothing but a count.
 //
-// Whether a fleet car is actually rentable in the app comes down to two
+// Whether a vehicle is actually rentable in the app comes down to two
 // independent gates:
 //
 //   1. the business's intent  — they published the listing
@@ -22,7 +24,7 @@ let b2bFleetState = "";
 let b2bFleetPage = 1;
 let b2bFleetSearch = "";
 let b2bFleetStats = null;
-// listing_id -> row, from the last render. The action handlers read the plate
+// vehicle_id -> row, from the last render. The action handlers read the plate
 // from here rather than taking it as an onclick argument: `escapeHtml` (which
 // is what the rest of the dashboard uses for these) does not escape quotes, so
 // any string interpolated into an inline handler is a quote away from breaking
@@ -30,29 +32,32 @@ let b2bFleetStats = null;
 let b2bFleetRows = {};
 const B2B_FLEET_PAGE_SIZE = 20;
 
-// Tab key -> label. "" is All. Order = display order; the count for each comes
-// from /stats, whose predicates are the same ones the list filters on, so a tab
-// reading 4 always shows 4 rows.
-const B2B_FLEET_TABS = [
-  { key: "", label: "All", count: "total_listings" },
-  { key: "pending_review", label: "Awaiting review", count: "pending_review" },
+// Filter options. "" is All. Order = display order; the count for each comes
+// from /stats, whose predicates are the same ones the list filters on, so an
+// option reading 4 always shows 4 rows.
+const B2B_FLEET_FILTERS = [
+  { key: "", label: "All vehicles", count: "total_vehicles" },
+  { key: "pending_review", label: "Awaiting our review", count: "pending_review" },
   { key: "live", label: "On the app", count: "live" },
   { key: "hidden_by_business", label: "Hidden by business", count: "hidden_by_business" },
   { key: "rejected", label: "Rejected", count: "rejected" },
-  { key: "not_submitted", label: "Draft", count: "not_submitted" },
+  { key: "not_submitted", label: "Listing unfinished", count: "not_submitted" },
+  { key: "not_listed", label: "Not offered to the app", count: "not_listed" },
 ];
 
 const B2B_FLEET_REVIEW_LABEL = {
   approved: "Approved",
   pending_review: "Awaiting review",
   rejected: "Rejected",
-  not_submitted: "Not submitted",
+  not_submitted: "Listing unfinished",
+  not_listed: "Not offered",
 };
 
 // Why a car isn't on the app, in words an admin can act on. Keyed on the
 // server's `blocked_by`.
 const B2B_FLEET_BLOCKED_LABEL = {
-  not_submitted: "Business hasn't published it yet",
+  not_listed: "Not offered to the app",
+  not_submitted: "Listing unfinished",
   review: "Waiting on our review",
   business: "Business has it hidden",
   admin_hidden: "Hidden manually in Cars",
@@ -71,12 +76,14 @@ function initB2BFleetPage() {
       }, 400);
     };
   }
-  loadB2BFleet();
-}
-
-function switchB2BFleetTab(state) {
-  b2bFleetState = state;
-  b2bFleetPage = 1;
+  const filter = document.getElementById("b2bFleetStateFilter");
+  if (filter) {
+    filter.onchange = () => {
+      b2bFleetState = filter.value;
+      b2bFleetPage = 1;
+      loadB2BFleet();
+    };
+  }
   loadB2BFleet();
 }
 
@@ -115,11 +122,11 @@ async function loadB2BFleet() {
   }
 
   renderB2BFleetStats();
-  renderB2BFleetTabs();
+  renderB2BFleetFilter();
 
   b2bFleetRows = {};
   (data.cars || []).forEach((c) => {
-    b2bFleetRows[c.listing_id] = c;
+    b2bFleetRows[c.vehicle_id] = c;
   });
 
   if (!data.cars || data.cars.length === 0) {
@@ -152,10 +159,10 @@ async function loadB2BFleet() {
 }
 
 function b2bFleetEmptyMessage() {
-  if (b2bFleetSearch) return `No fleet listings match "${b2bFleetSearch}"`;
+  if (b2bFleetSearch) return `No fleet vehicles match "${b2bFleetSearch}"`;
   if (b2bFleetState === "pending_review") return "Nothing waiting on review — the queue is clear";
-  if (b2bFleetState) return "No fleet listings in this state";
-  return "No business account has listed a vehicle on the app yet";
+  if (b2bFleetState) return "No fleet vehicles in this state";
+  return "No business account has added a vehicle yet";
 }
 
 function renderB2BFleetStats() {
@@ -169,24 +176,24 @@ function renderB2BFleetStats() {
             ${sub ? `<div class="mod-stat-sub">${sub}</div>` : ""}
         </div>`;
   el.innerHTML = [
-    // businesses_listing counts every workspace with a listing, drafts included
-    // — so it is phrased as "have listings", not "have cars on the app".
-    card("On the app", s.live, `${s.businesses_listing} business${s.businesses_listing === 1 ? "" : "es"} with listings`),
+    card("On the app", s.live, `of ${s.total_vehicles} fleet vehicle${s.total_vehicles === 1 ? "" : "s"}`),
     card("Awaiting review", s.pending_review, s.pending_review ? "needs a decision" : "queue is clear"),
     card("Hidden by business", s.hidden_by_business, "approved, but they pulled it"),
-    card("Not listed", s.unlisted_vehicles, "fleet vehicles never offered to the app"),
+    card("Not offered", s.not_listed, `never sent to the app · ${s.businesses} business${s.businesses === 1 ? "" : "es"}`),
   ].join("");
 }
 
-function renderB2BFleetTabs() {
-  const el = document.getElementById("b2bFleetTabs");
+// Counts live in the option labels, so the dropdown answers "how many are
+// waiting on us?" without having to be opened and clicked through.
+function renderB2BFleetFilter() {
+  const el = document.getElementById("b2bFleetStateFilter");
   if (!el) return;
-  el.innerHTML = B2B_FLEET_TABS.map((tab) => {
-    const n = b2bFleetStats ? b2bFleetStats[tab.count] : null;
-    const active = tab.key === b2bFleetState ? " active" : "";
+  el.innerHTML = B2B_FLEET_FILTERS.map((f) => {
+    const n = b2bFleetStats ? b2bFleetStats[f.count] : null;
     const badge = n === null || n === undefined ? "" : ` (${n})`;
-    return `<button class="referrals-tab${active}" onclick="switchB2BFleetTab('${tab.key}')">${tab.label}${badge}</button>`;
+    return `<option value="${f.key}">${f.label}${badge}</option>`;
   }).join("");
+  el.value = b2bFleetState;
 }
 
 function renderB2BFleetRow(car) {
@@ -205,20 +212,24 @@ function renderB2BFleetRow(car) {
     ? '<span class="status-badge active">Visible</span>'
     : `<span class="status-badge inactive">Hidden</span><br><small>${escapeHtml(B2B_FLEET_BLOCKED_LABEL[car.blocked_by] || "—")}</small>`;
 
-  // A car with no listing on our side has nothing to approve or reject —
-  // offering the buttons would just produce a 400 the admin can't act on.
+  // No Car row means nothing exists on the app to approve or reject — the
+  // buttons would only produce a 400 the admin can't act on. The two reasons
+  // need different words: one business hasn't started, the other hasn't finished.
   let actions;
   if (!car.car_id) {
-    actions = '<span title="The business is still filling in the listing">—</span>';
+    const why = car.listing_id
+      ? "The business is still filling in the listing"
+      : "The business hasn't offered this vehicle to the app";
+    actions = `<span title="${escapeHtmlAttr(why)}">—</span>`;
   } else {
     const approve =
       car.review === "approved"
         ? ""
-        : `<button class="btn btn-small btn-primary" onclick="approveB2BFleetCar(${car.listing_id})">Make visible</button> `;
+        : `<button class="btn btn-small btn-primary" onclick="approveB2BFleetCar(${car.vehicle_id})">Make visible</button> `;
     const reject =
       car.review === "rejected"
         ? ""
-        : `<button class="btn btn-small btn-secondary" onclick="rejectB2BFleetCar(${car.listing_id})">Remove</button>`;
+        : `<button class="btn btn-small btn-secondary" onclick="rejectB2BFleetCar(${car.vehicle_id})">Remove</button>`;
     actions = approve + reject || "—";
   }
 
@@ -263,15 +274,15 @@ function renderB2BFleetPagination(total, limit, skip) {
 
 // ---------- Actions ----------
 
-async function approveB2BFleetCar(listingId) {
-  const plate = (b2bFleetRows[listingId] || {}).plate || "this vehicle";
+async function approveB2BFleetCar(vehicleId) {
+  const plate = (b2bFleetRows[vehicleId] || {}).plate || "this vehicle";
   const ok = await uiConfirm(
     `Approve ${plate} for the Ardena app? Renters will be able to book it as soon as the business has it published.`,
     { title: "Make visible", confirmText: "Make visible", danger: false },
   );
   if (!ok) return;
   try {
-    const result = await api.approveB2BFleetCar(listingId);
+    const result = await api.approveB2BFleetCar(vehicleId);
     // The server says whether it actually went live — a car the business has
     // hidden is approved but still not on the app, and the message is the only
     // thing that distinguishes the two outcomes.
@@ -282,8 +293,8 @@ async function approveB2BFleetCar(listingId) {
   }
 }
 
-async function rejectB2BFleetCar(listingId) {
-  const plate = (b2bFleetRows[listingId] || {}).plate || "this vehicle";
+async function rejectB2BFleetCar(vehicleId) {
+  const plate = (b2bFleetRows[vehicleId] || {}).plate || "this vehicle";
   const reason = await uiPrompt(
     `Why is ${plate} being removed from the Ardena app? The business sees this in their dashboard.`,
     { title: "Remove from app", multiline: true, confirmText: "Remove", placeholder: "e.g. Cover photo doesn't show the vehicle" },
@@ -294,7 +305,7 @@ async function rejectB2BFleetCar(listingId) {
     return;
   }
   try {
-    const result = await api.rejectB2BFleetCar(listingId, reason.trim());
+    const result = await api.rejectB2BFleetCar(vehicleId, reason.trim());
     uiToast(result.message, "success");
     loadB2BFleet();
   } catch (error) {
