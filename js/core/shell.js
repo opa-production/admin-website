@@ -43,6 +43,8 @@ const NAV_ICONS = {
   admins:
     '<circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3.3 2.7-5 6-5 1.2 0 2.3.2 3.2.7"></path><circle cx="17.5" cy="16.5" r="3"></circle><line x1="17.5" y1="11.8" x2="17.5" y2="13.5"></line><line x1="17.5" y1="19.5" x2="17.5" y2="21.2"></line><line x1="21.5" y1="16.5" x2="19.8" y2="16.5"></line><line x1="15.2" y1="16.5" x2="13.5" y2="16.5"></line>',
   b2b: '<path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 9h1.5M9 12h1.5M9 15h1.5M13.5 9H15M13.5 12H15M13.5 15H15"></path>',
+  "b2b-support":
+    '<path d="M4 18V8a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H8z"></path><path d="M17 10h1a2 2 0 0 1 2 2v9l-3-3h-6a2 2 0 0 1-2-2"></path>',
   "b2b-fleet":
     '<path d="M5 17h14"></path><path d="M4 17v-4l2-5h12l2 5v4"></path><circle cx="7.5" cy="17.5" r="1.8"></circle><circle cx="16.5" cy="17.5" r="1.8"></circle><polyline points="9 6 11 8 15 4"></polyline>',
 };
@@ -75,6 +77,7 @@ const NAV_ITEMS = [
   { page: "moderation", label: "Moderation", icon: "moderation" },
   { page: "b2b", label: "B2B Businesses", icon: "b2b" },
   { page: "b2b-fleet", label: "B2B Fleet", icon: "b2b-fleet" },
+  { page: "b2b-support", label: "B2B Support", icon: "b2b-support" },
   {
     page: "admins",
     label: "Admins",
@@ -150,6 +153,16 @@ async function refreshNavBadges() {
   try {
     const res = await api.getSupportConversations({ page: 1, limit: 1 });
     setNavBadge("support", res.unread_count || 0);
+  } catch (e) {
+    /* no access / offline */
+  }
+
+  // B2B threads whose newest message is from the business (support.md §2).
+  // Its own endpoint rather than a field off the inbox list, so the badge is
+  // the whole backlog and never disagrees with a filtered view of the page.
+  try {
+    const res = await api.getB2BSupportUnansweredCount();
+    setNavBadge("b2b-support", res.count || 0);
   } catch (e) {
     /* no access / offline */
   }

@@ -1008,6 +1008,84 @@
                     </div>
                 </div>
 
+                <!-- B2B Support (support.md §2): one flat thread per business, so the
+                     unit of the inbox is the BUSINESS, not a conversation row. -->
+                <div id="b2bSupportPage" class="page-content support-page-shell" style="display: none;">
+                    <div class="support-inbox" id="b2bSupportInbox">
+                        <aside class="support-inbox-left">
+                            <div class="support-left-header">
+                                <div class="support-left-title-row">
+                                    <h2 class="support-list-title">Businesses</h2>
+                                    <span id="b2bSupportUnansweredPill" class="support-unread-pill" style="display:none;"></span>
+                                    <button type="button" class="support-refresh-btn" onclick="refreshB2BSupport()" aria-label="Refresh threads" title="Refresh threads">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                                    </button>
+                                </div>
+                                <div class="support-search-box">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                                    <input type="text" id="b2bSupportSearch" placeholder="Search by business name..." class="support-search-input">
+                                </div>
+                                <div class="support-left-filters">
+                                    <select id="b2bSupportAwaitingFilter" class="support-filter-select">
+                                        <option value="">All threads</option>
+                                        <option value="1">Awaiting reply</option>
+                                    </select>
+                                    <select id="b2bSupportSortFilter" class="support-filter-select">
+                                        <option value="last_message_at:desc">Latest activity</option>
+                                        <option value="last_message_at:asc">Oldest activity</option>
+                                        <option value="created_at:desc">Newest business</option>
+                                        <option value="created_at:asc">Oldest business</option>
+                                    </select>
+                                    <input type="number" id="b2bSupportBusinessIdFilter" placeholder="Business ID" class="support-filter-input">
+                                </div>
+                            </div>
+                            <div id="b2bSupportContent" class="support-left-list">
+                                <div class="loading">Loading threads...</div>
+                            </div>
+                            <div id="b2bSupportPagination" class="support-pagination-bar"></div>
+                        </aside>
+
+                        <section class="support-inbox-right" id="b2bSupportInboxRight">
+                            <div id="b2bSupportEmptyState" class="support-empty-pane">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 10h1.5M9 13h1.5M13.5 10H15M13.5 13H15"/></svg>
+                                <h3>Select a business</h3>
+                                <p>Pick a workspace on the left to read its support thread and reply.</p>
+                            </div>
+
+                            <div id="b2bSupportThreadPane" class="support-conversation-pane" style="display:none;">
+                                <div class="support-chat-header">
+                                    <button onclick="backToB2BSupportList()" class="support-back-mobile" aria-label="Back">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                                    </button>
+                                    <div id="b2bSupportThreadInfo" class="support-chat-host-info">
+                                        <div class="loading">Loading...</div>
+                                    </div>
+                                    <div class="support-chat-actions">
+                                        <button type="button" id="b2bSupportBusinessToggleBtn" class="support-action-btn" onclick="toggleB2BSupportBusinessCard()" style="display:none;">
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                                            Details
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Business header: a billing question is answerable without
+                                     leaving the page (support.md §2). -->
+                                <div id="b2bSupportBusinessCard" class="b2bsup-business-card" style="display:none;"></div>
+                                <div id="b2bSupportMessages" class="support-messages-area">
+                                    <div class="loading">Loading messages...</div>
+                                </div>
+                                <div id="b2bSupportReplyArea" class="support-reply-area">
+                                    <form onsubmit="sendB2BSupportReply(event)" class="support-reply-form">
+                                        <textarea id="b2bSupportReplyMessage" placeholder="Type your reply here..." required class="support-reply-textarea" rows="1"></textarea>
+                                        <button type="submit" class="support-send-btn" id="b2bSupportSendBtn">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
                 <!-- Email service: preview + send modal -->
                 <div id="emailPreviewModal" class="email-modal" style="display: none;" aria-hidden="true">
                     <div class="email-modal-backdrop" onclick="closeEmailPreview()"></div>
@@ -1314,6 +1392,7 @@
     <script src="js/pages/moderation.js"></script>
     <script src="js/pages/b2b.js"></script>
     <script src="js/pages/b2b-fleet.js"></script>
+    <script src="js/pages/b2b-support.js"></script>
     <script src="js/pages/listing-reports.js"></script>
 </body>
 </html>

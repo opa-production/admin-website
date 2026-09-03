@@ -558,6 +558,7 @@ const api = {
     apiRequest(`/admin/b2b/fleet/cars/${vehicleId}/reject`, {
       method: "POST",
       body: JSON.stringify({ reason }),
+    }),
 
   // Permanently removes a fleet vehicle, its listing and its app car. Backend
   // endpoint is specified in b2b.md — not implemented server-side yet.
@@ -565,7 +566,33 @@ const api = {
     apiRequest(`/admin/b2b/fleet/cars/${vehicleId}`, {
       method: "DELETE",
     }),
+
+  // B2B support (see support.md §2). Unlike /admin/support/* there is no
+  // conversation row: b2b_support_messages is one flat thread per business, so
+  // the unit of the inbox is the BUSINESS and a thread is addressed by
+  // business_id. Paging is skip/limit like the rest of /admin/b2b/*, not the
+  // page/limit of /admin/support/*.
+  getB2BSupportThreads: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(
+      `/admin/b2b/support/threads${queryString ? "?" + queryString : ""}`,
+    );
+  },
+  // Whole thread oldest-first plus the business header. Marks nothing read —
+  // `read` is the business's badge, admin-side seen state is not modelled.
+  // An empty thread is a 200; only an unknown business_id is a 404.
+  getB2BSupportThread: (businessId) =>
+    apiRequest(`/admin/b2b/support/threads/${businessId}`),
+  // Writes from_role="support", read=false — the false is what raises the
+  // unread badge on their dashboard — and sends a B2BNotification.
+  replyToB2BSupportThread: (businessId, text) =>
+    apiRequest(`/admin/b2b/support/threads/${businessId}/reply`, {
+      method: "POST",
+      body: JSON.stringify({ text }),
     }),
+  // Whole backlog of threads whose newest message is from the business.
+  getB2BSupportUnansweredCount: () =>
+    apiRequest("/admin/b2b/support/unanswered-count"),
 
   // Listing reports (moderation queue) — see reports.md
   getListingReports: (params = {}) => {

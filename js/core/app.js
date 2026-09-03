@@ -163,6 +163,7 @@ function configureNavigationForRole(role) {
     "notifications",
     "feedback",
     "support",
+    "b2b-support",
     "moderation",
   ];
 
@@ -222,6 +223,7 @@ function loadPage(page) {
     moderation: "Moderation",
     b2b: "B2B Businesses",
     "b2b-fleet": "B2B Fleet",
+    "b2b-support": "B2B Support",
     admins: "Admins",
   };
   document.getElementById("pageTitle").textContent =
@@ -306,6 +308,9 @@ function loadPage(page) {
     case "b2b-fleet":
       initB2BFleetPage();
       break;
+    case "b2b-support":
+      initB2BSupportPage();
+      break;
   }
 }
 
@@ -336,6 +341,7 @@ function isPageAllowedForRole(page, role) {
     "notifications",
     "feedback",
     "support",
+    "b2b-support",
     "moderation",
     "admins",
   ]);
