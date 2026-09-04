@@ -55,7 +55,9 @@ const NAV_ITEMS = [
   { page: "hosts", label: "Hosts", icon: "hosts" },
   { page: "clients", label: "Clients", icon: "clients" },
   { page: "cars", label: "Cars", icon: "cars" },
-  { page: "feedback", label: "Feedback", icon: "feedback" },
+  // Feedback is hidden for now (the page itself still works at #feedback).
+  // Drop `hidden: true` to put it back in the sidebar.
+  { page: "feedback", label: "Feedback", icon: "feedback", hidden: true },
   { page: "notifications", label: "Notifications", icon: "notifications" },
   {
     page: "payment-methods",
@@ -296,7 +298,10 @@ function setupProfileDropdown() {
   if (profileLink) {
     profileLink.addEventListener("click", (e) => {
       e.preventDefault();
-      loadMyProfile();
+      profileMenu.classList.remove("show");
+      // Route through loadPage so the URL hash records the profile page and a
+      // refresh stays on it.
+      loadPage("my-profile");
     });
   }
 

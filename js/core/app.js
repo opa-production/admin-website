@@ -36,8 +36,15 @@ window.addEventListener("DOMContentLoaded", async () => {
   // them fresh.
   startNavBadgePolling();
 
-  // Load dashboard by default
-  loadDashboard();
+  // Open whatever page the URL points at, so a refresh (or a bookmarked link)
+  // lands where the admin was rather than back on the dashboard.
+  loadPage(pageFromHash());
+
+  // Back/forward, and any other change to the hash.
+  window.addEventListener("hashchange", () => {
+    const page = pageFromHash();
+    if (page !== currentDashboardPage) loadPage(page);
+  });
 
   // Start expiration watcher so sessions are revoked even if the user stays
   // on the dashboard for more than 30 minutes.
@@ -119,20 +126,43 @@ async function loadAdminInfo() {
   profileAvatar.textContent = "?";
 }
 
+// ---------------------------------------------------------------------------
+// Routing. The open page is kept in the URL hash (#cars, #b2b-fleet, ...) so a
+// refresh, a bookmark and the browser's back button all behave. loadPage() is
+// the single entry point: it writes the hash and highlights the nav, so every
+// caller (sidebar clicks, "back to list" buttons, the profile menu) stays in
+// sync without repeating that bookkeeping.
+// ---------------------------------------------------------------------------
+
+// The page currently rendered — used to ignore hashchange events we caused
+// ourselves.
+let currentDashboardPage = null;
+
+function isKnownPage(page) {
+  if (!page) return false;
+  if (page === "my-profile") return true;
+  return NAV_ITEMS.some((item) => item.page === page);
+}
+
+function pageFromHash() {
+  const raw = decodeURIComponent(window.location.hash || "")
+    .replace(/^#\/?/, "")
+    .trim();
+  return isKnownPage(raw) ? raw : "dashboard";
+}
+
+function setActiveNavItem(page) {
+  document.querySelectorAll(".nav-item").forEach((nav) => {
+    nav.classList.toggle("active", nav.getAttribute("data-page") === page);
+  });
+}
+
 // Setup navigation
 function setupNavigation() {
-  const navItems = document.querySelectorAll(".nav-item");
-  navItems.forEach((item) => {
+  document.querySelectorAll(".nav-item").forEach((item) => {
     item.addEventListener("click", (e) => {
       e.preventDefault();
-      const page = item.getAttribute("data-page");
-
-      // Update active state
-      navItems.forEach((nav) => nav.classList.remove("active"));
-      item.classList.add("active");
-
-      // Load page
-      loadPage(page);
+      loadPage(item.getAttribute("data-page"));
       if (typeof window.closeAdminMobileNav === "function") {
         window.closeAdminMobileNav();
       }
@@ -195,6 +225,18 @@ function loadPage(page) {
     alert("You do not have access to this section.");
     page = "dashboard";
   }
+
+  currentDashboardPage = page;
+  setActiveNavItem(page);
+
+  // Keep the URL in step. Assigning the hash pushes a history entry, which is
+  // what makes the back button walk through visited pages.
+  const hashPage = decodeURIComponent(window.location.hash || "").replace(
+    /^#\/?/,
+    "",
+  );
+  if (hashPage !== page) window.location.hash = page;
+
   // Hide all pages
   document.querySelectorAll(".page-content").forEach((p) => {
     p.style.display = "none";
@@ -225,6 +267,7 @@ function loadPage(page) {
     "b2b-fleet": "B2B Fleet",
     "b2b-support": "B2B Support",
     admins: "Admins",
+    "my-profile": "My Profile",
   };
   document.getElementById("pageTitle").textContent =
     titles[page] || "Dashboard";
@@ -310,6 +353,9 @@ function loadPage(page) {
       break;
     case "b2b-support":
       initB2BSupportPage();
+      break;
+    case "my-profile":
+      loadMyProfile();
       break;
   }
 }

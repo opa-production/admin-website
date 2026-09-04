@@ -39,6 +39,47 @@
             <p class="auth-footnote">Authorized personnel only.</p>
         </div>
     </div>
+
+    <!-- Two-step verification. Hidden until a password login succeeds. -->
+    <div class="otp-overlay" id="otpOverlay" role="dialog" aria-modal="true" aria-labelledby="otpHeading" hidden>
+        <div class="otp-modal" role="document">
+            <button type="button" class="otp-close" id="otpClose" aria-label="Cancel sign-in">&times;</button>
+
+            <div class="otp-icon" aria-hidden="true">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="10" width="16" height="10" rx="1"></rect>
+                    <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+                </svg>
+            </div>
+
+            <h2 class="otp-heading" id="otpHeading">Verify it&rsquo;s you</h2>
+            <p class="otp-subheading">
+                We sent a 6-digit code to <span class="otp-destination" id="otpDestination">your phone and email</span>.
+                It expires in <span id="otpExpiry">5 minutes</span>.
+            </p>
+
+            <form id="otpForm" novalidate>
+                <div class="otp-inputs" id="otpInputs">
+                    <input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="1" aria-label="Digit 1">
+                    <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 2">
+                    <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 3">
+                    <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 4">
+                    <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 5">
+                    <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 6">
+                </div>
+
+                <div id="otpError" class="error-message" role="alert"></div>
+
+                <button type="submit" class="login-button" id="otpVerifyButton">Verify &amp; continue</button>
+            </form>
+
+            <p class="otp-resend">
+                Didn&rsquo;t get a code?
+                <button type="button" class="otp-resend-button" id="otpResend" disabled>Resend in 30s</button>
+            </p>
+        </div>
+    </div>
+
     <script src="login.js"></script>
 </body>
 </html>

@@ -2,6 +2,35 @@
 // Classic script (not a module): top-level functions and vars are global by design.
 
 
+// --- Two-step verification --------------------------------------------------
+// The sign-in code always goes to both the mobile number and the email on file,
+// so there is nothing to choose here — only a number to store. Mirrored in
+// localStorage while the backend is being built; the API is the source of truth
+// once /admin/me returns phone_number.
+
+function adminPhoneStorageKey() {
+  const a = currentAdminInfo();
+  if (a && a.id != null) return "admin_phone:id:" + a.id;
+  if (a && a.email) return "admin_phone:em:" + a.email;
+  return "admin_phone:default";
+}
+
+function getStoredAdminPhone() {
+  try {
+    return localStorage.getItem(adminPhoneStorageKey()) || "";
+  } catch (e) {
+    return "";
+  }
+}
+
+function setStoredAdminPhone(phone) {
+  try {
+    localStorage.setItem(adminPhoneStorageKey(), phone || "");
+  } catch (e) {
+    /* storage full or blocked — the API copy still wins */
+  }
+}
+
 // Load my profile
 async function loadMyProfile() {
   document.querySelectorAll(".page-content").forEach((p) => {
@@ -18,8 +47,12 @@ async function loadMyProfile() {
   try {
     const admin = await api.getCurrentAdmin();
 
+    // The API doesn't persist this yet (see OTP_BACKEND.md), so fall back to
+    // the local copy until /admin/me returns it.
+    const storedPhone = admin.phone_number || getStoredAdminPhone();
+
     myProfileContent.innerHTML = `
-            <div style="max-width: 600px;">
+            <div class="profile-layout">
                 <div class="host-detail-section">
                     <h3>Profile Photo</h3>
                     <div class="avatar-uploader">
@@ -38,24 +71,31 @@ async function loadMyProfile() {
                 <div class="host-detail-section">
                     <h3>Profile Information</h3>
                     <form id="myProfileForm" onsubmit="saveMyProfile(event)">
-                        <div class="form-group">
-                            <label for="myProfileFullName">Full Name *</label>
-                            <input type="text" id="myProfileFullName" value="${admin.full_name || ""}" required maxlength="255">
-                        </div>
-                        <div class="form-group">
-                            <label for="myProfileEmail">Email *</label>
-                            <input type="email" id="myProfileEmail" value="${admin.email || ""}" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Role</label>
-                            <div class="detail-value" style="padding: 10px 0;">${roleBadge(admin.role)}</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Status</label>
-                            <div style="padding: 10px 0;">
-                                <span class="status-badge ${admin.is_active ? "active" : "inactive"}">
-                                    ${admin.is_active ? "Active" : "Inactive"}
-                                </span>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="myProfileFullName">Full Name *</label>
+                                <input type="text" id="myProfileFullName" value="${escapeHtmlAttr(admin.full_name || "")}" required maxlength="255">
+                            </div>
+                            <div class="form-group">
+                                <label for="myProfileEmail">Email *</label>
+                                <input type="email" id="myProfileEmail" value="${escapeHtmlAttr(admin.email || "")}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="myProfileMobile">Mobile Number</label>
+                                <input type="tel" id="myProfileMobile" value="${escapeHtmlAttr(storedPhone)}" placeholder="+254 7XX XXX XXX" maxlength="20" autocomplete="tel">
+                                <div class="field-hint">Sign-in codes are sent to this number and to your email. International format, e.g. +254712345678.</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Role</label>
+                                <div class="detail-value" style="padding: 10px 0;">${roleBadge(admin.role)}</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Status</label>
+                                <div style="padding: 10px 0;">
+                                    <span class="status-badge ${admin.is_active ? "active" : "inactive"}">
+                                        ${admin.is_active ? "Active" : "Inactive"}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                         <div id="myProfileError" style="color: #d32f2f; margin-bottom: 15px;"></div>
@@ -131,9 +171,18 @@ async function saveMyProfile(event) {
 
   const fullName = document.getElementById("myProfileFullName").value.trim();
   const email = document.getElementById("myProfileEmail").value.trim();
+  const mobile = document.getElementById("myProfileMobile").value.trim();
 
   if (!fullName || !email) {
     errorDiv.textContent = "Please fill in all required fields.";
+    return;
+  }
+
+  // Optional leading "+", then 7-15 digits (E.164). Empty is allowed — the
+  // admin then only receives sign-in codes by email.
+  if (mobile && !/^\+?\d{7,15}$/.test(mobile.replace(/[\s-]/g, ""))) {
+    errorDiv.textContent =
+      "Enter a valid mobile number in international format, e.g. +254712345678.";
     return;
   }
 
@@ -142,10 +191,13 @@ async function saveMyProfile(event) {
   errorDiv.textContent = "";
 
   try {
+    const normalizedMobile = mobile.replace(/[\s-]/g, "");
     await api.updateOwnProfile({
       full_name: fullName,
       email: email,
+      phone_number: normalizedMobile || null,
     });
+    setStoredAdminPhone(normalizedMobile);
     alert("Profile updated successfully");
     await loadAdminInfo();
     loadMyProfile();

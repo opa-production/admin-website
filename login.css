@@ -204,3 +204,187 @@ input::placeholder {
         font-size: 22px;
     }
 }
+
+/* ---------- Two-step verification modal ----------
+   Overlays the sign-in card once the password check passes. Keeps the same
+   square, corporate language as the card; only the OTP digit boxes and the
+   lock badge round off, so the step reads as a distinct moment. */
+
+.otp-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    background: rgba(26, 34, 48, 0.55);
+    animation: otp-fade 0.16s ease-out;
+}
+
+.otp-overlay[hidden] {
+    display: none;
+}
+
+.otp-modal {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    padding: 36px 36px 28px;
+    background: #ffffff;
+    border: 1px solid var(--auth-border);
+    box-shadow: 0 12px 32px rgba(26, 34, 48, 0.18);
+    text-align: center;
+    animation: otp-rise 0.18s ease-out;
+}
+
+@keyframes otp-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes otp-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+}
+
+.otp-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    width: 30px;
+    height: 30px;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--auth-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.otp-close:hover {
+    color: var(--auth-ink);
+}
+
+.otp-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    color: var(--auth-accent);
+    background: rgba(0, 102, 204, 0.10);
+}
+
+.otp-heading {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+    margin-bottom: 8px;
+    color: var(--auth-ink);
+}
+
+.otp-subheading {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--auth-muted);
+    margin-bottom: 26px;
+}
+
+.otp-destination {
+    font-weight: 600;
+    color: var(--auth-ink);
+}
+
+.otp-inputs {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.otp-inputs input {
+    width: 46px;
+    height: 54px;
+    padding: 0;
+    font-size: 22px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--auth-ink);
+    background: #fff;
+    border: 1px solid var(--auth-border);
+    border-radius: 6px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -moz-appearance: textfield;
+}
+
+.otp-inputs input:focus {
+    outline: none;
+    border-color: var(--auth-accent);
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.12);
+}
+
+.otp-inputs input.filled {
+    border-color: #b9cde4;
+    background: #f8fbff;
+}
+
+.otp-inputs.invalid input {
+    border-color: #d32f2f;
+    animation: otp-shake 0.3s ease;
+}
+
+@keyframes otp-shake {
+    25% { transform: translateX(-4px); }
+    50% { transform: translateX(4px); }
+    75% { transform: translateX(-2px); }
+}
+
+.otp-modal .error-message {
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.otp-resend {
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--auth-muted);
+}
+
+.otp-resend-button {
+    font: inherit;
+    font-weight: 600;
+    color: var(--auth-accent);
+    background: none;
+    border: none;
+    padding: 2px 4px;
+    cursor: pointer;
+}
+
+.otp-resend-button:hover:not(:disabled) {
+    color: var(--auth-accent-hover);
+    text-decoration: underline;
+}
+
+.otp-resend-button:disabled {
+    color: var(--auth-muted);
+    cursor: default;
+}
+
+@media (max-width: 420px) {
+    .otp-modal {
+        padding: 30px 20px 24px;
+    }
+
+    .otp-inputs {
+        gap: 6px;
+    }
+
+    .otp-inputs input {
+        width: 100%;
+        height: 50px;
+        font-size: 20px;
+    }
+}

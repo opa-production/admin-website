@@ -133,10 +133,16 @@ function faceMatchPct(score) {
   return `${Math.round(score * 100)}%`;
 }
 
-// Render a single document thumbnail (or a placeholder when the URL is absent)
-function clientDocThumb(label, url) {
+// Render a single document thumbnail (or a placeholder when the URL is absent).
+// `round` renders a circular 140px portrait — used for the profile photo, since
+// people read a circle as "person" and a rectangle as "document".
+function clientDocThumb(label, url, round) {
+  const shape = round
+    ? "width: 140px; height: 140px; margin: 0 auto; border-radius: 50%;"
+    : "width: 100%; height: 140px; border-radius: 0;";
   const placeholderStyle =
-    "width: 100%; height: 140px; border-radius: 0; border: 1px dashed #d1d5db; background: #f9fafb; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 13px; text-align: center; padding: 0 8px;";
+    shape +
+    " border: 1px dashed #d1d5db; background: #f9fafb; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 13px; text-align: center; padding: 0 8px;";
   const inner = url
     ? (() => {
         const safe = escapeHtmlAttr(url);
@@ -144,10 +150,10 @@ function clientDocThumb(label, url) {
         // block the inline request; onerror swaps in a placeholder if it still fails.
         const onerror = `this.onerror=null;this.style.display='none';this.insertAdjacentHTML('afterend','<div style=&quot;${placeholderStyle}&quot;>Preview unavailable — open ${label}</div>');`;
         return `
-          <a href="${safe}" target="_blank" rel="noopener noreferrer" title="Open ${label}">
+          <a href="${safe}" target="_blank" rel="noopener noreferrer" title="Open ${label}" style="display:block;">
             <img src="${safe}" alt="${label}" loading="lazy" referrerpolicy="no-referrer"
               onerror="${onerror}"
-              style="width: 100%; height: 140px; object-fit: cover; border-radius: 0; border: 1px solid #e5e7eb; background: #f5f5f5; display: block;" />
+              style="${shape} object-fit: cover; border: 1px solid #e5e7eb; background: #f5f5f5; display: block;" />
           </a>`;
       })()
     : `<div style="${placeholderStyle}">Not provided</div>`;
@@ -261,7 +267,7 @@ async function viewClientDetails(clientId) {
             <div class="host-detail-section">
                 <h3>Documents</h3>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;">
-                    ${clientDocThumb("Avatar", client.avatar_url)}
+                    ${clientDocThumb("Avatar", client.avatar_url, true)}
                     ${clientDocThumb("ID Document", client.id_document_url)}
                     ${clientDocThumb("License Document", client.license_document_url)}
                 </div>
