@@ -320,6 +320,16 @@ const api = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
+  // A saved mobile number is stored but unverified: it receives no sign-in
+  // codes until a code sent *to that number* comes back through here. Without
+  // this step sign-in codes stay email-only.
+  verifyOwnPhone: (code) =>
+    apiRequest("/admin/profile/phone/verify", {
+      method: "POST",
+      body: JSON.stringify({ code: code }),
+    }),
+  resendOwnPhoneCode: () =>
+    apiRequest("/admin/profile/phone/resend", { method: "POST" }),
   changeOwnPassword: (data) =>
     apiRequest("/admin/change-password", {
       method: "PUT",

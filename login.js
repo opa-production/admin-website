@@ -31,12 +31,14 @@ document.getElementById("passwordToggle").addEventListener("click", () => {
 // ---------------------------------------------------------------------------
 // Sign-in is two steps: password, then a one-time code.
 //
-// DESIGN-PREVIEW MODE: the OTP endpoints don't exist yet, so `OTP_STUBBED`
-// short-circuits verification and any 6 digits are accepted. Flip it to false
-// once the backend ships /admin/auth/verify-otp and /admin/auth/resend-otp
-// (see OTP_BACKEND.md) — the request code below is already wired up.
+// The endpoints are live: /admin/auth/login returns an `otp_token` and no
+// access token, and the session is minted only by /admin/auth/verify-otp.
+//
+// The `OTP_STUBBED` design-preview short-circuit is gone rather than switched
+// off. It accepted any 6 digits and signed in with the access token from the
+// password step — which that step no longer returns, so against the live
+// backend it could only ever fail with "Login response had no access_token".
 // ---------------------------------------------------------------------------
-const OTP_STUBBED = true;
 const OTP_LENGTH = 6;
 const OTP_RESEND_SECONDS = 30;
 
@@ -241,18 +243,18 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
       throw new Error(data.detail || "Login failed");
     }
 
-    // Hold what the second step needs. `otp_token` is what login will return in
-    // place of the access token once OTP ships; until then the access token is
-    // parked here and only written to storage after the code is verified.
+    // Hold what the second step needs. `otp_token` identifies the pending
+    // challenge and is not a credential — it opens nothing on its own, and the
+    // session only exists after the code is verified.
     pendingLogin = {
       email: email,
       otpToken: data.otp_token || null,
-      session: data.access_token ? data : null,
+      session: null,
     };
 
     loginButton.textContent = "Code sent";
-    // The API returns every destination it sent to; fall back to the address
-    // the admin just typed while the endpoint is still being built.
+    // The API returns every destination it sent to, already masked. The typed
+    // address is only a fallback if that list somehow comes back empty.
     openOtpModal(data.otp_destinations || [email]);
   } catch (error) {
     errorMessage.textContent =
@@ -279,25 +281,8 @@ otpForm.addEventListener("submit", async (e) => {
   setOtpError("");
 
   try {
-    if (OTP_STUBBED) {
-      // Design preview: any 6 digits pass.
-      await new Promise((r) => setTimeout(r, 600));
-      if (!pendingLogin) {
-        throw new Error("That sign-in attempt was cancelled. Start again.");
-      }
-      if (!pendingLogin.session) {
-        // While OTP is stubbed the session still comes from the password step.
-        // If the login response carried no access_token there is nothing to
-        // sign in with — say so plainly instead of blaming the session.
-        console.error(
-          "Login response had no access_token; nothing to complete sign-in with.",
-        );
-        throw new Error(
-          "Sign-in did not return a session token. Check the login endpoint.",
-        );
-      }
-      completeSignIn(pendingLogin.session);
-      return;
+    if (!pendingLogin || !pendingLogin.otpToken) {
+      throw new Error("That sign-in attempt has ended. Start again.");
     }
 
     const response = await fetch(`${API_BASE_URL}/admin/auth/verify-otp`, {
@@ -332,18 +317,20 @@ otpResendButton.addEventListener("click", async () => {
   clearOtpInputs();
 
   try {
-    if (!OTP_STUBBED) {
-      const response = await fetch(`${API_BASE_URL}/admin/auth/resend-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ otp_token: pendingLogin.otpToken }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.detail || "Could not resend the code.");
-      }
-      if (data.otp_token) pendingLogin.otpToken = data.otp_token;
+    if (!pendingLogin || !pendingLogin.otpToken) {
+      throw new Error("That sign-in attempt has ended. Start again.");
     }
+    const response = await fetch(`${API_BASE_URL}/admin/auth/resend-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ otp_token: pendingLogin.otpToken }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.detail || "Could not resend the code.");
+    }
+    // The server rotates the token on every resend; the old one stops working.
+    if (data.otp_token) pendingLogin.otpToken = data.otp_token;
     startResendCountdown();
   } catch (error) {
     setOtpError(error.message || "Could not resend the code.");

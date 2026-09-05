@@ -4,30 +4,72 @@
 
 // --- Two-step verification --------------------------------------------------
 // The sign-in code always goes to both the mobile number and the email on file,
-// so there is nothing to choose here — only a number to store. Mirrored in
-// localStorage while the backend is being built; the API is the source of truth
-// once /admin/me returns phone_number.
+// so there is nothing to choose here — only a number to store.
+//
+// /admin/me now returns `phone_number` and `phone_number_verified`, so the API
+// is the source of truth and the old `admin_phone:*` localStorage mirror is
+// gone. Anything a browser kept from the stopgap is ignored.
+//
+// A number is not a second factor the moment it is typed. Saving one sends a
+// confirmation code *to that number*, and until that code comes back sign-in
+// codes go to email alone — otherwise anyone with a live session could point
+// the second factor at their own handset. That is why this page has a confirm
+// step: without it a number can be saved but will never receive anything.
 
-function adminPhoneStorageKey() {
-  const a = currentAdminInfo();
-  if (a && a.id != null) return "admin_phone:id:" + a.id;
-  if (a && a.email) return "admin_phone:em:" + a.email;
-  return "admin_phone:default";
+// The one line that tells an admin whether SMS codes actually reach them.
+// "Saved" is not the same as "working", and the difference is invisible until a
+// sign-in arrives by email only.
+function phoneStateMarkup(phone, verified) {
+  if (!phone) {
+    return "No number on file — sign-in codes go to your email only.";
+  }
+  if (verified) {
+    return '<span style="color:#2e7d32;">&#10003; Confirmed — sign-in codes are sent by SMS and email.</span>';
+  }
+  return '<span style="color:#b26a00;">Not confirmed yet — sign-in codes go to your email only until you enter the code sent to this number.</span>';
 }
 
-function getStoredAdminPhone() {
+// Confirm the number just saved. Until this succeeds the number is stored but
+// inert.
+async function confirmMyProfilePhone() {
+  const errorDiv = document.getElementById("myProfilePhoneError");
+  const input = document.getElementById("myProfilePhoneCode");
+  const code = (input.value || "").trim();
+
+  errorDiv.textContent = "";
+  if (!/^\d{6}$/.test(code)) {
+    errorDiv.textContent = "Enter all 6 digits.";
+    return;
+  }
+
   try {
-    return localStorage.getItem(adminPhoneStorageKey()) || "";
-  } catch (e) {
-    return "";
+    await api.verifyOwnPhone(code);
+    await loadAdminInfo();
+    loadMyProfile();
+  } catch (error) {
+    // The API writes these for an admin to read, so show them as-is.
+    errorDiv.textContent = error.message || "Could not confirm that number.";
+    input.value = "";
+    input.focus();
   }
 }
 
-function setStoredAdminPhone(phone) {
+async function resendMyProfilePhoneCode(button) {
+  const errorDiv = document.getElementById("myProfilePhoneError");
+  errorDiv.textContent = "";
+  button.disabled = true;
+  button.textContent = "Sending...";
   try {
-    localStorage.setItem(adminPhoneStorageKey(), phone || "");
-  } catch (e) {
-    /* storage full or blocked — the API copy still wins */
+    await api.resendOwnPhoneCode();
+    button.textContent = "Code sent";
+  } catch (error) {
+    errorDiv.textContent = error.message || "Could not resend the code.";
+    button.textContent = "Resend code";
+  } finally {
+    setTimeout(() => {
+      button.disabled = false;
+      button.textContent = "Resend code";
+    }, 30000);
   }
 }
 
@@ -47,9 +89,8 @@ async function loadMyProfile() {
   try {
     const admin = await api.getCurrentAdmin();
 
-    // The API doesn't persist this yet (see OTP_BACKEND.md), so fall back to
-    // the local copy until /admin/me returns it.
-    const storedPhone = admin.phone_number || getStoredAdminPhone();
+    const storedPhone = admin.phone_number || "";
+    const phoneVerified = Boolean(admin.phone_number_verified);
 
     myProfileContent.innerHTML = `
             <div class="profile-layout">
@@ -84,6 +125,16 @@ async function loadMyProfile() {
                                 <label for="myProfileMobile">Mobile Number</label>
                                 <input type="tel" id="myProfileMobile" value="${escapeHtmlAttr(storedPhone)}" placeholder="+254 7XX XXX XXX" maxlength="20" autocomplete="tel">
                                 <div class="field-hint">Sign-in codes are sent to this number and to your email. International format, e.g. +254712345678.</div>
+                                <div id="myProfilePhoneState" class="field-hint">${phoneStateMarkup(storedPhone, phoneVerified)}</div>
+                                <div id="myProfilePhoneConfirm" style="display:${storedPhone && !phoneVerified ? "block" : "none"}; margin-top:10px;">
+                                    <label for="myProfilePhoneCode">Enter the 6-digit code we sent to that number</label>
+                                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                                        <input type="text" id="myProfilePhoneCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" style="max-width:140px; letter-spacing:4px;">
+                                        <button type="button" class="btn btn-primary" onclick="confirmMyProfilePhone()">Confirm number</button>
+                                        <button type="button" class="btn btn-secondary" onclick="resendMyProfilePhoneCode(this)">Resend code</button>
+                                    </div>
+                                    <div id="myProfilePhoneError" style="color:#d32f2f; margin-top:8px;"></div>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label>Role</label>
@@ -192,13 +243,22 @@ async function saveMyProfile(event) {
 
   try {
     const normalizedMobile = mobile.replace(/[\s-]/g, "");
-    await api.updateOwnProfile({
+    const updated = await api.updateOwnProfile({
       full_name: fullName,
       email: email,
       phone_number: normalizedMobile || null,
     });
-    setStoredAdminPhone(normalizedMobile);
-    alert("Profile updated successfully");
+    // Saving a *new* number sends a code to it and leaves it unverified. Say so
+    // here rather than letting "Profile updated" imply SMS codes now work.
+    if (normalizedMobile && !updated.phone_number_verified) {
+      alert(
+        "Profile updated. We sent a 6-digit code to " +
+          normalizedMobile +
+          " — enter it below to start receiving sign-in codes by SMS.",
+      );
+    } else {
+      alert("Profile updated successfully");
+    }
     await loadAdminInfo();
     loadMyProfile();
   } catch (error) {
