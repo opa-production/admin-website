@@ -32,7 +32,14 @@ const ASSISTANT_THINKING_WORDS = [
   "Pondering",
 ];
 
-const ASSISTANT_THINKING_MS = 2400;
+// The activity line ticks every second; the whimsical word only changes every
+// few ticks so it stays readable.
+const ASSISTANT_TICK_MS = 1000;
+const ASSISTANT_WORD_TICKS = 3;
+
+// How long the reply can go quiet mid-answer before the line comes back. The
+// model pauses to think between tool calls, and silence reads as "stuck".
+const ASSISTANT_IDLE_MS = 2000;
 
 // While a lookup runs, say which one instead of a rotating word. The list grows
 // server-side, so an unrecognised name falls back to a generic phrase rather
@@ -65,9 +72,13 @@ const ASSISTANT_TOOL_LABELS = {
 
 let assistantThinkingWord = ASSISTANT_THINKING_WORDS[0];
 let assistantThinkingTimer = null;
+let assistantTick = 0;
 
 // Set while a named lookup is running; overrides the rotating word.
 let assistantToolLabel = null;
+
+// When the last token landed, so a long silence can bring the line back.
+let assistantLastTokenAt = 0;
 
 const ASSISTANT_SUGGESTIONS = [
   "How many bookings were confirmed this week?",
@@ -200,7 +211,7 @@ function renderAssistantMessages() {
     })
     .join("");
 
-  if (assistantBusy) {
+  if (assistantShowActivity()) {
     list.insertAdjacentHTML(
       "beforeend",
       '<div class="assistant-thinking" aria-label="Generating a reply">' +
@@ -231,8 +242,20 @@ function nextThinkingWord() {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-// What the thinking line currently says: the running lookup if there is one,
-// otherwise the whimsical word.
+// Should the activity line be on screen right now?
+//
+// A turn is not one wait — it is: think, answer a little, run a lookup, answer
+// some more. The line has to come back for each of those pauses, otherwise the
+// panel looks frozen exactly when the assistant is busiest.
+function assistantShowActivity() {
+  if (!assistantBusy) return false;
+  if (!assistantStreaming) return true; // nothing written yet
+  if (assistantToolLabel) return true; // a named lookup is running
+  // Mid-answer and gone quiet: the model is thinking between steps.
+  return Date.now() - assistantLastTokenAt > ASSISTANT_IDLE_MS;
+}
+
+// What the line says: the running lookup if there is one, otherwise the word.
 function assistantThinkingText() {
   return (assistantToolLabel || assistantThinkingWord) + "\u2026";
 }
@@ -243,15 +266,29 @@ function paintThinkingWord() {
   if (el) el.textContent = assistantThinkingText();
 }
 
+// One timer for the whole turn. Each tick decides whether the line belongs on
+// screen and re-renders only when that answer changes, so a streaming reply
+// isn't rebuilt once a second.
 function startThinkingWords() {
   assistantThinkingWord = nextThinkingWord();
+  assistantTick = 0;
   clearInterval(assistantThinkingTimer);
   assistantThinkingTimer = setInterval(() => {
+    const want = assistantShowActivity();
+    const onScreen = Boolean(document.querySelector(".assistant-thinking"));
+    if (want !== onScreen) {
+      renderAssistantMessages();
+      return;
+    }
+    if (!want) return;
     // A named lookup holds the line until it finishes.
     if (assistantToolLabel) return;
-    assistantThinkingWord = nextThinkingWord();
-    paintThinkingWord();
-  }, ASSISTANT_THINKING_MS);
+    assistantTick += 1;
+    if (assistantTick % ASSISTANT_WORD_TICKS === 0) {
+      assistantThinkingWord = nextThinkingWord();
+      paintThinkingWord();
+    }
+  }, ASSISTANT_TICK_MS);
 }
 
 function stopThinkingWords() {
@@ -260,10 +297,19 @@ function stopThinkingWords() {
   assistantToolLabel = null;
 }
 
-// `tool` frame: name the lookup instead of the rotating word.
+// `tool` frame: name the lookup and bring the line back if it had gone.
 function setAssistantToolLabel(name) {
   assistantToolLabel = ASSISTANT_TOOL_LABELS[name] || "Working";
-  paintThinkingWord();
+  if (document.querySelector(".assistant-thinking")) paintThinkingWord();
+  else renderAssistantMessages();
+}
+
+// Text is flowing again, so the lookup that was running is done. Returns
+// whether anything changed, since the caller may need a full re-render.
+function clearAssistantToolLabel() {
+  if (!assistantToolLabel) return false;
+  assistantToolLabel = null;
+  return true;
 }
 
 function setAssistantBusy(busy) {
@@ -286,13 +332,21 @@ function assistantHasDraft() {
 }
 
 // Append to the reply currently being streamed, creating it on the first token.
-function appendAssistantToken(text) {
+function appendAssistantToken(text, forceRender) {
   const last = assistantMessages[assistantMessages.length - 1];
+  assistantLastTokenAt = Date.now();
   if (assistantStreaming && last && last.role === "ai") {
     last.text += text;
     // Patch the one span rather than re-rendering the whole log on every
     // token — a long reply would otherwise rebuild the DOM hundreds of times.
-    const liveText = document.getElementById("assistantLiveText");
+    // A full render is only needed when the activity line has to come off —
+    // either a lookup just finished, or the "gone quiet" line is showing. That
+    // is one rebuild per pause, not one per token.
+    const needsFullRender =
+      forceRender || Boolean(document.querySelector(".assistant-thinking"));
+    const liveText = needsFullRender
+      ? null
+      : document.getElementById("assistantLiveText");
     if (liveText) {
       liveText.textContent = last.text;
       const { list } = assistantEls();
@@ -333,11 +387,12 @@ function streamAssistantTurn(text) {
         tool: (payload) => setAssistantToolLabel(payload.name),
         token: (payload) => {
           if (!payload.text) return;
-          // The first token ends the waiting state — that is the whole win of
-          // streaming, so do it before appending.
-          if (!assistantStreaming) setAssistantBusy(false);
           sawToken = true;
-          appendAssistantToken(payload.text);
+          // Text means the lookup that was running has finished. Dropping the
+          // label takes the activity line off, so re-render rather than
+          // patching the live span in place.
+          const hadTool = clearAssistantToolLabel();
+          appendAssistantToken(payload.text, hadTool);
         },
         error: (payload) => {
           sawError = true;
