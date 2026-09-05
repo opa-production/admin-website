@@ -148,7 +148,7 @@ async function refreshNavBadges() {
 
   // Cars awaiting verification (neither approved nor rejected yet).
   try {
-    const stats = await api.getVerificationQueueStats();
+    const stats = await api.getVerificationQueueStats({ background: true });
     setNavBadge("cars", stats.cars_awaiting_verification || 0);
   } catch (e) {
     /* no access / offline — leave badge as-is */
@@ -156,7 +156,10 @@ async function refreshNavBadges() {
 
   // Unread support conversations needing a reply.
   try {
-    const res = await api.getSupportConversations({ page: 1, limit: 1 });
+    const res = await api.getSupportConversations(
+      { page: 1, limit: 1 },
+      { background: true },
+    );
     setNavBadge("support", res.unread_count || 0);
   } catch (e) {
     /* no access / offline */
@@ -166,7 +169,7 @@ async function refreshNavBadges() {
   // Its own endpoint rather than a field off the inbox list, so the badge is
   // the whole backlog and never disagrees with a filtered view of the page.
   try {
-    const res = await api.getB2BSupportUnansweredCount();
+    const res = await api.getB2BSupportUnansweredCount({ background: true });
     setNavBadge("b2b-support", res.count || 0);
   } catch (e) {
     /* no access / offline */

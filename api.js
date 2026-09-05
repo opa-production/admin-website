@@ -23,11 +23,34 @@ function isSessionExpired() {
   return expiry > 0 && Date.now() >= expiry;
 }
 
+// Reason for the last forced sign-out, read once by the login page. Session
+// storage (not local) so it dies with the tab and never resurfaces later.
+const LOGOUT_REASON_KEY = "admin_logout_reason";
+
+function setLogoutReason(message) {
+  try {
+    if (message) sessionStorage.setItem(LOGOUT_REASON_KEY, message);
+  } catch (e) {
+    /* storage blocked — the redirect still happens, just unexplained */
+  }
+}
+
+function takeLogoutReason() {
+  try {
+    const reason = sessionStorage.getItem(LOGOUT_REASON_KEY);
+    sessionStorage.removeItem(LOGOUT_REASON_KEY);
+    return reason;
+  } catch (e) {
+    return null;
+  }
+}
+
 function logoutAndRedirect(message = "Session expired") {
   clearSessionStorage();
   if (message) {
     console.warn(message);
   }
+  setLogoutReason(message);
   window.location.href = "/";
   throw new Error(message);
 }
@@ -105,8 +128,21 @@ async function apiRequest(endpoint, options = {}) {
   }
 
   if (response.status === 401) {
-    // Unauthorized - redirect to login
+    // A 401 on a *background* call (the sidebar badge poll, say) is not proof
+    // the session is dead — an endpoint the role can't reach, or one that
+    // isn't deployed yet, answers the same way. Evicting the admin over one of
+    // those is how a working session ends up back at the login screen.
+    // Foreground calls still sign out, because there the 401 IS the answer to
+    // what the admin asked for.
+    if (options.background) {
+      const err = new Error("Unauthorized");
+      err.status = 401;
+      throw err;
+    }
     clearSessionStorage();
+    setLogoutReason(
+      "Signed out: the server rejected this session (401 on " + endpoint + ").",
+    );
     window.location.href = "/";
     throw new Error("Unauthorized");
   }
@@ -127,8 +163,8 @@ const api = {
   // Dashboard
   getDashboardStats: () => apiRequest("/admin/dashboard/stats"),
   getRecentActivity: () => apiRequest("/admin/dashboard/activity"),
-  getVerificationQueueStats: () =>
-    apiRequest("/admin/dashboard/verification-queue"),
+  getVerificationQueueStats: (opts = {}) =>
+    apiRequest("/admin/dashboard/verification-queue", opts),
   getRevenueStats: () => apiRequest("/admin/dashboard/revenue"),
   getKycTrends: () => apiRequest("/admin/dashboard/kyc-trends"),
   getBookingTrends: (days = 14) =>
@@ -302,10 +338,11 @@ const api = {
     apiRequest(`/admin/payment-methods/${id}`, { method: "DELETE" }),
 
   // Support Conversations
-  getSupportConversations: (params = {}) => {
+  getSupportConversations: (params = {}, opts = {}) => {
     const queryString = new URLSearchParams(params).toString();
     return apiRequest(
       `/admin/support/conversations${queryString ? "?" + queryString : ""}`,
+      opts,
     );
   },
   getSupportConversation: (id) =>
@@ -599,8 +636,8 @@ const api = {
       body: JSON.stringify({ text }),
     }),
   // Whole backlog of threads whose newest message is from the business.
-  getB2BSupportUnansweredCount: () =>
-    apiRequest("/admin/b2b/support/unanswered-count"),
+  getB2BSupportUnansweredCount: (opts = {}) =>
+    apiRequest("/admin/b2b/support/unanswered-count", opts),
 
   // Listing reports (moderation queue) — see reports.md
   getListingReports: (params = {}) => {

@@ -1,4 +1,17 @@
-const API_BASE_URL = "https://api.ardena.xyz/api/v1";
+// API_BASE_URL and the session helpers come from api.js, loaded before this.
+
+// If the dashboard bounced us back here, say why rather than dropping the
+// admin on a blank form wondering what happened.
+(function showLogoutReason() {
+  const reason =
+    typeof takeLogoutReason === "function" ? takeLogoutReason() : null;
+  if (!reason) return;
+  const el = document.getElementById("errorMessage");
+  if (el) {
+    el.textContent = reason;
+    el.classList.add("show");
+  }
+})();
 
 // Password visibility toggle
 document.getElementById("passwordToggle").addEventListener("click", () => {
@@ -171,8 +184,10 @@ otpInputs.forEach((input, index) => {
 
 document.getElementById("otpClose").addEventListener("click", closeOtpModal);
 
+// Deliberately NOT closing on a backdrop click: the code has already been sent
+// and cancelling here throws the attempt away. The X and Escape still cancel.
 otpOverlay.addEventListener("click", (e) => {
-  if (e.target === otpOverlay) closeOtpModal();
+  if (e.target === otpOverlay) otpInputs[0].focus();
 });
 
 document.addEventListener("keydown", (e) => {
@@ -267,8 +282,19 @@ otpForm.addEventListener("submit", async (e) => {
     if (OTP_STUBBED) {
       // Design preview: any 6 digits pass.
       await new Promise((r) => setTimeout(r, 600));
-      if (!pendingLogin || !pendingLogin.session) {
-        throw new Error("Session expired. Please sign in again.");
+      if (!pendingLogin) {
+        throw new Error("That sign-in attempt was cancelled. Start again.");
+      }
+      if (!pendingLogin.session) {
+        // While OTP is stubbed the session still comes from the password step.
+        // If the login response carried no access_token there is nothing to
+        // sign in with — say so plainly instead of blaming the session.
+        console.error(
+          "Login response had no access_token; nothing to complete sign-in with.",
+        );
+        throw new Error(
+          "Sign-in did not return a session token. Check the login endpoint.",
+        );
       }
       completeSignIn(pendingLogin.session);
       return;

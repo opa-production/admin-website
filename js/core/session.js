@@ -82,7 +82,17 @@ function scheduleSessionTimers() {
   clearTimeout(sessionExpiryTimer);
   hideSessionWarning();
 
-  const remaining = getSessionExpiry() - Date.now();
+  // No stamp means "we don't know when this session ends" — a session created
+  // before this code shipped, or storage that got partially cleared. Treat it
+  // the way isSessionExpired() does and leave the session alone rather than
+  // signing the admin out of a session that is perfectly good.
+  const expiry = getSessionExpiry();
+  if (!expiry) {
+    console.warn("No session expiry stamp; skipping the expiry watcher.");
+    return;
+  }
+
+  const remaining = expiry - Date.now();
   if (remaining <= 0) {
     logoutAndRedirect("Session expired. Please sign in again.");
     return;
