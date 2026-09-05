@@ -5,7 +5,7 @@
 window.addEventListener("DOMContentLoaded", async () => {
   const token = localStorage.getItem("admin_token");
   if (!token) {
-    window.location.href = "index.html";
+    window.location.href = "/";
     return;
   }
 
@@ -32,6 +32,9 @@ window.addEventListener("DOMContentLoaded", async () => {
   // Setup profile dropdown
   setupProfileDropdown();
 
+  // Light/dark switch in the profile menu.
+  initThemeToggle();
+
   // Surface attention-needed counts (support, cars) on the sidebar and keep
   // them fresh.
   startNavBadgePolling();
@@ -46,20 +49,18 @@ window.addEventListener("DOMContentLoaded", async () => {
     if (page !== currentDashboardPage) loadPage(page);
   });
 
-  // Start expiration watcher so sessions are revoked even if the user stays
-  // on the dashboard for more than 30 minutes.
-  if (typeof getSessionExpiry === "function") {
-    const expiry = getSessionExpiry();
-    const remaining = expiry - Date.now();
-    if (remaining <= 0) {
-      logoutAndRedirect("Session expired. Please sign in again.");
-    } else {
-      setTimeout(() => {
-        alert("Your session has expired. Please sign in again.");
-        logoutAndRedirect("Session expired. Please sign in again.");
-      }, remaining);
-    }
-  }
+  // Warn before the session lapses instead of redirecting out from under the
+  // admin mid-task (js/core/session.js).
+  setupSessionWatcher();
+
+  // AI assistant launcher + panel, available on every page.
+  setupAssistant();
+
+  // Charts are painted to a canvas, so they don't re-colour themselves when the
+  // theme changes — re-render the current page to redraw them.
+  window.addEventListener("adminthemechange", () => {
+    if (currentDashboardPage) loadPage(currentDashboardPage);
+  });
 });
 
 // Load admin info

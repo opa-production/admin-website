@@ -3,12 +3,47 @@
    styles.css). Single card centred in the viewport, square corners throughout. */
 
 :root {
+    color-scheme: light;
     --auth-accent: #0066cc;
     --auth-accent-hover: #0052a3;
     --auth-ink: #1a2230;
     --auth-muted: #6b7787;
     --auth-border: #e2e6ec;
     --auth-bg: #f5f7fa;
+    --auth-surface: #ffffff;
+    --auth-field: #ffffff;
+    --auth-placeholder: #aab3c0;
+    --auth-danger: #d32f2f;
+    --auth-disabled: #9bb8d8;
+    --auth-ring: rgba(0, 102, 204, 0.12);
+    --auth-shadow: 0 1px 3px rgba(26, 34, 48, 0.06);
+    --auth-modal-shadow: 0 12px 32px rgba(26, 34, 48, 0.18);
+    --auth-scrim: rgba(26, 34, 48, 0.55);
+    --auth-otp-filled-border: #b9cde4;
+    --auth-otp-filled-bg: #f8fbff;
+}
+
+/* Dark theme — same deep slate-navy family as the dashboard.
+   <html data-theme> is stamped by js/core/theme.js before this file paints. */
+[data-theme="dark"] {
+    color-scheme: dark;
+    --auth-accent: #4d9fff;
+    --auth-accent-hover: #6cb0ff;
+    --auth-ink: #eef2f8;
+    --auth-muted: #96a3b8;
+    --auth-border: #232d3f;
+    --auth-bg: #080b11;
+    --auth-surface: #111722;
+    --auth-field: #161d2a;
+    --auth-placeholder: #55617a;
+    --auth-danger: #f87171;
+    --auth-disabled: #2b3547;
+    --auth-ring: rgba(77, 159, 255, 0.22);
+    --auth-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    --auth-modal-shadow: 0 20px 48px rgba(0, 0, 0, 0.65);
+    --auth-scrim: rgba(0, 0, 0, 0.68);
+    --auth-otp-filled-border: #35415a;
+    --auth-otp-filled-bg: #18212f;
 }
 
 * {
@@ -37,10 +72,10 @@ body {
     width: 100%;
     max-width: 400px;
     padding: 40px 36px;
-    background: #ffffff;
+    background: var(--auth-surface);
     border: 1px solid var(--auth-border);
     border-radius: 0;
-    box-shadow: 0 1px 3px rgba(26, 34, 48, 0.06);
+    box-shadow: var(--auth-shadow);
 }
 
 .auth-logo {
@@ -97,7 +132,7 @@ input[type="text"] {
     padding: 12px 14px;
     font-size: 14px;
     color: var(--auth-ink);
-    background: #fff;
+    background: var(--auth-field);
     border: 1px solid var(--auth-border);
     border-radius: 0;
     transition: border-color 0.15s, box-shadow 0.15s;
@@ -108,11 +143,11 @@ input[type="password"]:focus,
 input[type="text"]:focus {
     outline: none;
     border-color: var(--auth-accent);
-    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.12);
+    box-shadow: 0 0 0 3px var(--auth-ring);
 }
 
 input::placeholder {
-    color: #aab3c0;
+    color: var(--auth-placeholder);
 }
 
 .password-input-wrapper {
@@ -142,11 +177,11 @@ input::placeholder {
 
 .password-toggle:hover {
     color: var(--auth-accent-hover);
-    background-color: rgba(0, 102, 204, 0.08);
+    background-color: var(--auth-ring);
 }
 
 .error-message {
-    color: #d32f2f;
+    color: var(--auth-danger);
     font-size: 13px;
     margin-bottom: 14px;
     min-height: 18px;
@@ -179,7 +214,7 @@ input::placeholder {
 }
 
 .login-button:disabled {
-    background-color: #9bb8d8;
+    background-color: var(--auth-disabled);
     cursor: not-allowed;
 }
 
@@ -218,7 +253,7 @@ input::placeholder {
     align-items: center;
     justify-content: center;
     padding: 24px 16px;
-    background: rgba(26, 34, 48, 0.55);
+    background: var(--auth-scrim);
     animation: otp-fade 0.16s ease-out;
 }
 
@@ -231,9 +266,9 @@ input::placeholder {
     width: 100%;
     max-width: 400px;
     padding: 36px 36px 28px;
-    background: #ffffff;
+    background: var(--auth-surface);
     border: 1px solid var(--auth-border);
-    box-shadow: 0 12px 32px rgba(26, 34, 48, 0.18);
+    box-shadow: var(--auth-modal-shadow);
     text-align: center;
     animation: otp-rise 0.18s ease-out;
 }
@@ -275,7 +310,7 @@ input::placeholder {
     margin: 0 auto 18px;
     border-radius: 50%;
     color: var(--auth-accent);
-    background: rgba(0, 102, 204, 0.10);
+    background: var(--auth-ring);
 }
 
 .otp-heading {
@@ -313,7 +348,7 @@ input::placeholder {
     font-weight: 600;
     text-align: center;
     color: var(--auth-ink);
-    background: #fff;
+    background: var(--auth-field);
     border: 1px solid var(--auth-border);
     border-radius: 6px;
     transition: border-color 0.15s, box-shadow 0.15s;
@@ -323,16 +358,16 @@ input::placeholder {
 .otp-inputs input:focus {
     outline: none;
     border-color: var(--auth-accent);
-    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.12);
+    box-shadow: 0 0 0 3px var(--auth-ring);
 }
 
 .otp-inputs input.filled {
-    border-color: #b9cde4;
-    background: #f8fbff;
+    border-color: var(--auth-otp-filled-border);
+    background: var(--auth-otp-filled-bg);
 }
 
 .otp-inputs.invalid input {
-    border-color: #d32f2f;
+    border-color: var(--auth-danger);
     animation: otp-shake 0.3s ease;
 }
 

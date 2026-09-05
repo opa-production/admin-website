@@ -191,12 +191,12 @@ function buildKycChart(canvas, data, palette) {
       scales: {
         x: {
           grid: { display: false, drawBorder: false },
-          ticks: { font: { size: 10 }, color: "#9ca3af" },
+          ticks: { font: { size: 10 }, color: chartAxisColor() },
         },
         y: {
           beginAtZero: true,
-          grid: { color: "rgba(17, 24, 39, 0.05)", drawBorder: false },
-          ticks: { font: { size: 10 }, color: "#9ca3af", precision: 0 },
+          grid: { color: chartGridColor(), drawBorder: false },
+          ticks: { font: { size: 10 }, color: chartAxisColor(), precision: 0 },
         },
       },
       animation: { duration: 1000, easing: "easeOutQuart" },
@@ -308,11 +308,11 @@ function createVerificationStatusChart(stats) {
           stacked: true,
           beginAtZero: true,
           grid: {
-            color: "rgba(17, 24, 39, 0.06)",
+            color: chartGridColor(),
             drawBorder: false,
             borderDash: [3, 3],
           },
-          ticks: { font: { size: 11 }, color: "#6b7280", precision: 0 },
+          ticks: { font: { size: 11 }, color: chartAxisColor(), precision: 0 },
         },
         y: {
           stacked: true,
@@ -435,15 +435,15 @@ function createBookingOutcomesChart(data) {
           grid: { display: false, drawBorder: false },
           ticks: {
             font: { size: 10 },
-            color: "#9ca3af",
+            color: chartAxisColor(),
             maxRotation: 0,
             autoSkipPadding: 14,
           },
         },
         y: {
           beginAtZero: true,
-          grid: { color: "rgba(17, 24, 39, 0.05)", drawBorder: false },
-          ticks: { font: { size: 10 }, color: "#9ca3af", precision: 0 },
+          grid: { color: chartGridColor(), drawBorder: false },
+          ticks: { font: { size: 10 }, color: chartAxisColor(), precision: 0 },
         },
       },
       animation: { duration: 900, easing: "easeOutQuart" },
@@ -525,15 +525,15 @@ function createBookingsVolumeChart(data) {
           grid: { display: false, drawBorder: false },
           ticks: {
             font: { size: 10 },
-            color: "#9ca3af",
+            color: chartAxisColor(),
             maxRotation: 0,
             autoSkipPadding: 16,
           },
         },
         y: {
           beginAtZero: true,
-          grid: { color: "rgba(17, 24, 39, 0.05)", drawBorder: false },
-          ticks: { font: { size: 10 }, color: "#9ca3af", precision: 0 },
+          grid: { color: chartGridColor(), drawBorder: false },
+          ticks: { font: { size: 10 }, color: chartAxisColor(), precision: 0 },
         },
       },
       animation: { duration: 900, easing: "easeOutQuart" },

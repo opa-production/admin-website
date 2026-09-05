@@ -298,6 +298,20 @@ function formatDateLabel(dateString) {
 // clash. The value is a compact square JPEG data URL. Trade-off: it does not
 // follow the admin to another device and clears with site data.
 // ---------------------------------------------------------------------------
+// Chart.js draws to a canvas, so it can't read CSS tokens — these two give it
+// grid/axis colours that work on whichever theme is active.
+function chartGridColor() {
+  return document.documentElement.getAttribute("data-theme") === "dark"
+    ? "rgba(255, 255, 255, 0.08)"
+    : "rgba(17, 24, 39, 0.05)";
+}
+
+function chartAxisColor() {
+  return document.documentElement.getAttribute("data-theme") === "dark"
+    ? "#74829a"
+    : "#9ca3af";
+}
+
 function currentAdminInfo() {
   try {
     return JSON.parse(localStorage.getItem("admin_info") || "null");

@@ -23,8 +23,6 @@ const REV_COLORS = {
   hostPayoutSoft: "rgba(99, 102, 241, 0.14)",
   bookings: "#a855f7", // violet — booking volume
   bookingsSoft: "rgba(168, 85, 247, 0.14)",
-  grid: "rgba(17, 24, 39, 0.05)",
-  axis: "#94a3b8",
 };
 
 // Shared currency formatter (KES, no decimals)
@@ -196,14 +194,14 @@ function createRevenueTrendChart(data) {
         x: {
           grid: { display: false },
           border: { display: false },
-          ticks: { color: REV_COLORS.axis, font: { size: 11 } },
+          ticks: { color: chartAxisColor(), font: { size: 11 } },
         },
         y: {
           beginAtZero: true,
-          grid: { color: REV_COLORS.grid },
+          grid: { color: chartGridColor() },
           border: { display: false },
           ticks: {
-            color: REV_COLORS.axis,
+            color: chartAxisColor(),
             font: { size: 11 },
             maxTicksLimit: 5,
             callback: (v) => "KES " + revShort(v),
@@ -278,15 +276,15 @@ function createCashFlowChart(data) {
           stacked: true,
           grid: { display: false },
           border: { display: false },
-          ticks: { color: REV_COLORS.axis, font: { size: 11 } },
+          ticks: { color: chartAxisColor(), font: { size: 11 } },
         },
         y: {
           stacked: true,
           beginAtZero: true,
-          grid: { color: REV_COLORS.grid },
+          grid: { color: chartGridColor() },
           border: { display: false },
           ticks: {
-            color: REV_COLORS.axis,
+            color: chartAxisColor(),
             font: { size: 11 },
             maxTicksLimit: 5,
             callback: (v) => "KES " + revShort(v),
@@ -344,14 +342,14 @@ function createBookingVolumeChart(data) {
         x: {
           grid: { display: false },
           border: { display: false },
-          ticks: { color: REV_COLORS.axis, font: { size: 11 } },
+          ticks: { color: chartAxisColor(), font: { size: 11 } },
         },
         y: {
           beginAtZero: true,
-          grid: { color: REV_COLORS.grid },
+          grid: { color: chartGridColor() },
           border: { display: false },
           ticks: {
-            color: REV_COLORS.axis,
+            color: chartAxisColor(),
             font: { size: 11 },
             precision: 0,
             maxTicksLimit: 5,

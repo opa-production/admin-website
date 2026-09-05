@@ -124,7 +124,7 @@ function completeSignIn(data) {
     "admin_session_expiry",
     String(Date.now() + 30 * 60 * 1000),
   );
-  window.location.href = "dashboard.html";
+  window.location.href = "/dashboard";
 }
 
 // ---------- Digit boxes: auto-advance, backspace, arrows, paste ----------

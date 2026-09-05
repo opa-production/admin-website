@@ -28,7 +28,7 @@ function logoutAndRedirect(message = "Session expired") {
   if (message) {
     console.warn(message);
   }
-  window.location.href = "index.html";
+  window.location.href = "/";
   throw new Error(message);
 }
 
@@ -107,7 +107,7 @@ async function apiRequest(endpoint, options = {}) {
   if (response.status === 401) {
     // Unauthorized - redirect to login
     clearSessionStorage();
-    window.location.href = "index.html";
+    window.location.href = "/";
     throw new Error("Unauthorized");
   }
 
@@ -271,6 +271,14 @@ const api = {
     apiRequest(`/admin/admins/${id}/deactivate`, { method: "PUT" }),
 
   // Own Profile Management
+  // AI assistant (see ASSISTANT_BACKEND.md). Not live yet — assistant.js is
+  // stubbed until this endpoint exists.
+  assistantChat: (data) =>
+    apiRequest("/admin/assistant/chat", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
   updateOwnProfile: (data) =>
     apiRequest("/admin/profile", {
       method: "PUT",

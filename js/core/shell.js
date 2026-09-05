@@ -262,6 +262,31 @@ function setupMobileNav() {
   window.closeAdminMobileNav = closeNav;
 }
 
+// Wire the Dark mode switch in the profile menu. The theme itself is applied
+// by js/core/theme.js (which runs in <head>); this only reflects and flips it.
+function initThemeToggle() {
+  const toggle = document.getElementById("themeToggle");
+  if (!toggle || !window.adminTheme) return;
+
+  const sync = () => {
+    toggle.setAttribute(
+      "aria-checked",
+      window.adminTheme.current() === "dark" ? "true" : "false",
+    );
+  };
+
+  toggle.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.adminTheme.toggle();
+    sync();
+  });
+
+  // Keeps the switch honest when the OS theme changes underneath us.
+  window.addEventListener("adminthemechange", sync);
+  sync();
+}
+
 // Setup profile dropdown
 function setupProfileDropdown() {
   const profileButton = document.getElementById("profileButton");
@@ -290,7 +315,7 @@ function setupProfileDropdown() {
     localStorage.removeItem("admin_token");
     localStorage.removeItem("admin_info");
     localStorage.removeItem("admin_session_expiry");
-    window.location.href = "index.html";
+    window.location.href = "/";
   });
 
   // Profile link
