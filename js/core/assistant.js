@@ -64,6 +64,7 @@ const ASSISTANT_TOOL_LABELS = {
   get_feedback: "Reading feedback",
   get_listing_reports: "Checking reports",
   get_b2b_overview: "Checking Ardena for Business",
+  get_b2b_access_requests: "Checking access requests",
   find_b2b_business: "Looking up the workspace",
   get_b2b_support: "Checking B2B support",
   get_admins: "Checking admin accounts",
@@ -85,6 +86,74 @@ const ASSISTANT_SUGGESTIONS = [
   "Which cars are still awaiting verification?",
   "Summarise the open support conversations",
 ];
+
+// ---------------------------------------------------------------------------
+// Reply rendering
+//
+// The assistant answers in Markdown — "**Onboarded B2B businesses:** 11" with
+// "- " bullets. Escaping that to plain text left the syntax on screen, so it is
+// parsed properly instead: bold is bold, bullets are a real list.
+//
+// The output quotes live data (business names, support message text), so it is
+// sanitised rather than trusted. marked passes raw HTML through by default,
+// which is fine for admin-authored copy elsewhere in the dashboard and not fine
+// here.
+// ---------------------------------------------------------------------------
+
+const ASSISTANT_ALLOWED_TAGS = new Set([
+  "p", "br", "hr", "strong", "b", "em", "i", "del", "code", "pre",
+  "ul", "ol", "li", "blockquote", "a",
+  "h1", "h2", "h3", "h4", "h5", "h6",
+  "table", "thead", "tbody", "tr", "th", "td",
+]);
+
+// Anything in here is removed outright, contents included.
+const ASSISTANT_STRIP_TAGS =
+  "script,style,iframe,object,embed,link,meta,form,input,button,svg,math";
+
+function sanitizeAssistantHtml(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+
+  doc.body.querySelectorAll(ASSISTANT_STRIP_TAGS).forEach((el) => el.remove());
+
+  // Document order, so a tag is unwrapped before its children are visited.
+  Array.from(doc.body.querySelectorAll("*")).forEach((el) => {
+    const tag = el.tagName.toLowerCase();
+
+    if (!ASSISTANT_ALLOWED_TAGS.has(tag)) {
+      el.replaceWith(...Array.from(el.childNodes)); // keep the text, drop the tag
+      return;
+    }
+
+    // Strip every attribute; a safe link href is the only one that survives.
+    Array.from(el.attributes).forEach((attr) => {
+      const keep =
+        tag === "a" &&
+        attr.name.toLowerCase() === "href" &&
+        /^(https?:|mailto:)/i.test(attr.value.trim());
+      if (!keep) el.removeAttribute(attr.name);
+    });
+
+    if (tag === "a" && el.getAttribute("href")) {
+      el.setAttribute("target", "_blank");
+      el.setAttribute("rel", "noopener noreferrer");
+    }
+  });
+
+  return doc.body.innerHTML;
+}
+
+function assistantMarkdown(text) {
+  const raw = text || "";
+  if (typeof marked === "undefined") {
+    return escapeHtml(raw).replace(/\n/g, "<br>");
+  }
+  try {
+    return sanitizeAssistantHtml(marked.parse(raw, { gfm: true, breaks: true }));
+  } catch (e) {
+    return escapeHtml(raw).replace(/\n/g, "<br>");
+  }
+}
 
 function assistantEls() {
   return {
@@ -192,19 +261,23 @@ function renderAssistantMessages() {
       // A caret on the tail of the reply currently being written.
       const isLive =
         assistantStreaming && i === lastIndex && msg.role === "ai";
-      // The live reply keeps its text in its own span so tokens can be appended
-      // without rebuilding the bubble (and without disturbing the caret).
-      const live = isLive
-        ? '<span class="assistant-caret" aria-hidden="true"></span>'
-        : "";
+      // The caret is drawn by CSS after the last block of the live reply, so
+      // there is no element to preserve when the body is re-rendered.
+      const live = isLive ? " is-live" : "";
       // Lookups the admin's role refused. The reply already explains it; this
       // is a quiet footnote, not an error.
       const note = msg.outOfScope
         ? '<div class="assistant-note">Some of that is outside your role&rsquo;s access.</div>'
         : "";
+      // The admin's own turn and verbatim backend errors stay plain text;
+      // only the assistant's prose is Markdown.
+      const body =
+        msg.role === "ai" && !msg.error
+          ? `<div class="assistant-md"${isLive ? ' id="assistantLiveText"' : ""}>${assistantMarkdown(msg.text)}</div>`
+          : escapeHtml(msg.text);
       return `
-        <div class="assistant-msg ${roleClass}">
-          <div class="assistant-bubble"><span${isLive ? ' id="assistantLiveText"' : ""}>${escapeHtml(msg.text)}</span>${live}</div>
+        <div class="assistant-msg ${roleClass}${live}">
+          <div class="assistant-bubble">${body}</div>
           ${note}
           <div class="assistant-msg-time">${assistantTimeLabel(msg.at)}</div>
         </div>`;
@@ -331,6 +404,29 @@ function assistantHasDraft() {
   return Boolean(input && input.value.trim());
 }
 
+// Re-parsing Markdown on every token would be wasteful and would flicker, so
+// the live bubble repaints on a short throttle instead. The trailing timer
+// guarantees the last token is always painted.
+const ASSISTANT_PAINT_MS = 120;
+let assistantPaintTimer = null;
+let assistantPendingText = null;
+
+function paintLiveMarkdown(text) {
+  assistantPendingText = text;
+  if (assistantPaintTimer) return;
+  const flush = () => {
+    assistantPaintTimer = null;
+    const el = document.getElementById("assistantLiveText");
+    if (!el || assistantPendingText === null) return;
+    el.innerHTML = assistantMarkdown(assistantPendingText);
+    assistantPendingText = null;
+    const { list } = assistantEls();
+    if (list) list.scrollTop = list.scrollHeight;
+  };
+  flush();
+  assistantPaintTimer = setTimeout(flush, ASSISTANT_PAINT_MS);
+}
+
 // Append to the reply currently being streamed, creating it on the first token.
 function appendAssistantToken(text, forceRender) {
   const last = assistantMessages[assistantMessages.length - 1];
@@ -348,9 +444,7 @@ function appendAssistantToken(text, forceRender) {
       ? null
       : document.getElementById("assistantLiveText");
     if (liveText) {
-      liveText.textContent = last.text;
-      const { list } = assistantEls();
-      if (list) list.scrollTop = list.scrollHeight;
+      paintLiveMarkdown(last.text);
       return;
     }
   } else {

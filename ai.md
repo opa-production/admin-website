@@ -171,6 +171,7 @@ shape that fits the existing render loop:
     get_feedback: "Reading feedback",
     get_listing_reports: "Checking reports",
     get_b2b_overview: "Checking Ardena for Business",
+    get_b2b_access_requests: "Checking access requests",
     find_b2b_business: "Looking up the workspace",
     get_b2b_support: "Checking B2B support",
     get_admins: "Checking admin accounts",
