@@ -139,3 +139,10 @@ surfaces the separation comes from borders instead.
   See `ASSISTANT_BACKEND.md`.
 - **Production URLs drop the `.html`** (`cleanUrls` in `vercel.json`), so
   in-app redirects now point at `/` and `/dashboard`.
+- **Every native `<select>` is upgraded at runtime** into the `.ui-select`
+  widget (`js/core/ui.js`), the same way `alert()` and `.loading` are. The
+  original `<select>` stays as the value holder, so `el.value` and `change`
+  handlers are untouched. A page that replaces a select's options (the
+  notification host picker) triggers a rebuild of the widget.
+- **New Verifications page** (`#verifications`) — KPIs, KYC trend lines, the
+  listing-decision split and the live awaiting-review queue.

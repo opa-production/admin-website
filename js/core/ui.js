@@ -329,10 +329,156 @@ function watchLoadingElements() {
   }).observe(document.body, { childList: true, subtree: true });
 }
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", watchLoadingElements);
-} else {
+
+// ------------------------------------------------------------ Selects ----
+// Native <select> menus are drawn by the OS, so they ignore the dashboard's
+// styling (and its dark theme) entirely. Rather than rewrite ~30 call sites,
+// every <select> is upgraded in place into the .ui-select widget above — the
+// same approach as the alert() override and the .loading upgrade.
+//
+// The original <select> stays in the DOM as the value holder, so existing code
+// that reads `el.value`, sets it, or listens for `change` keeps working
+// untouched. Choosing an option writes through to it and fires `change`.
+
+function selectChevronSvg() {
+  return (
+    '<svg class="ui-select-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" ' +
+    'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<polyline points="6 9 12 15 18 9"></polyline></svg>'
+  );
+}
+
+const NATIVE_SELECT_VALUE = Object.getOwnPropertyDescriptor(
+  HTMLSelectElement.prototype,
+  "value",
+);
+
+function upgradeSelectElement(select) {
+  if (!select || select.dataset.uiSelect === "true") return;
+  // Hidden mirrors (already-custom selects), multi-selects and anything that
+  // opts out stay native.
+  if (select.hidden || select.multiple || select.dataset.noUpgrade === "true") {
+    return;
+  }
+
+  const options = Array.from(select.options);
+  if (!options.length) return;
+  select.dataset.uiSelect = "true";
+
+  // Measure before hiding so the widget keeps the layout the select had.
+  const measured = select.offsetWidth;
+
+  const root = document.createElement("div");
+  root.className = "ui-select ui-select--auto";
+  if (measured > 0) root.style.minWidth = measured + "px";
+
+  const selected =
+    select.selectedIndex >= 0 ? options[select.selectedIndex] : options[0];
+
+  root.innerHTML =
+    '<button type="button" class="ui-select-trigger" aria-haspopup="listbox" aria-expanded="false">' +
+    '<span class="ui-select-value"></span>' +
+    selectChevronSvg() +
+    "</button>" +
+    '<ul class="ui-select-menu" role="listbox" hidden></ul>';
+
+  const valueEl = root.querySelector(".ui-select-value");
+  const menu = root.querySelector(".ui-select-menu");
+  valueEl.textContent = selected ? selected.textContent.trim() : "";
+
+  options.forEach((opt) => {
+    const li = document.createElement("li");
+    li.className = "ui-select-option";
+    li.setAttribute("role", "option");
+    li.dataset.value = opt.value;
+    li.setAttribute("aria-selected", String(opt === selected));
+    li.textContent = opt.textContent.trim();
+    if (opt.disabled) li.setAttribute("aria-disabled", "true");
+    menu.appendChild(li);
+  });
+
+  select.parentNode.insertBefore(root, select);
+  root.appendChild(select);
+  select.classList.add("ui-select-native");
+
+  // Mirror the native selection onto the widget. Called whenever the value can
+  // have moved without the widget knowing.
+  const sync = () => {
+    const current = select.options[select.selectedIndex];
+    valueEl.textContent = current ? current.textContent.trim() : "";
+    menu.querySelectorAll(".ui-select-option").forEach((li) => {
+      li.setAttribute(
+        "aria-selected",
+        String(Boolean(current) && li.dataset.value === current.value),
+      );
+    });
+  };
+
+  // Tear the widget down and build it again — used when a page replaces the
+  // select's <option> list (loading hosts into a picker, say).
+  const rebuild = () => {
+    optionObserver.disconnect();
+    delete select.dataset.uiSelect;
+    select.classList.remove("ui-select-native");
+    if (NATIVE_SELECT_VALUE) {
+      delete select.value; // drop the instance override below
+    }
+    root.parentNode.insertBefore(select, root);
+    root.remove();
+    upgradeSelectElement(select);
+  };
+
+  // Write the choice back to the <select> and let existing handlers fire.
+  initCustomSelect(root, null, (value) => {
+    select.value = value;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+  select.addEventListener("change", sync);
+
+  // Pages set `select.value = ...` directly to reset or preselect a filter.
+  // That fires no event, so intercept the write on this instance and re-sync.
+  if (NATIVE_SELECT_VALUE) {
+    Object.defineProperty(select, "value", {
+      configurable: true,
+      get() {
+        return NATIVE_SELECT_VALUE.get.call(this);
+      },
+      set(v) {
+        NATIVE_SELECT_VALUE.set.call(this, v);
+        sync();
+      },
+    });
+  }
+
+  const optionObserver = new MutationObserver(rebuild);
+  optionObserver.observe(select, { childList: true });
+}
+
+function upgradeSelectsWithin(node) {
+  if (!node || node.nodeType !== 1) return;
+  if (node.tagName === "SELECT") upgradeSelectElement(node);
+  node.querySelectorAll("select").forEach(upgradeSelectElement);
+}
+
+// Page scripts inject their filters via innerHTML long after load, so watch for
+// new selects rather than upgrading only what exists at startup.
+function watchSelectElements() {
+  upgradeSelectsWithin(document.body);
+  new MutationObserver((records) => {
+    records.forEach((record) => record.addedNodes.forEach(upgradeSelectsWithin));
+  }).observe(document.body, { childList: true, subtree: true });
+}
+
+function startUiUpgrades() {
   watchLoadingElements();
+  watchSelectElements();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", startUiUpgrades);
+} else {
+  startUiUpgrades();
 }
 
 // ------------------------------------------------------------- Row icons ----

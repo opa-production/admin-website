@@ -18,6 +18,26 @@ let assistantMessages = [];
 let assistantConversationId = null;
 let assistantBusy = false;
 
+// Shown one at a time while a reply is generating, so the wait has some
+// character instead of three grey dots. Rotates every few seconds.
+const ASSISTANT_THINKING_WORDS = [
+  "Boondoggling",
+  "Marinating",
+  "Percolating",
+  "Noodling",
+  "Simmering",
+  "Ruminating",
+  "Puttering",
+  "Cogitating",
+  "Whirring",
+  "Pondering",
+];
+
+const ASSISTANT_THINKING_MS = 2400;
+
+let assistantThinkingWord = ASSISTANT_THINKING_WORDS[0];
+let assistantThinkingTimer = null;
+
 const ASSISTANT_SUGGESTIONS = [
   "How many bookings were confirmed this week?",
   "Which cars are still awaiting verification?",
@@ -28,6 +48,7 @@ function assistantEls() {
   return {
     fab: document.getElementById("assistantFab"),
     panel: document.getElementById("assistantPanel"),
+    scrim: document.getElementById("assistantScrim"),
     close: document.getElementById("assistantClose"),
     list: document.getElementById("assistantMessages"),
     form: document.getElementById("assistantComposer"),
@@ -44,11 +65,15 @@ function assistantIsOpen() {
 }
 
 function openAssistant() {
-  const { fab, panel, input } = assistantEls();
+  const { fab, panel, scrim, input } = assistantEls();
   if (!panel) return;
   panel.hidden = false;
-  // Next frame, so the transform transition actually runs.
-  requestAnimationFrame(() => panel.classList.add("is-open"));
+  if (scrim) scrim.hidden = false;
+  // Next frame, so the transform/opacity transitions actually run.
+  requestAnimationFrame(() => {
+    panel.classList.add("is-open");
+    if (scrim) scrim.classList.add("is-open");
+  });
   if (fab) {
     fab.classList.add("is-open");
     fab.setAttribute("aria-expanded", "true");
@@ -59,18 +84,22 @@ function openAssistant() {
 }
 
 function closeAssistant() {
-  const { fab, panel } = assistantEls();
+  const { fab, panel, scrim } = assistantEls();
   if (!panel) return;
   panel.classList.remove("is-open");
+  if (scrim) scrim.classList.remove("is-open");
   if (fab) {
     fab.classList.remove("is-open");
     fab.setAttribute("aria-expanded", "false");
     fab.setAttribute("aria-label", "Open AI assistant");
     fab.focus();
   }
-  // Wait out the slide-out before removing it from the tree.
+  // Wait out the slide-out before removing them from the tree.
   setTimeout(() => {
-    if (!panel.classList.contains("is-open")) panel.hidden = true;
+    if (!panel.classList.contains("is-open")) {
+      panel.hidden = true;
+      if (scrim) scrim.hidden = true;
+    }
   }, 240);
 }
 
@@ -127,7 +156,12 @@ function renderAssistantMessages() {
   if (assistantBusy) {
     list.insertAdjacentHTML(
       "beforeend",
-      '<div class="assistant-typing" aria-label="Assistant is typing"><span></span><span></span><span></span></div>',
+      '<div class="assistant-thinking" aria-label="Generating a reply">' +
+        '<span class="assistant-thinking-word" id="assistantThinkingWord">' +
+        escapeHtml(assistantThinkingWord) +
+        "\u2026</span>" +
+        '<span class="assistant-typing" aria-hidden="true"><span></span><span></span><span></span></span>' +
+        "</div>",
     );
   }
 
@@ -144,15 +178,39 @@ function pushAssistantMessage(role, text, opts) {
   renderAssistantMessages();
 }
 
+// Pick a word that isn't the one already on screen, so each swap is visible.
+function nextThinkingWord() {
+  const pool = ASSISTANT_THINKING_WORDS.filter((w) => w !== assistantThinkingWord);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function startThinkingWords() {
+  assistantThinkingWord = nextThinkingWord();
+  clearInterval(assistantThinkingTimer);
+  assistantThinkingTimer = setInterval(() => {
+    assistantThinkingWord = nextThinkingWord();
+    // Update in place: re-rendering the whole log would fight the scroll.
+    const el = document.getElementById("assistantThinkingWord");
+    if (el) el.textContent = assistantThinkingWord + "\u2026";
+  }, ASSISTANT_THINKING_MS);
+}
+
+function stopThinkingWords() {
+  clearInterval(assistantThinkingTimer);
+  assistantThinkingTimer = null;
+}
+
 function setAssistantBusy(busy) {
   assistantBusy = busy;
   const { send, status } = assistantEls();
   if (send) send.disabled = busy || !assistantHasDraft();
   if (status) {
     status.textContent = busy
-      ? "Thinking..."
+      ? "Generating a reply..."
       : "Ask about anything in the dashboard";
   }
+  if (busy) startThinkingWords();
+  else stopThinkingWords();
   renderAssistantMessages();
 }
 
@@ -164,7 +222,9 @@ function assistantHasDraft() {
 // The one request the backend has to answer. Everything else here is UI.
 async function sendAssistantMessage(text) {
   if (ASSISTANT_STUBBED) {
-    await new Promise((r) => setTimeout(r, 900));
+    // Long enough for the thinking words to actually rotate while the panel is
+    // being reviewed. Drop this whole branch with ASSISTANT_STUBBED.
+    await new Promise((r) => setTimeout(r, 6000));
     return {
       reply:
         "I'm not connected to the AI service yet — this panel is a design " +
@@ -224,7 +284,7 @@ function autosizeAssistantInput() {
 }
 
 function setupAssistant() {
-  const { fab, close, form, input, send, footnote } = assistantEls();
+  const { fab, close, scrim, form, input, send, footnote } = assistantEls();
   if (!fab || !form || !input) return;
 
   if (footnote) {
@@ -235,6 +295,8 @@ function setupAssistant() {
 
   fab.addEventListener("click", toggleAssistant);
   if (close) close.addEventListener("click", closeAssistant);
+  // Clicking anywhere outside the panel dismisses it.
+  if (scrim) scrim.addEventListener("click", closeAssistant);
   form.addEventListener("submit", submitAssistantMessage);
 
   input.addEventListener("input", () => {

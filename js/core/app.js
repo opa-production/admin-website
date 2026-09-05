@@ -253,6 +253,7 @@ function loadPage(page) {
     hosts: "Hosts",
     clients: "Clients",
     cars: "Cars",
+    verifications: "Verifications",
     feedback: "Feedback",
     notifications: "Notifications",
     "payment-methods": "Payment Methods",
@@ -295,6 +296,9 @@ function loadPage(page) {
     case "cars":
       setupCarSearch();
       loadCars();
+      break;
+    case "verifications":
+      loadVerifications();
       break;
     case "feedback":
       loadFeedback();
