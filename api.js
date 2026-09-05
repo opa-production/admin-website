@@ -154,6 +154,68 @@ async function apiRequest(endpoint, options = {}) {
   return data;
 }
 
+// Streaming chat. Not routed through apiRequest(): that awaits response.json(),
+// which defeats the point. Auth and the 401 handling are duplicated here on
+// purpose — this is the only streaming endpoint in the dashboard.
+async function assistantStream(body, handlers) {
+  const token = getAuthToken();
+  if (!token) throw new Error("Not authenticated");
+
+  const response = await fetch(`${API_BASE_URL}/admin/assistant/stream`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (response.status === 401) {
+    clearSessionStorage();
+    setLogoutReason("Signed out: the server rejected this session.");
+    window.location.href = "/";
+    throw new Error("Unauthorized");
+  }
+  if (!response.ok) {
+    // A failure before the stream starts is still plain JSON.
+    const data = await response.json().catch(() => ({}));
+    const err = new Error(
+      data.detail || "The assistant is unavailable right now.",
+    );
+    err.status = response.status;
+    throw err;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    // Frames are separated by a blank line.
+    const frames = buffer.split("\n\n");
+    buffer = frames.pop();
+
+    for (const frame of frames) {
+      if (!frame.startsWith("event:")) continue; // a ": ping" comment
+      const [head, ...rest] = frame.split("\n");
+      const event = head.slice(6).trim();
+      const dataLine = rest.find((l) => l.startsWith("data:"));
+      if (!dataLine) continue;
+      let payload;
+      try {
+        payload = JSON.parse(dataLine.slice(5).trim());
+      } catch (e) {
+        continue;
+      }
+      if (handlers[event]) handlers[event](payload);
+    }
+  }
+}
+
 // API methods
 const api = {
   // Admin
@@ -307,13 +369,14 @@ const api = {
     apiRequest(`/admin/admins/${id}/deactivate`, { method: "PUT" }),
 
   // Own Profile Management
-  // AI assistant (see ASSISTANT_BACKEND.md). Not live yet — assistant.js is
-  // stubbed until this endpoint exists.
+  // AI assistant. The buffered endpoint; the panel prefers assistantStream()
+  // and keeps this as the fallback.
   assistantChat: (data) =>
     apiRequest("/admin/assistant/chat", {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  assistantStream: (data, handlers) => assistantStream(data, handlers),
 
   updateOwnProfile: (data) =>
     apiRequest("/admin/profile", {

@@ -134,9 +134,11 @@ surfaces the separation comes from borders instead.
   6 digits so the modal design can be reviewed. See `OTP_BACKEND.md`.
 - **The mobile number on My Profile is mirrored to `localStorage`** until the API
   persists `phone_number`. Same doc.
-- **The AI assistant is stubbed.** `ASSISTANT_STUBBED = true` in
-  `js/core/assistant.js` returns a canned reply so the panel can be reviewed.
-  See `ASSISTANT_BACKEND.md`.
+- **The AI assistant is live**, streaming over Server-Sent Events from
+  `POST /admin/assistant/stream` (`js/core/assistant.js`, `assistantStream()` in
+  `api.js`). The stub is gone. Conversation history (`ai.md` §4) is the one
+  optional piece not built: the thread is held per tab, so a refresh starts a
+  new one.
 - **Production URLs drop the `.html`** (`cleanUrls` in `vercel.json`), so
   in-app redirects now point at `/` and `/dashboard`.
 - **Every native `<select>` is upgraded at runtime** into the `.ui-select`

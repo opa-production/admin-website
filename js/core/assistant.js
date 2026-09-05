@@ -4,19 +4,18 @@
 // bottom of dashboard.html, outside .dashboard-layout), so it is available on
 // every page and survives navigation between them.
 //
-// ---------------------------------------------------------------------------
-// DESIGN-PREVIEW MODE: the AI endpoints don't exist yet, so `ASSISTANT_STUBBED`
-// short-circuits the request and replies with a canned message. Flip it to
-// false once POST /admin/assistant/chat ships — the real request code below is
-// already wired up. See ASSISTANT_BACKEND.md.
-// ---------------------------------------------------------------------------
-const ASSISTANT_STUBBED = true;
+// Answers stream in over Server-Sent Events from POST /admin/assistant/stream,
+// so text appears as it is written and the panel can name the lookup that is
+// running. See ai.md.
 
-// Conversation is per-tab: refreshing starts a new thread. Persisting it is a
-// backend decision (see the doc) rather than something to fake in storage.
+// The thread id is held for the tab; the transcript itself lives server-side.
 let assistantMessages = [];
 let assistantConversationId = null;
 let assistantBusy = false;
+
+// True between the first token of a reply and the end of the turn — the reply
+// bubble is being appended to rather than pushed whole.
+let assistantStreaming = false;
 
 // Shown one at a time while a reply is generating, so the wait has some
 // character instead of three grey dots. Rotates every few seconds.
@@ -35,8 +34,40 @@ const ASSISTANT_THINKING_WORDS = [
 
 const ASSISTANT_THINKING_MS = 2400;
 
+// While a lookup runs, say which one instead of a rotating word. The list grows
+// server-side, so an unrecognised name falls back to a generic phrase rather
+// than leaking a raw tool name into the panel.
+const ASSISTANT_TOOL_LABELS = {
+  get_platform_overview: "Checking the numbers",
+  get_today: "Checking today",
+  find_bookings: "Searching bookings",
+  get_booking: "Opening the booking",
+  find_cars: "Searching listings",
+  find_user: "Looking up the account",
+  get_verification_queue: "Checking the queue",
+  get_deposit_claims: "Checking deposit claims",
+  get_revenue: "Reading the ledger",
+  get_withdrawals: "Checking withdrawals",
+  get_refunds: "Checking refunds",
+  get_payment_health: "Checking payments",
+  get_support_conversations: "Reading support",
+  read_support_conversation: "Reading the thread",
+  get_agent_conversations: "Checking AI conversations",
+  read_agent_conversation: "Reading the thread",
+  get_feedback: "Reading feedback",
+  get_listing_reports: "Checking reports",
+  get_b2b_overview: "Checking Ardena for Business",
+  find_b2b_business: "Looking up the workspace",
+  get_b2b_support: "Checking B2B support",
+  get_admins: "Checking admin accounts",
+  get_subscribers: "Checking subscribers",
+};
+
 let assistantThinkingWord = ASSISTANT_THINKING_WORDS[0];
 let assistantThinkingTimer = null;
+
+// Set while a named lookup is running; overrides the rotating word.
+let assistantToolLabel = null;
 
 const ASSISTANT_SUGGESTIONS = [
   "How many bookings were confirmed this week?",
@@ -141,13 +172,29 @@ function renderAssistantMessages() {
     return;
   }
 
+  const lastIndex = assistantMessages.length - 1;
+
   list.innerHTML = assistantMessages
-    .map((msg) => {
+    .map((msg, i) => {
       const roleClass =
         msg.role === "admin" ? "is-admin" : msg.error ? "is-ai is-error" : "is-ai";
+      // A caret on the tail of the reply currently being written.
+      const isLive =
+        assistantStreaming && i === lastIndex && msg.role === "ai";
+      // The live reply keeps its text in its own span so tokens can be appended
+      // without rebuilding the bubble (and without disturbing the caret).
+      const live = isLive
+        ? '<span class="assistant-caret" aria-hidden="true"></span>'
+        : "";
+      // Lookups the admin's role refused. The reply already explains it; this
+      // is a quiet footnote, not an error.
+      const note = msg.outOfScope
+        ? '<div class="assistant-note">Some of that is outside your role&rsquo;s access.</div>'
+        : "";
       return `
         <div class="assistant-msg ${roleClass}">
-          <div class="assistant-bubble">${escapeHtml(msg.text)}</div>
+          <div class="assistant-bubble"><span${isLive ? ' id="assistantLiveText"' : ""}>${escapeHtml(msg.text)}</span>${live}</div>
+          ${note}
           <div class="assistant-msg-time">${assistantTimeLabel(msg.at)}</div>
         </div>`;
     })
@@ -158,8 +205,8 @@ function renderAssistantMessages() {
       "beforeend",
       '<div class="assistant-thinking" aria-label="Generating a reply">' +
         '<span class="assistant-thinking-word" id="assistantThinkingWord">' +
-        escapeHtml(assistantThinkingWord) +
-        "\u2026</span>" +
+        escapeHtml(assistantThinkingText()) +
+        "</span>" +
         '<span class="assistant-typing" aria-hidden="true"><span></span><span></span><span></span></span>' +
         "</div>",
     );
@@ -184,20 +231,39 @@ function nextThinkingWord() {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+// What the thinking line currently says: the running lookup if there is one,
+// otherwise the whimsical word.
+function assistantThinkingText() {
+  return (assistantToolLabel || assistantThinkingWord) + "\u2026";
+}
+
+function paintThinkingWord() {
+  // Update in place: re-rendering the whole log would fight the scroll.
+  const el = document.getElementById("assistantThinkingWord");
+  if (el) el.textContent = assistantThinkingText();
+}
+
 function startThinkingWords() {
   assistantThinkingWord = nextThinkingWord();
   clearInterval(assistantThinkingTimer);
   assistantThinkingTimer = setInterval(() => {
+    // A named lookup holds the line until it finishes.
+    if (assistantToolLabel) return;
     assistantThinkingWord = nextThinkingWord();
-    // Update in place: re-rendering the whole log would fight the scroll.
-    const el = document.getElementById("assistantThinkingWord");
-    if (el) el.textContent = assistantThinkingWord + "\u2026";
+    paintThinkingWord();
   }, ASSISTANT_THINKING_MS);
 }
 
 function stopThinkingWords() {
   clearInterval(assistantThinkingTimer);
   assistantThinkingTimer = null;
+  assistantToolLabel = null;
+}
+
+// `tool` frame: name the lookup instead of the rotating word.
+function setAssistantToolLabel(name) {
+  assistantToolLabel = ASSISTANT_TOOL_LABELS[name] || "Working";
+  paintThinkingWord();
 }
 
 function setAssistantBusy(busy) {
@@ -219,27 +285,100 @@ function assistantHasDraft() {
   return Boolean(input && input.value.trim());
 }
 
-// The one request the backend has to answer. Everything else here is UI.
-async function sendAssistantMessage(text) {
-  if (ASSISTANT_STUBBED) {
-    // Long enough for the thinking words to actually rotate while the panel is
-    // being reviewed. Drop this whole branch with ASSISTANT_STUBBED.
-    await new Promise((r) => setTimeout(r, 6000));
-    return {
-      reply:
-        "I'm not connected to the AI service yet — this panel is a design " +
-        "preview.\n\nOnce the endpoint is live I'll be able to answer this " +
-        "using the same data you see in the dashboard.",
-      conversation_id: assistantConversationId || "preview",
-    };
+// Append to the reply currently being streamed, creating it on the first token.
+function appendAssistantToken(text) {
+  const last = assistantMessages[assistantMessages.length - 1];
+  if (assistantStreaming && last && last.role === "ai") {
+    last.text += text;
+    // Patch the one span rather than re-rendering the whole log on every
+    // token — a long reply would otherwise rebuild the DOM hundreds of times.
+    const liveText = document.getElementById("assistantLiveText");
+    if (liveText) {
+      liveText.textContent = last.text;
+      const { list } = assistantEls();
+      if (list) list.scrollTop = list.scrollHeight;
+      return;
+    }
+  } else {
+    assistantStreaming = true;
+    assistantMessages.push({ role: "ai", text: text, at: new Date() });
   }
+  renderAssistantMessages();
+}
 
-  return api.assistantChat({
-    message: text,
-    conversation_id: assistantConversationId,
-    // Where the admin asked from, so the assistant can answer in context.
-    page: typeof currentDashboardPage !== "undefined" ? currentDashboardPage : null,
-  });
+// One turn, streamed. Resolves when the turn is done; throws if the request
+// fails before the stream starts (the caller renders that as a failed message).
+function streamAssistantTurn(text) {
+  let sawError = false;
+  let sawToken = false;
+
+  return api
+    .assistantStream(
+      {
+        message: text,
+        conversation_id: assistantConversationId,
+        // Where the admin asked from, so the assistant can resolve "these
+        // bookings" without being told.
+        page:
+          typeof currentDashboardPage !== "undefined"
+            ? currentDashboardPage
+            : null,
+      },
+      {
+        meta: (payload) => {
+          if (payload.conversation_id) {
+            assistantConversationId = payload.conversation_id;
+          }
+        },
+        tool: (payload) => setAssistantToolLabel(payload.name),
+        token: (payload) => {
+          if (!payload.text) return;
+          // The first token ends the waiting state — that is the whole win of
+          // streaming, so do it before appending.
+          if (!assistantStreaming) setAssistantBusy(false);
+          sawToken = true;
+          appendAssistantToken(payload.text);
+        },
+        error: (payload) => {
+          sawError = true;
+          setAssistantBusy(false);
+          assistantStreaming = false;
+          pushAssistantMessage(
+            "ai",
+            payload.detail || "The assistant could not answer that.",
+            { error: true },
+          );
+        },
+        done: (payload) => {
+          setAssistantBusy(false);
+          assistantStreaming = false;
+          if (payload && payload.conversation_id) {
+            assistantConversationId = payload.conversation_id;
+          }
+          // Lookups the role refused. Not an error: the reply still stands.
+          const refused = (payload && payload.out_of_scope) || [];
+          const last = assistantMessages[assistantMessages.length - 1];
+          if (refused.length && last && last.role === "ai" && !last.error) {
+            last.outOfScope = true;
+          }
+          renderAssistantMessages();
+        },
+      },
+    )
+    .then(() => {
+      // A stream that ends without a `done` frame — a dropped connection, a
+      // proxy timing out — must not leave the panel thinking forever.
+      if (assistantBusy) setAssistantBusy(false);
+      assistantStreaming = false;
+      if (!sawToken && !sawError) {
+        pushAssistantMessage(
+          "ai",
+          "The connection to the assistant ended before it answered. Try again.",
+          { error: true },
+        );
+      }
+      return sawError;
+    });
 }
 
 async function submitAssistantMessage(event) {
@@ -256,20 +395,26 @@ async function submitAssistantMessage(event) {
   setAssistantBusy(true);
 
   try {
-    const data = await sendAssistantMessage(text);
-    if (data && data.conversation_id) {
-      assistantConversationId = data.conversation_id;
+    await streamAssistantTurn(text);
+  } catch (error) {
+    // 409 = the thread can no longer be continued (the admin's role changed, or
+    // it was closed). Start a fresh thread and try the same question once.
+    if (error && error.status === 409 && assistantConversationId) {
+      assistantConversationId = null;
+      try {
+        setAssistantBusy(true);
+        await streamAssistantTurn(text);
+        return;
+      } catch (retryError) {
+        error = retryError;
+      }
     }
     setAssistantBusy(false);
+    assistantStreaming = false;
     pushAssistantMessage(
       "ai",
-      (data && (data.reply || data.message)) || "No response.",
-    );
-  } catch (error) {
-    setAssistantBusy(false);
-    pushAssistantMessage(
-      "ai",
-      error.message || "Something went wrong reaching the assistant.",
+      (error && error.message) ||
+        "Something went wrong reaching the assistant.",
       { error: true },
     );
   }
@@ -288,9 +433,8 @@ function setupAssistant() {
   if (!fab || !form || !input) return;
 
   if (footnote) {
-    footnote.textContent = ASSISTANT_STUBBED
-      ? "Preview only — not connected to the AI service yet."
-      : "The assistant can be wrong. Check anything important against the data.";
+    footnote.textContent =
+      "The assistant can be wrong. Check anything important against the data.";
   }
 
   fab.addEventListener("click", toggleAssistant);
