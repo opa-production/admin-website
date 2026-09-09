@@ -32,6 +32,18 @@ function canManageAdmins(role) {
   return (role || window.currentAdminRole) === "super_admin";
 }
 
+// Same test as canManageAdmins, named for call sites that are gating something
+// other than admin management (the host password reset, for one).
+function isSuperAdmin(role) {
+  return canManageAdmins(role);
+}
+
+// Credential actions on the B2B page — approve, create, reset — are open to
+// managers too, unlike the host reset. Deliberately looser than isSuperAdmin.
+function canManageB2BCredentials(role) {
+  return canViewAdmins(role);
+}
+
 // Page through a list endpoint and return every row (client-side filtering needs
 // the whole dataset, not just one page). Uses a limit we know the backend honors.
 async function fetchAllPaged(apiFn, key) {

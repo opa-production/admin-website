@@ -204,6 +204,7 @@ async function loadB2BBusinesses() {
                                     <td>
                                         <div class="row-actions">
                                             ${uiIconButton("users", "Manage users", `openB2BUsersModal(${b.id}, '${escapeHtml(b.name)}')`, "primary")}
+                                            ${canManageB2BCredentials() ? uiIconButton("key", "Reset owner password", `resetB2BBusinessOwner(${b.id}, '${escapeHtml(b.name)}')`) : ""}
                                             ${toggle}
                                             ${uiIconButton("trash", "Delete business", `deleteB2BBusiness(${b.id})`, "danger")}
                                         </div>
@@ -464,7 +465,11 @@ function showB2BCredentialsModal(result) {
 
 function closeB2BCredentialsModal() {
   const modal = document.getElementById("b2bCredentialsModal");
-  if (modal) modal.style.display = "none";
+  if (!modal) return;
+  modal.style.display = "none";
+  // Don't leave the password sitting in the DOM after the modal is dismissed.
+  const body = document.getElementById("b2bCredentialsBody");
+  if (body) body.innerHTML = "";
 }
 
 function copyB2BTempPassword() {
@@ -472,8 +477,8 @@ function copyB2BTempPassword() {
   if (!el) return;
   navigator.clipboard
     .writeText(el.textContent)
-    .then(() => alert("Password copied to clipboard"))
-    .catch(() => alert("Could not copy — select and copy manually"));
+    .then(() => uiToast("Password copied to clipboard", "success"))
+    .catch(() => uiToast("Could not copy — select and copy manually", "error"));
 }
 
 // ---------- Business users modal ----------
@@ -542,6 +547,29 @@ async function resetB2BUserPassword(userId) {
     showB2BCredentialsModal(result);
   } catch (error) {
     uiToast(`Password reset failed: ${error.message}`, "error");
+  }
+}
+
+// The businesses table lists workspaces, not the logins inside them. Without
+// this, "reset this business's password" means opening the users modal and
+// picking a row — which is the moment someone resets the booking agent instead
+// of the owner. The endpoint resolves the Owner login itself.
+async function resetB2BBusinessOwner(businessId, businessName) {
+  const ok = await uiConfirm(
+    `Send a new password to the owner of ${businessName}? Their current password stops working immediately.`,
+    { title: "Reset owner password", confirmText: "Reset password", danger: false },
+  );
+  if (!ok) return;
+
+  try {
+    showB2BCredentialsModal(await api.resetB2BBusinessOwnerPassword(businessId));
+  } catch (error) {
+    uiToast(error.message, "error");
+    // "This business has no Owner login. Reset a specific user instead." is an
+    // instruction, so follow it — open the modal the admin was told to use.
+    if (/no Owner login/i.test(error.message || "")) {
+      openB2BUsersModal(businessId, businessName);
+    }
   }
 }
 

@@ -248,6 +248,10 @@ const api = {
   activateHost: (id) =>
     apiRequest(`/admin/hosts/${id}/activate`, { method: "PUT" }),
   deleteHost: (id) => apiRequest(`/admin/hosts/${id}`, { method: "DELETE" }),
+  // Super-admin only. Returns the new password once, in the body — there is no
+  // endpoint that fetches it again.
+  resetHostPassword: (id) =>
+    apiRequest(`/admin/hosts/${id}/reset-password`, { method: "POST" }),
   getHostCars: (id) => apiRequest(`/admin/hosts/${id}/cars`),
   getHostPaymentMethods: (id) =>
     apiRequest(`/admin/hosts/${id}/payment-methods`),
@@ -622,6 +626,12 @@ const api = {
     apiRequest(`/admin/b2b/businesses/${businessId}/users`),
   resetB2BUserPassword: (userId) =>
     apiRequest(`/admin/b2b/users/${userId}/reset-password`, {
+      method: "POST",
+    }),
+  // Resolves to the workspace's Owner login, so the caller doesn't have to pick
+  // a row out of the users modal and risk resetting the wrong one.
+  resetB2BBusinessOwnerPassword: (businessId) =>
+    apiRequest(`/admin/b2b/businesses/${businessId}/reset-owner-password`, {
       method: "POST",
     }),
   activateB2BUser: (userId) =>

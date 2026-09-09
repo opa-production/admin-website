@@ -497,6 +497,8 @@ const UI_ICON_PATHS = {
     '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
   eyeOff:
     '<path d="M10.6 6.2A9.9 9.9 0 0 1 12 6c6.4 0 10 6 10 6a18.5 18.5 0 0 1-3 3.6"/><path d="M6.6 6.6A18.6 18.6 0 0 0 2 12s3.6 6 10 6a9.8 9.8 0 0 0 4.2-.9"/><path d="m3 3 18 18"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+  key:
+    '<path d="M15.5 8.5a3.5 3.5 0 1 1-3.4 4.4L9 16h-2v2H5v2H2v-3l7.1-7.1a3.5 3.5 0 0 1 6.4-1.4z"/><circle cx="16.5" cy="7.5" r="1"/>',
 };
 
 // `action` picks the glyph; `label` becomes both the hover title and the

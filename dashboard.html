@@ -1364,6 +1364,23 @@
         </div>
     </div>
 
+    <!-- Host: one-shot password display. Deliberately a separate modal from
+         #b2bCredentialsModal: no business name, and a footer about biometrics. -->
+    <div id="hostCredentialsModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 560px;">
+            <div class="modal-header">
+                <h2>New Host Password</h2>
+                <button class="modal-close" onclick="closeHostCredentialsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="hostCredentialsBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="closeHostCredentialsModal()">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- B2B: business users -->
     <div id="b2bUsersModal" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 760px;">

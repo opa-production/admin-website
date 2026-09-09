@@ -243,6 +243,7 @@ async function viewHostDetails(hostId) {
                     ? `<button class="btn btn-secondary" onclick="deactivateHost(${host.id}, true)">Deactivate Account</button>`
                     : `<button class="btn btn-primary" onclick="activateHost(${host.id}, true)">Activate Account</button>`
                 }
+                ${isSuperAdmin() && !isInternalB2BHostEmail(host.email) ? `<button class="btn btn-secondary" onclick="resetHostPassword(${host.id}, '${escapeHtmlAttr(host.email)}')">Reset Password</button>` : ""}
                 <button class="btn btn-danger" onclick="deleteHostConfirm(${host.id}, '${host.full_name}', true)">Delete Account</button>
             </div>
         `;
@@ -250,6 +251,72 @@ async function viewHostDetails(hostId) {
     console.error("Error loading host details:", error);
     hostDetailContent.innerHTML = `<div class="empty-state">Error loading host details: ${error.message}</div>`;
   }
+}
+
+// Every B2B workspace that publishes a car gets a synthetic Host row fronting
+// its fleet, at an unroutable address. Nobody reads that mailbox, so there is
+// nothing to reset — the backend refuses these with a 400 either way.
+function isInternalB2BHostEmail(email) {
+  return String(email || "").toLowerCase().endsWith("@ardena-internal.local");
+}
+
+// Super admin only, and destructive: the old password stops working the moment
+// this returns, and every registered fingerprint/Face ID login is revoked with
+// it. The new password comes back in the response body and is stored only as a
+// hash — if the modal is closed before anyone reads it, the only recovery is
+// another reset. So: confirm first, and never navigate away on success.
+async function resetHostPassword(hostId, email) {
+  const ok = await uiConfirm(
+    `Send a new password to ${email}? Their current password stops working immediately, and any fingerprint or Face ID sign-ins on their devices are signed out.`,
+    { title: "Reset password", confirmText: "Reset password", danger: false },
+  );
+  if (!ok) return;
+
+  try {
+    showHostCredentialsModal(await api.resetHostPassword(hostId));
+  } catch (error) {
+    // The detail strings the backend returns are written for the admin reading
+    // them — the internal-host 400 in particular says where to go instead.
+    uiToast(error.message, "error");
+  }
+}
+
+function showHostCredentialsModal(result) {
+  const modal = document.getElementById("hostCredentialsModal");
+  if (!modal) return;
+  const emailBadge = result.email_sent
+    ? '<span class="status-badge active">Email sent</span>'
+    : '<span class="status-badge inactive">Email failed — share manually</span>';
+  document.getElementById("hostCredentialsBody").innerHTML = `
+        <p style="margin-bottom: 12px;">${escapeHtml(result.message)} ${emailBadge}</p>
+        <table style="border-collapse: collapse; width: 100%; margin-bottom: 8px;">
+            <tr><td style="padding: 6px 12px 6px 0;"><strong>Host</strong></td><td>${escapeHtml(result.full_name)}</td></tr>
+            <tr><td style="padding: 6px 12px 6px 0;"><strong>Login email</strong></td><td>${escapeHtml(result.email)}</td></tr>
+            <tr><td style="padding: 6px 12px 6px 0;"><strong>Temporary password</strong></td>
+                <td><code id="hostTempPassword" style="background:#f2f2f2;padding:4px 8px;border-radius: 0;font-size:15px;">${escapeHtml(result.temp_password)}</code>
+                    <button class="btn btn-small btn-secondary" style="margin-left:8px;" onclick="copyHostTempPassword()">Copy</button></td></tr>
+        </table>
+        <p style="font-size: 13px; color: #666;">This password is shown only once and is not stored in plaintext. Fingerprint and Face ID sign-ins on the host’s devices have been signed out. They should change this password after signing in.</p>
+    `;
+  modal.style.display = "flex";
+}
+
+function closeHostCredentialsModal() {
+  const modal = document.getElementById("hostCredentialsModal");
+  if (!modal) return;
+  modal.style.display = "none";
+  // Don't leave the password sitting in the DOM after the modal is dismissed.
+  const body = document.getElementById("hostCredentialsBody");
+  if (body) body.innerHTML = "";
+}
+
+function copyHostTempPassword() {
+  const el = document.getElementById("hostTempPassword");
+  if (!el) return;
+  navigator.clipboard
+    .writeText(el.textContent)
+    .then(() => uiToast("Password copied to clipboard", "success"))
+    .catch(() => uiToast("Could not copy — select and copy manually", "error"));
 }
 
 // Deactivate host
