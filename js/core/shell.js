@@ -47,6 +47,8 @@ const NAV_ICONS = {
   b2b: '<path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 9h1.5M9 12h1.5M9 15h1.5M13.5 9H15M13.5 12H15M13.5 15H15"></path>',
   "b2b-support":
     '<path d="M4 18V8a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H8z"></path><path d="M17 10h1a2 2 0 0 1 2 2v9l-3-3h-6a2 2 0 0 1-2-2"></path>',
+  newsroom:
+    '<path d="M4 5h13v14H6a2 2 0 0 1-2-2z"></path><path d="M17 8h3v9a2 2 0 0 1-2 2"></path><line x1="7.5" y1="9" x2="13.5" y2="9"></line><line x1="7.5" y1="12.5" x2="13.5" y2="12.5"></line><line x1="7.5" y1="16" x2="11" y2="16"></line>',
   "b2b-fleet":
     '<path d="M5 17h14"></path><path d="M4 17v-4l2-5h12l2 5v4"></path><circle cx="7.5" cy="17.5" r="1.8"></circle><circle cx="16.5" cy="17.5" r="1.8"></circle><polyline points="9 6 11 8 15 4"></polyline>',
 };
@@ -83,6 +85,7 @@ const NAV_ITEMS = [
   { page: "b2b", label: "B2B Businesses", icon: "b2b" },
   { page: "b2b-fleet", label: "B2B Fleet", icon: "b2b-fleet" },
   { page: "b2b-support", label: "B2B Support", icon: "b2b-support" },
+  { page: "newsroom", label: "Newsroom", icon: "newsroom" },
   {
     page: "admins",
     label: "Admins",

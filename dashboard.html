@@ -1001,6 +1001,29 @@
                     </div>
                 </div>
 
+                <!-- Newsroom: who writes for ardena.co.ke/newsroom, and the stories.
+                     Anyone can look; only a super admin can change who writes
+                     (the API enforces that too). -->
+                <div id="newsroomPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                            <h2 style="margin: 0;">Newsroom</h2>
+                            <button class="btn btn-primary" id="newsroomInviteBtn" onclick="openNewsroomInviteModal()" style="display: none;">Invite a writer</button>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+                            <button id="newsroomTab-requests" class="referrals-tab active" onclick="switchNewsroomTab('requests')">Requests</button>
+                            <button id="newsroomTab-writers" class="referrals-tab" onclick="switchNewsroomTab('writers')">Writers</button>
+                            <button id="newsroomTab-stories" class="referrals-tab" onclick="switchNewsroomTab('stories')">Stories</button>
+                            <button id="newsroomTab-activity" class="referrals-tab" onclick="switchNewsroomTab('activity')">Activity</button>
+                        </div>
+                        <div id="newsroomFilterRow" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                            <select id="newsroomFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;"></select>
+                        </div>
+                        <p id="newsroomNote" style="color: #64748b; margin: -8px 0 16px; font-size: 13px;"></p>
+                        <div id="newsroomContent"><div class="loading">Loading...</div></div>
+                    </div>
+                </div>
+
                 <!-- B2B Fleet: vehicles business accounts have put on the consumer
                      app. Two gates decide visibility: their listing status and our
                      review. "Make visible" moves only the second. -->
@@ -1310,6 +1333,72 @@
         </div>
     </div>
 
+    <!-- Newsroom: approve or reject a writer request -->
+    <div id="newsroomDecideModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2 id="newsroomDecideTitle">Writer request</h2>
+                <button class="modal-close" onclick="closeNewsroomModal('newsroomDecideModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="newsroomDecideId" value="">
+                <input type="hidden" id="newsroomDecideAction" value="">
+                <div id="newsroomDecideSummary" style="margin-bottom: 16px; line-height: 1.55;"></div>
+                <div class="form-group" id="newsroomApproveOptions">
+                    <label style="display: flex; gap: 8px; align-items: center; font-weight: 500;">
+                        <input type="checkbox" id="newsroomApprovePublish" checked> Can publish stories
+                    </label>
+                    <p style="font-size: 13px; color: #64748b; margin: 6px 0 0;">They get an email with a one-time link to set their password. Leave publishing off to let them sign in without going live yet.</p>
+                </div>
+                <div id="newsroomRejectOptions">
+                    <div class="form-group">
+                        <label for="newsroomRejectNote">Note (internal, optional)</label>
+                        <textarea id="newsroomRejectNote" rows="3" maxlength="500" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 0;"></textarea>
+                    </div>
+                    <label style="display: flex; gap: 8px; align-items: center; font-weight: 500;">
+                        <input type="checkbox" id="newsroomRejectNotify"> Send them a polite "not right now" email
+                    </label>
+                </div>
+                <div id="newsroomDecideError" style="color: #d32f2f; margin: 12px 0;"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeNewsroomModal('newsroomDecideModal')">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="newsroomDecideBtn" onclick="confirmNewsroomDecision()">Approve</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Newsroom: invite a writer directly -->
+    <div id="newsroomInviteModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <h2>Invite a writer</h2>
+                <button class="modal-close" onclick="closeNewsroomModal('newsroomInviteModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="newsroomInviteForm" onsubmit="event.preventDefault(); confirmNewsroomInvite();">
+                    <div class="form-group">
+                        <label for="newsroomInviteName">Name</label>
+                        <input type="text" id="newsroomInviteName" required minlength="2" maxlength="120" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 0;">
+                    </div>
+                    <div class="form-group">
+                        <label for="newsroomInviteEmail">Email</label>
+                        <input type="email" id="newsroomInviteEmail" required style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 0;">
+                    </div>
+                    <label style="display: flex; gap: 8px; align-items: center; font-weight: 500;">
+                        <input type="checkbox" id="newsroomInvitePublish" checked> Can publish stories
+                    </label>
+                    <p style="font-size: 13px; color: #64748b; margin: 8px 0 0;">They get an email with a one-time link to set their password. It expires in 72 hours.</p>
+                    <div id="newsroomInviteError" style="color: #d32f2f; margin: 12px 0;"></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeNewsroomModal('newsroomInviteModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="newsroomInviteSubmit">Send invite</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- B2B: create business directly -->
     <div id="b2bCreateModal" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 600px;">
@@ -1500,6 +1589,7 @@
     <script src="js/pages/b2b.js"></script>
     <script src="js/pages/b2b-fleet.js"></script>
     <script src="js/pages/b2b-support.js"></script>
+    <script src="js/pages/newsroom.js"></script>
     <script src="js/pages/listing-reports.js"></script>
 </body>
 </html>

@@ -591,6 +591,46 @@ const api = {
     apiRequest(`/admin/secondary-contacts/${clientId}`, { method: "DELETE" }),
 
   // B2B (Ardena for Business) — access requests, workspaces, credentials. See b2b.md
+  // ---- Newsroom (writers and stories for ardena.co.ke/newsroom) ----
+  getNewsroomRequests: (status = "pending") =>
+    apiRequest(`/admin/newsroom/requests${status ? "?status=" + encodeURIComponent(status) : ""}`),
+  approveNewsroomRequest: (id, canPublish = true) =>
+    apiRequest(`/admin/newsroom/requests/${id}/approve`, {
+      method: "POST",
+      body: JSON.stringify({ can_publish: canPublish }),
+    }),
+  rejectNewsroomRequest: (id, note = null, notify = false) =>
+    apiRequest(`/admin/newsroom/requests/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ note, notify }),
+    }),
+  getNewsroomEditors: () => apiRequest("/admin/newsroom/editors"),
+  inviteNewsroomEditor: (fullName, email, canPublish = true) =>
+    apiRequest("/admin/newsroom/editors", {
+      method: "POST",
+      body: JSON.stringify({ full_name: fullName, email, can_publish: canPublish }),
+    }),
+  setNewsroomPublisher: (id, canPublish) =>
+    apiRequest(`/admin/newsroom/editors/${id}/publisher`, {
+      method: "PUT",
+      body: JSON.stringify({ can_publish: canPublish }),
+    }),
+  setNewsroomEditorActive: (id, isActive) =>
+    apiRequest(`/admin/newsroom/editors/${id}/active`, {
+      method: "PUT",
+      body: JSON.stringify({ is_active: isActive }),
+    }),
+  resendNewsroomInvite: (id) =>
+    apiRequest(`/admin/newsroom/editors/${id}/resend-invite`, { method: "POST" }),
+  getNewsroomArticles: (status = "") =>
+    apiRequest(`/admin/newsroom/articles${status ? "?status=" + encodeURIComponent(status) : ""}`),
+  updateNewsroomArticle: (id, changes) =>
+    apiRequest(`/admin/newsroom/articles/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify(changes),
+    }),
+  getNewsroomAudit: (limit = 100) => apiRequest(`/admin/newsroom/audit?limit=${limit}`),
+
   getB2BAccessRequests: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     return apiRequest(
