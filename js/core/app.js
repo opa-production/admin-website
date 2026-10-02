@@ -269,6 +269,8 @@ function loadPage(page) {
     "b2b-fleet": "B2B Fleet",
     "b2b-support": "B2B Support",
     "b2b-revenue": "B2B Revenue",
+    "deposit-claims": "Deposit Claims",
+    "status-incidents": "Status Page",
     newsroom: "Newsroom",
     admins: "Admins",
     "my-profile": "My Profile",
@@ -363,6 +365,12 @@ function loadPage(page) {
       break;
     case "b2b-revenue":
       loadB2BRevenue();
+      break;
+    case "deposit-claims":
+      initDepositClaimsPage();
+      break;
+    case "status-incidents":
+      initStatusIncidentsPage();
       break;
     case "newsroom":
       initNewsroomPage();

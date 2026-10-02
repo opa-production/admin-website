@@ -5001,3 +5001,148 @@ button.profile-menu-item {
         height: 240px;
     }
 }
+
+/* ==================== Form dialog (uiForm) ==================== */
+.ui-dialog--form {
+    max-width: 480px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+}
+
+.ui-form-row { margin-top: 14px; }
+
+.ui-form-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-2);
+}
+
+.ui-form-control { margin-top: 0; }
+
+select.ui-form-control { background: var(--surface); }
+
+.ui-form-hint {
+    margin-top: 5px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--muted);
+}
+
+.ui-form-checks {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 14px;
+}
+
+.ui-form-check {
+    font-size: 14px;
+    color: var(--ink);
+    cursor: pointer;
+}
+
+.ui-form-error {
+    min-height: 18px;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--danger-ink);
+}
+
+/* ==================== Bulk action bar (cars) ==================== */
+.bulk-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border);
+}
+
+.bulk-bar-count { font-weight: 600; margin-right: 6px; }
+
+/* ==================== Detail list (claims, incidents, funnel) ==================== */
+.detail-note {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.incident-card {
+    margin-bottom: 14px;
+    padding: 16px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+}
+
+.incident-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.incident-title {
+    margin: 0 0 6px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.incident-updates {
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--border);
+}
+
+.incident-updates li {
+    padding: 10px 0 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink-2);
+}
+
+/* ==================== Assistant: history ==================== */
+.assistant-header-btn {
+    flex-shrink: 0;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--border);
+    cursor: pointer;
+}
+
+.assistant-header-btn:hover { color: var(--ink); border-color: var(--ink-2); }
+
+.assistant-history { display: flex; flex-direction: column; gap: 8px; }
+
+.assistant-history-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-2);
+}
+
+.assistant-history-item {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    text-align: left;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    cursor: pointer;
+}
+
+.assistant-history-item:hover { border-color: var(--accent); }
+
+.assistant-history-item small { display: block; margin-top: 3px; color: var(--muted); }

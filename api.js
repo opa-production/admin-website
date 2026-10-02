@@ -231,6 +231,8 @@ const api = {
   getKycTrends: () => apiRequest("/admin/dashboard/kyc-trends"),
   getBookingTrends: (days = 14) =>
     apiRequest(`/admin/dashboard/booking-trends?days=${days}`),
+  // Snapshot per user type: { total, verified, pending, verified_percentage }.
+  getKycStats: () => apiRequest("/admin/dashboard/kyc-stats"),
 
   // Hosts
   getHosts: (params = {}) => {
@@ -299,6 +301,23 @@ const api = {
       body: JSON.stringify(body),
     });
   },
+  // One decision for several cars. status: awaiting | verified | denied; a
+  // reason is required for denied and is what each host sees.
+  bulkUpdateCarStatus: (carIds, status, rejectionReason = null) => {
+    const body = { car_ids: carIds, verification_status: status };
+    if (rejectionReason) body.rejection_reason = rejectionReason;
+    return apiRequest("/admin/cars/bulk-status", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+  },
+  // The three review queues, each its own endpoint (page/limit only).
+  getCarsByReviewQueue: (queue, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(
+      `/admin/cars/${queue}${queryString ? "?" + queryString : ""}`,
+    );
+  },
   hideCar: (id) => apiRequest(`/admin/cars/${id}/hide`, { method: "PUT" }),
   showCar: (id) => apiRequest(`/admin/cars/${id}/show`, { method: "PUT" }),
   deleteCar: (id) => apiRequest(`/admin/cars/${id}`, { method: "DELETE" }),
@@ -308,6 +327,14 @@ const api = {
     const queryString = new URLSearchParams(params).toString();
     return apiRequest(`/admin/feedback${queryString ? "?" + queryString : ""}`);
   },
+
+  getFeedbackItem: (id) => apiRequest(`/admin/feedback/${id}`),
+  flagFeedback: (id) =>
+    apiRequest(`/admin/feedback/${id}/flag`, { method: "PUT" }),
+  unflagFeedback: (id) =>
+    apiRequest(`/admin/feedback/${id}/unflag`, { method: "PUT" }),
+  deleteFeedback: (id) =>
+    apiRequest(`/admin/feedback/${id}`, { method: "DELETE" }),
 
   // Notifications
   broadcastToHosts: (data) =>
@@ -381,6 +408,13 @@ const api = {
       body: JSON.stringify(data),
     }),
   assistantStream: (data, handlers) => assistantStream(data, handlers),
+  // This admin's own past threads, newest first, and one thread's messages.
+  getAssistantConversations: (limit = 20) =>
+    apiRequest(`/admin/assistant/conversations?limit=${limit}`),
+  getAssistantConversation: (id) =>
+    apiRequest(`/admin/assistant/conversation/${id}`),
+  closeAssistantConversation: (id) =>
+    apiRequest(`/admin/assistant/conversation/${id}/close`, { method: "POST" }),
 
   updateOwnProfile: (data) =>
     apiRequest("/admin/profile", {
@@ -523,6 +557,53 @@ const api = {
       method: "POST",
       body: JSON.stringify({ reason }),
     }),
+
+  // Host referral earnings (a host referred a host). Same shape and rules as
+  // the client ones above, keyed on referrer_host_id.
+  getReferralEarnings: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(
+      `/admin/referral-earnings${queryString ? "?" + queryString : ""}`,
+    );
+  },
+  reverseReferralEarning: (id, reason) =>
+    apiRequest(`/admin/referral-earnings/${id}/reverse`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
+  // Deposit claims: a host asks to keep part of a renter's deposit.
+  // decision: approved (full) | partial (0 < amount < requested) | rejected.
+  getDepositClaims: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(
+      `/admin/deposit-claims${queryString ? "?" + queryString : ""}`,
+    );
+  },
+  getDepositClaim: (id) => apiRequest(`/admin/deposit-claims/${id}`),
+  reviewDepositClaim: (id, data) =>
+    apiRequest(`/admin/deposit-claims/${id}/review`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // Status page (ardena.co.ke/status): the incidents people read there. The
+  // component list comes from the public status feed.
+  getStatusFeed: () => apiRequest("/status"),
+  getStatusIncidents: (limit = 50) =>
+    apiRequest(`/admin/status/incidents?limit=${limit}`),
+  createStatusIncident: (data) =>
+    apiRequest("/admin/status/incidents", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  postStatusIncidentUpdate: (id, data) =>
+    apiRequest(`/admin/status/incidents/${id}/updates`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  deleteStatusIncident: (id) =>
+    apiRequest(`/admin/status/incidents/${id}`, { method: "DELETE" }),
 
   // Subscribers (newsletter)
   getSubscribers: (params = {}) => {
@@ -687,8 +768,36 @@ const api = {
       method: "PUT",
     }),
 
-  // Permanently deletes a workspace and everything under it. Backend endpoint
-  // is specified in b2b.md — not implemented server-side yet.
+  // Enterprise terms, a paid-until date or a free period, set by hand. No
+  // money moves. `note` is required and is logged with the admin's id.
+  setB2BBusinessPlan: (businessId, data) =>
+    apiRequest(`/admin/b2b/businesses/${businessId}/plan`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  // KYB. Approval already verifies a workspace; unverify takes it off the
+  // public trust page and stops it listing on the app.
+  verifyB2BBusiness: (businessId) =>
+    apiRequest(`/admin/b2b/businesses/${businessId}/verify`, { method: "PUT" }),
+  unverifyB2BBusiness: (businessId) =>
+    apiRequest(`/admin/b2b/businesses/${businessId}/unverify`, {
+      method: "PUT",
+    }),
+  // Where workspaces stall between applying and taking app bookings.
+  getB2BFunnel: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/b2b/funnel${queryString ? "?" + queryString : ""}`);
+  },
+  getB2BFunnelBusinesses: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(
+      `/admin/b2b/funnel/businesses${queryString ? "?" + queryString : ""}`,
+    );
+  },
+
+  // Permanently deletes a workspace and everything under it. Super and general
+  // admins only. The server answers 409 for a workspace with payment history,
+  // a wallet balance, app bookings or a live booking: deactivate those instead.
   deleteB2BBusiness: (businessId) =>
     apiRequest(`/admin/b2b/businesses/${businessId}`, {
       method: "DELETE",
@@ -728,8 +837,8 @@ const api = {
       body: JSON.stringify({ reason }),
     }),
 
-  // Permanently removes a fleet vehicle, its listing and its app car. Backend
-  // endpoint is specified in b2b.md — not implemented server-side yet.
+  // Permanently removes a fleet vehicle, its listing and its app car (an app
+  // car with past bookings is hidden and kept). 409 while it has a live booking.
   deleteB2BFleetVehicle: (vehicleId) =>
     apiRequest(`/admin/b2b/fleet/cars/${vehicleId}`, {
       method: "DELETE",

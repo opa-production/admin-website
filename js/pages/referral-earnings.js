@@ -2,9 +2,53 @@
 // Classic script (not a module): top-level functions and vars are global by design.
 
 
-// ==================== CLIENT REFERRAL EARNINGS ====================
-// Earnings where a client referred a host, with a reverse action. See
-// refferals.md §1.
+// ==================== REFERRAL EARNINGS ====================
+// Earnings paid for referring a host, with a reverse action. Two sources share
+// this page: a client who referred a host, and a host who referred a host. They
+// are separate ledgers on the server with the same shape, so the page switches
+// which one it reads rather than repeating itself. See refferals.md §1.
+
+// "client" | "host": who did the referring.
+let referralEarningSource = "client";
+
+const REFERRAL_EARNING_SOURCES = {
+  client: {
+    list: (params) => api.getClientReferralEarnings(params),
+    reverse: (id, reason) => api.reverseClientReferralEarning(id, reason),
+    referrerParam: "referrer_client_id",
+    referrerIdField: "referrer_client_id",
+    referrerLabel: "Referrer (client)",
+    referrerPlaceholder: "Referrer client ID...",
+  },
+  host: {
+    list: (params) => api.getReferralEarnings(params),
+    reverse: (id, reason) => api.reverseReferralEarning(id, reason),
+    referrerParam: "referrer_host_id",
+    referrerIdField: "referrer_host_id",
+    referrerLabel: "Referrer (host)",
+    referrerPlaceholder: "Referrer host ID...",
+  },
+};
+
+function switchReferralEarningSource(source) {
+  if (!REFERRAL_EARNING_SOURCES[source]) return;
+  referralEarningSource = source;
+  document
+    .getElementById("referralEarningClientTab")
+    ?.classList.toggle("active", source === "client");
+  document
+    .getElementById("referralEarningHostTab")
+    ?.classList.toggle("active", source === "host");
+  // A referrer id means a different account in each ledger.
+  currentClientEarningReferrerId = "";
+  currentClientEarningPage = 1;
+  const referrerFilter = document.getElementById("clientEarningReferrerFilter");
+  if (referrerFilter) {
+    referrerFilter.value = "";
+    referrerFilter.placeholder = REFERRAL_EARNING_SOURCES[source].referrerPlaceholder;
+  }
+  loadClientReferralEarnings();
+}
 
 let currentClientEarningPage = 1;
 let currentClientEarningStatus = "";
@@ -62,17 +106,18 @@ function setupClientEarningFilters() {
 async function loadClientReferralEarnings() {
   const content = document.getElementById("clientEarningsContent");
   if (!content) return;
+  const source = REFERRAL_EARNING_SOURCES[referralEarningSource];
   try {
     content.innerHTML = '<div class="loading">Loading earnings...</div>';
     const params = { page: currentClientEarningPage, limit: 20 };
     if (currentClientEarningStatus) params.status = currentClientEarningStatus;
     if (currentClientEarningKind) params.kind = currentClientEarningKind;
     if (currentClientEarningReferrerId)
-      params.referrer_client_id = parseInt(currentClientEarningReferrerId, 10);
+      params[source.referrerParam] = parseInt(currentClientEarningReferrerId, 10);
     if (currentClientEarningReferredId)
       params.referred_host_id = parseInt(currentClientEarningReferredId, 10);
 
-    const data = await api.getClientReferralEarnings(params);
+    const data = await source.list(params);
     const rows = data.earnings || [];
     if (rows.length === 0) {
       content.innerHTML = '<div class="empty-state">No earnings found</div>';
@@ -84,7 +129,7 @@ async function loadClientReferralEarnings() {
                 <table>
                     <thead>
                         <tr>
-                            <th>Referrer (client)</th>
+                            <th>${source.referrerLabel}</th>
                             <th>Referred (host)</th>
                             <th>Car</th>
                             <th>Kind</th>
@@ -104,7 +149,7 @@ async function loadClientReferralEarnings() {
                               : `<button class="btn btn-small btn-danger" onclick="openReverseEarningModal(${e.id})">Reverse</button>`;
                             return `
                             <tr>
-                                <td>${escapeHtmlText(e.referrer_name || "N/A")}<br><small>${escapeHtmlText(e.referrer_email || "")} · #${e.referrer_client_id}</small></td>
+                                <td>${escapeHtmlText(e.referrer_name || "N/A")}<br><small>${escapeHtmlText(e.referrer_email || "")} · #${e[source.referrerIdField]}</small></td>
                                 <td>${escapeHtmlText(e.referred_name || "N/A")}<br><small>${escapeHtmlText(e.referred_email || "")} · #${e.referred_host_id}</small></td>
                                 <td>${escapeHtmlText(e.car_name || "—")}${e.car_id ? ` <small>#${e.car_id}</small>` : ""}</td>
                                 <td>${referralKindBadge(e.kind)}</td>
@@ -162,7 +207,7 @@ function openReverseEarningModal(id) {
   if (!modal || !idInput) return;
   idInput.value = id;
   if (summaryEl)
-    summaryEl.textContent = `Reverse earning #${id}? It will stop counting toward the client's withdrawable balance. This cannot be undone.`;
+    summaryEl.textContent = `Reverse earning #${id}? It will stop counting toward the referrer's withdrawable balance. This cannot be undone.`;
   if (reasonEl) reasonEl.value = "";
   if (errEl) errEl.textContent = "";
   modal.style.display = "flex";
@@ -187,7 +232,7 @@ async function confirmReverseEarning() {
   if (errEl) errEl.textContent = "";
   if (btn) btn.disabled = true;
   try {
-    await api.reverseClientReferralEarning(id, reason);
+    await REFERRAL_EARNING_SOURCES[referralEarningSource].reverse(id, reason);
     closeReverseEarningModal();
     loadClientReferralEarnings();
   } catch (error) {

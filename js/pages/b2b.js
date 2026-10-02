@@ -1,11 +1,13 @@
 // js/pages/b2b.js — B2B (Ardena for Business) onboarding & credential management.
 // Classic script (not a module): top-level functions and vars are global by design.
 //
-// Two tabs backed by /admin/b2b/... (see b2b.md §1):
+// Three tabs backed by /admin/b2b/... (see b2b.md §1):
 //  - Access Requests: review the public "Request access" form submissions;
 //    approving one creates the business workspace + Owner login and emails the
 //    credentials (also shown once in a modal for manual handover).
-//  - Businesses: workspaces, their users, password resets, (de)activation.
+//  - Businesses: workspaces, their users, password resets, (de)activation,
+//    plan, KYB and permanent deletion.
+//  - Funnel: where workspaces stall between applying and taking app bookings.
 
 // ==================== B2B MANAGEMENT ====================
 
@@ -61,15 +63,21 @@ function switchB2BTab(tab) {
   currentB2BTab = tab;
   const requestsTab = document.getElementById("b2bRequestsTab");
   const businessesTab = document.getElementById("b2bBusinessesTab");
+  const funnelTab = document.getElementById("b2bFunnelTab");
   const requestsPanel = document.getElementById("b2bRequestsPanel");
   const businessesPanel = document.getElementById("b2bBusinessesPanel");
+  const funnelPanel = document.getElementById("b2bFunnelPanel");
   if (!requestsPanel || !businessesPanel) return;
   requestsTab.classList.toggle("active", tab === "requests");
   businessesTab.classList.toggle("active", tab === "businesses");
+  if (funnelTab) funnelTab.classList.toggle("active", tab === "funnel");
   requestsPanel.style.display = tab === "requests" ? "block" : "none";
   businessesPanel.style.display = tab === "businesses" ? "block" : "none";
+  if (funnelPanel) funnelPanel.style.display = tab === "funnel" ? "block" : "none";
   if (tab === "requests") {
     loadB2BRequests();
+  } else if (tab === "funnel") {
+    loadB2BFunnel();
   } else {
     loadB2BBusinesses();
   }
@@ -180,6 +188,7 @@ async function loadB2BBusinesses() {
                                 <th>Owner Email</th>
                                 <th>Users</th>
                                 <th>Cars</th>
+                                <th>Plan</th>
                                 <th>Location</th>
                                 <th>Status</th>
                                 <th>Created</th>
@@ -198,15 +207,18 @@ async function loadB2BBusinesses() {
                                     <td>${escapeHtml(b.owner_email || "—")}</td>
                                     <td>${b.users_count}</td>
                                     <td>${b2bBusinessFleetCell(b)}</td>
+                                    <td>${b2bBusinessPlanCell(b)}</td>
                                     <td>${escapeHtml(b.location || "—")}</td>
-                                    <td><span class="status-badge ${b.is_active ? "active" : "inactive"}">${b.is_active ? "Active" : "Inactive"}</span></td>
+                                    <td><span class="status-badge ${b.is_active ? "active" : "inactive"}">${b.is_active ? "Active" : "Inactive"}</span>${b.verified_since ? "" : '<br><small class="b2b-fleet-warn">KYB not verified</small>'}</td>
                                     <td>${b.created_at ? new Date(b.created_at).toLocaleDateString() : "—"}</td>
                                     <td>
                                         <div class="row-actions">
                                             ${uiIconButton("users", "Manage users", `openB2BUsersModal(${b.id}, '${escapeHtml(b.name)}')`, "primary")}
                                             ${canManageB2BCredentials() ? uiIconButton("key", "Reset owner password", `resetB2BBusinessOwner(${b.id}, '${escapeHtml(b.name)}')`) : ""}
+                                            ${canManageB2BCredentials() ? uiIconButton("plan", "Set plan", `editB2BBusinessPlan(${b.id})`) : ""}
+                                            ${canManageB2BCredentials() ? (b.verified_since ? uiIconButton("shieldOff", "Remove KYB verification", `toggleB2BBusinessVerified(${b.id}, false)`) : uiIconButton("shield", "Mark KYB verified", `toggleB2BBusinessVerified(${b.id}, true)`, "primary")) : ""}
                                             ${toggle}
-                                            ${uiIconButton("trash", "Delete business", `deleteB2BBusiness(${b.id})`, "danger")}
+                                            ${canManageAdmins() ? uiIconButton("trash", "Delete business", `deleteB2BBusiness(${b.id})`, "danger") : ""}
                                         </div>
                                     </td>
                                 </tr>`;
@@ -244,6 +256,131 @@ function b2bBusinessFleetCell(b) {
       ? '<small class="b2b-fleet-warn">none on the app</small>'
       : `<small>${live} on the app</small>`;
   return `<strong>${total}</strong><br>${sub}`;
+}
+
+// The plan in effect, and until when. "Free period" is full Fleet access a
+// workspace isn't paying for: an old founding trial or goodwill set here.
+const B2B_PLAN_CELL = {
+  paid: { label: "Fleet", cls: "active" },
+  custom: { label: "Enterprise", cls: "active" },
+  trial: { label: "Free period", cls: "pending" },
+  free: { label: "Starter", cls: "inactive" },
+};
+
+function b2bBusinessPlanCell(b) {
+  const meta = B2B_PLAN_CELL[b.plan_source] || B2B_PLAN_CELL.free;
+  const until = b.plan_until
+    ? `<br><small>until ${new Date(b.plan_until).toLocaleDateString()}</small>`
+    : "";
+  return `<span class="status-badge ${meta.cls}">${meta.label}</span>${until}`;
+}
+
+// A date picked in the form means "through the end of that day" in Nairobi.
+function b2bEndOfDayIso(dateValue) {
+  return dateValue ? `${dateValue}T23:59:59+03:00` : null;
+}
+
+// Enterprise terms, a paid-until date or a free period, set by hand. Nothing
+// is charged here; a wallet is only ever debited by the business's own upgrade.
+async function editB2BBusinessPlan(id) {
+  const business = b2bBusinessRows[id] || {};
+  const current = (B2B_PLAN_CELL[business.plan_source] || B2B_PLAN_CELL.free).label;
+  const values = await uiForm({
+    title: `Plan for ${business.name || "this business"}`,
+    message: `Currently on ${current}${business.plan_until ? " until " + new Date(business.plan_until).toLocaleDateString() : ""}. Nothing is charged from here. Leave a field empty to keep it as it is.`,
+    confirmText: "Save plan",
+    fields: [
+      {
+        name: "plan",
+        label: "Plan",
+        type: "select",
+        value: "",
+        options: [
+          { value: "", label: "Keep as it is" },
+          { value: "starter", label: "Starter (free, 3 cars)" },
+          { value: "fleet", label: "Fleet" },
+          { value: "enterprise", label: "Enterprise (custom terms)" },
+        ],
+      },
+      {
+        name: "paid_until",
+        label: "Paid until",
+        type: "date",
+        hint: "End of a Fleet or Enterprise period given without a wallet charge. Fleet needs a date to take effect.",
+      },
+      {
+        name: "free_until",
+        label: "Free period until",
+        type: "date",
+        hint: "Full Fleet access without paying, as goodwill. It never turns into a charge.",
+      },
+      {
+        name: "clear",
+        label: "Remove",
+        type: "checkboxes",
+        options: [
+          { value: "paid", label: "Paid-until date" },
+          { value: "free", label: "Free period" },
+        ],
+      },
+      {
+        name: "note",
+        label: "Why",
+        type: "textarea",
+        required: true,
+        maxLength: 300,
+        placeholder: "Recorded with your name, e.g. Enterprise terms agreed with the owner",
+      },
+    ],
+    validate: (v) => {
+      if (v.note.length < 3) return "Say why in at least 3 characters.";
+      if (!v.plan && !v.paid_until && !v.free_until && !v.clear.length) {
+        return "Nothing to change yet.";
+      }
+      if (v.paid_until && v.clear.includes("paid")) return "Set a paid-until date or remove it, not both.";
+      if (v.free_until && v.clear.includes("free")) return "Set a free period or remove it, not both.";
+      return null;
+    },
+  });
+  if (!values) return;
+
+  const body = { note: values.note };
+  if (values.plan) body.plan = values.plan;
+  if (values.paid_until) body.paid_until = b2bEndOfDayIso(values.paid_until);
+  if (values.clear.includes("paid")) body.paid_until = null;
+  if (values.free_until) body.trial_ends_at = b2bEndOfDayIso(values.free_until);
+  if (values.clear.includes("free")) body.trial_ends_at = null;
+
+  try {
+    const result = await api.setB2BBusinessPlan(id, body);
+    const label = (B2B_PLAN_CELL[result.source] || B2B_PLAN_CELL.free).label;
+    uiToast(`${business.name || "Business"} is now on ${label}.`, "success");
+    loadB2BBusinesses();
+  } catch (error) {
+    uiToast(`Couldn't set the plan: ${error.message}`, "error");
+  }
+}
+
+// KYB. Approving a workspace already verifies it; this is for taking that
+// back (it stops the business listing on the app and takes down its trust
+// page) and for restoring it.
+async function toggleB2BBusinessVerified(id, verify) {
+  const name = (b2bBusinessRows[id] || {}).name || "this business";
+  if (!verify) {
+    const ok = await uiConfirm(
+      `Remove KYB verification from ${name}? Its public trust page goes offline and it can't publish cars to the Ardena app until it is verified again.`,
+      { title: "Remove verification", confirmText: "Remove verification", danger: true },
+    );
+    if (!ok) return;
+  }
+  try {
+    if (verify) await api.verifyB2BBusiness(id);
+    else await api.unverifyB2BBusiness(id);
+    uiToast(`${name} is ${verify ? "now KYB verified" : "no longer verified"}.`, "success");
+    loadB2BBusinesses();
+  } catch (error) {
+    uiToast(`Couldn't update verification: ${error.message}`, "error");
+  }
 }
 
 function goToB2BBusinessPage(page) {
@@ -583,5 +720,116 @@ async function toggleB2BUser(userId, activate, businessId, businessName) {
     openB2BUsersModal(businessId, businessName);
   } catch (error) {
     uiToast(`Update failed: ${error.message}`, "error");
+  }
+}
+
+// ---------- Funnel ----------
+
+const B2B_FUNNEL_STAGE_LABELS = {
+  access_requests: "Applied for access",
+  approved: "Approved",
+  workspaces_active: "Workspace active",
+  workspaces_verified: "KYB verified",
+  workspaces_with_a_vehicle: "Added a vehicle",
+  workspaces_with_a_listing: "Started an app listing",
+  workspaces_with_a_live_listing: "Has a car live on the app",
+  workspaces_with_a_marketplace_booking: "Took an app booking",
+};
+
+function b2bFunnelStageLabel(stage) {
+  return B2B_FUNNEL_STAGE_LABELS[stage] || String(stage || "").replace(/_/g, " ");
+}
+
+async function loadB2BFunnel() {
+  const content = document.getElementById("b2bFunnelContent");
+  if (!content) return;
+  const windowSelect = document.getElementById("b2bFunnelWindow");
+  if (windowSelect && !windowSelect.onchange) windowSelect.onchange = loadB2BFunnel;
+
+  try {
+    content.innerHTML = '<div class="loading">Loading funnel...</div>';
+    const params = {};
+    if (windowSelect && windowSelect.value) params.window_days = windowSelect.value;
+    const [funnel, businesses] = await Promise.all([
+      api.getB2BFunnel(params),
+      api.getB2BFunnelBusinesses({ limit: 100 }),
+    ]);
+
+    const stages = funnel.stages || [];
+    const top = stages.length ? stages[0].count || 0 : 0;
+    const stageRows = stages
+      .map((stage) => {
+        const share = top ? Math.round(((stage.count || 0) / top) * 100) : 0;
+        const step =
+          stage.conversion_from_previous == null
+            ? "—"
+            : Math.round(stage.conversion_from_previous * 100) + "%";
+        return `<tr>
+                    <td>${escapeHtml(b2bFunnelStageLabel(stage.stage))}</td>
+                    <td><strong>${(stage.count || 0).toLocaleString()}</strong></td>
+                    <td>${step}</td>
+                    <td>${share}%</td>
+                </tr>`;
+      })
+      .join("");
+
+    const businessRows = (businesses || [])
+      .map(
+        (b) => `<tr>
+                    <td><strong>${escapeHtml(b.name)}</strong></td>
+                    <td>${b.verified ? "Yes" : '<span class="b2b-fleet-warn">No</span>'}</td>
+                    <td>${b.vehicles}</td>
+                    <td>${b.listings}</td>
+                    <td>${b.live_listings}</td>
+                    <td>${b.marketplace_bookings}</td>
+                    <td>${fmtKes(b.marketplace_gross)}</td>
+                    <td>${b.host_linked ? "Linked" : "—"}</td>
+                    <td>${b.created_at ? new Date(b.created_at).toLocaleDateString() : "—"}</td>
+                </tr>`,
+      )
+      .join("");
+
+    content.innerHTML = `
+            <div class="table-container" style="margin-bottom: 24px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Stage</th>
+                            <th>Workspaces</th>
+                            <th>From the stage before</th>
+                            <th>Of all who applied</th>
+                        </tr>
+                    </thead>
+                    <tbody>${stageRows || '<tr><td colspan="4">No data yet.</td></tr>'}</tbody>
+                </table>
+            </div>
+            <p style="font-size: 14px; margin-bottom: 20px;">
+                <strong>${(funnel.marketplace_bookings || 0).toLocaleString()}</strong> app bookings worth
+                <strong>${fmtKes(funnel.marketplace_gross)}</strong> ·
+                <strong>${(funnel.host_accounts_linked || 0).toLocaleString()}</strong> host accounts linked ·
+                <strong>${(funnel.vehicles_awaiting_real_plate || 0).toLocaleString()}</strong> imported vehicles still need a real plate
+            </p>
+            <h3 style="margin: 0 0 12px; font-size: 16px;">By workspace</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Business</th>
+                            <th>KYB</th>
+                            <th>Vehicles</th>
+                            <th>Listings</th>
+                            <th>Live</th>
+                            <th>App bookings</th>
+                            <th>App gross</th>
+                            <th>Host account</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>${businessRows || '<tr><td colspan="9">No workspaces yet.</td></tr>'}</tbody>
+                </table>
+            </div>`;
+  } catch (error) {
+    console.error("Error loading B2B funnel:", error);
+    content.innerHTML = `<div class="empty-state">Error loading funnel: ${escapeHtml(error.message)}</div>`;
   }
 }

@@ -78,16 +78,19 @@ async function loadVerifications() {
   content.innerHTML = '<div class="loading">Loading verifications...</div>';
 
   try {
-    const [stats, kyc, queue] = await Promise.all([
+    const [stats, kyc, queue, kycStats] = await Promise.all([
       api.getDashboardStats(),
       api.getKycTrends().catch(() => ({ hosts: [], clients: [] })),
-      api.getCars({ status: "awaiting", limit: 8 }).catch(() => ({ cars: [] })),
+      api.getCarsByReviewQueue("awaiting", { limit: 8 }).catch(() => ({ cars: [] })),
+      // The share of ALL accounts that are verified; the trend series only
+      // counts accounts that started KYC.
+      api.getKycStats().catch(() => ({})),
     ]);
 
     const hosts = normalizeKycSeries(kyc.hosts);
     const clients = normalizeKycSeries(kyc.clients);
 
-    content.innerHTML = renderVerificationsPage(stats, hosts, clients, queue);
+    content.innerHTML = renderVerificationsPage(stats, hosts, clients, queue, kycStats);
     wireVerificationRange();
     drawVerificationCharts(stats, hosts, clients);
   } catch (error) {
@@ -96,7 +99,13 @@ async function loadVerifications() {
   }
 }
 
-function renderVerificationsPage(stats, hosts, clients, queue) {
+function verKycShare(snapshot, noun) {
+  if (!snapshot || !snapshot.total) return "";
+  return ` &middot; ${snapshot.verified_percentage}% of ${Number(snapshot.total).toLocaleString()} ${noun}`;
+}
+
+function renderVerificationsPage(stats, hosts, clients, queue, kycStats) {
+  kycStats = kycStats || {};
   const awaiting = stats.cars_awaiting_verification || 0;
   const verifiedCars = stats.verified_cars || 0;
   const rejectedCars = stats.rejected_cars || 0;
@@ -120,13 +129,13 @@ function renderVerificationsPage(stats, hosts, clients, queue) {
         <div class="ver-kpi-label">Hosts verified</div>
         <div class="ver-kpi-value">${hosts.verified_now}</div>
         ${verDeltaHtml(seriesDelta(trimSeries(hosts, verificationRange)), suffix)}
-        <div class="ver-kpi-foot">${hosts.pending_now} still pending KYC</div>
+        <div class="ver-kpi-foot">${hosts.pending_now} still pending KYC${verKycShare(kycStats.hosts, "hosts")}</div>
       </div>
       <div class="ver-kpi">
         <div class="ver-kpi-label">Clients verified</div>
         <div class="ver-kpi-value">${clients.verified_now}</div>
         ${verDeltaHtml(seriesDelta(trimSeries(clients, verificationRange)), suffix)}
-        <div class="ver-kpi-foot">${clients.pending_now} still pending KYC</div>
+        <div class="ver-kpi-foot">${clients.pending_now} still pending KYC${verKycShare(kycStats.clients, "clients")}</div>
       </div>
       <div class="ver-kpi ${awaiting > 0 ? "is-attention" : ""}">
         <div class="ver-kpi-label">Cars awaiting review</div>

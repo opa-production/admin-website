@@ -129,6 +129,162 @@ function uiPrompt(message, opts = {}) {
   });
 }
 
+// A small form in a dialog, for actions that need more than one answer (a
+// decision plus an amount plus a note). Resolves to { name: value } on submit,
+// or null if cancelled.
+//
+// fields: [{ name, label, type, value, placeholder, hint, required, options }]
+//   type: "text" (default) | "textarea" | "number" | "date" | "select" | "checkboxes"
+//   options: [{ value, label }] for select and checkboxes
+//   a "checkboxes" field resolves to an array of the ticked values
+// opts.validate(values) may return a message to show instead of closing.
+function uiForm(opts = {}) {
+  const fields = opts.fields || [];
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "ui-dialog-overlay";
+    overlay.innerHTML =
+      '<div class="ui-dialog ui-dialog--form" role="dialog" aria-modal="true">' +
+      '<h3 class="ui-dialog-title"></h3>' +
+      '<div class="ui-dialog-message"></div>' +
+      '<form class="ui-form" novalidate></form>' +
+      '<div class="ui-form-error" role="alert"></div>' +
+      '<div class="ui-dialog-actions">' +
+      '<button type="button" class="btn btn-secondary ui-dialog-cancel"></button>' +
+      `<button type="button" class="btn ${opts.danger ? "btn-danger" : "btn-primary"} ui-dialog-ok"></button>` +
+      "</div></div>";
+
+    overlay.querySelector(".ui-dialog-title").textContent = opts.title || "";
+    const messageEl = overlay.querySelector(".ui-dialog-message");
+    if (opts.message) messageEl.textContent = opts.message;
+    else messageEl.remove();
+
+    const form = overlay.querySelector(".ui-form");
+    const errorEl = overlay.querySelector(".ui-form-error");
+    const controls = {};
+
+    fields.forEach((field) => {
+      const row = document.createElement("div");
+      row.className = "ui-form-row";
+      const label = document.createElement("label");
+      label.className = "ui-form-label";
+      label.textContent = field.label + (field.required ? " *" : "");
+      row.appendChild(label);
+
+      let control;
+      if (field.type === "checkboxes") {
+        control = document.createElement("div");
+        control.className = "ui-form-checks";
+        (field.options || []).forEach((option) => {
+          const item = document.createElement("label");
+          item.className = "ui-form-check";
+          const box = document.createElement("input");
+          box.type = "checkbox";
+          box.value = option.value;
+          box.checked = (field.value || []).includes(option.value);
+          item.appendChild(box);
+          item.appendChild(document.createTextNode(" " + option.label));
+          control.appendChild(item);
+        });
+      } else if (field.type === "select") {
+        control = document.createElement("select");
+        // The page-wide select upgrade draws its menu under the dialog.
+        control.dataset.noUpgrade = "true";
+        (field.options || []).forEach((option) => {
+          const el = document.createElement("option");
+          el.value = option.value;
+          el.textContent = option.label;
+          control.appendChild(el);
+        });
+        control.value = field.value != null ? field.value : "";
+      } else if (field.type === "textarea") {
+        control = document.createElement("textarea");
+        control.rows = field.rows || 3;
+        control.value = field.value || "";
+      } else {
+        control = document.createElement("input");
+        control.type = field.type || "text";
+        control.value = field.value != null ? field.value : "";
+        if (field.min != null) control.min = field.min;
+        if (field.step != null) control.step = field.step;
+      }
+      if (field.type !== "checkboxes") {
+        control.className = "ui-dialog-input ui-form-control";
+        if (field.placeholder) control.placeholder = field.placeholder;
+        if (field.maxLength) control.maxLength = field.maxLength;
+      }
+      row.appendChild(control);
+      if (field.hint) {
+        const hint = document.createElement("div");
+        hint.className = "ui-form-hint";
+        hint.textContent = field.hint;
+        row.appendChild(hint);
+      }
+      form.appendChild(row);
+      controls[field.name] = control;
+    });
+
+    const okBtn = overlay.querySelector(".ui-dialog-ok");
+    okBtn.textContent = opts.confirmText || "Save";
+    overlay.querySelector(".ui-dialog-cancel").textContent = opts.cancelText || "Cancel";
+
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add("show"));
+
+    const read = () => {
+      const values = {};
+      fields.forEach((field) => {
+        const control = controls[field.name];
+        if (field.type === "checkboxes") {
+          values[field.name] = Array.from(control.querySelectorAll("input:checked")).map((b) => b.value);
+        } else {
+          values[field.name] = String(control.value || "").trim();
+        }
+      });
+      return values;
+    };
+
+    let done = false;
+    const onKey = (e) => {
+      if (e.key === "Escape") close(null);
+    };
+    const close = (val) => {
+      if (done) return;
+      done = true;
+      document.removeEventListener("keydown", onKey);
+      overlay.classList.remove("show");
+      setTimeout(() => overlay.remove(), 150);
+      resolve(val);
+    };
+    const submit = () => {
+      const values = read();
+      const missing = fields.find(
+        (f) => f.required && (f.type === "checkboxes" ? !values[f.name].length : !values[f.name]),
+      );
+      const problem = missing
+        ? `${missing.label} is required.`
+        : opts.validate
+          ? opts.validate(values)
+          : null;
+      if (problem) {
+        errorEl.textContent = problem;
+        return;
+      }
+      close(values);
+    };
+
+    okBtn.addEventListener("click", submit);
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      submit();
+    });
+    overlay.querySelector(".ui-dialog-cancel").addEventListener("click", () => close(null));
+    document.addEventListener("keydown", onKey);
+    const first = fields.length ? controls[fields[0].name] : null;
+    setTimeout(() => first && first.focus && first.focus(), 50);
+  });
+}
+
 function uiDialog(message, opts) {
   const isConfirm = !!opts.isConfirm;
   // Default to a "danger" (red) primary button for destructive prompts.
@@ -499,6 +655,16 @@ const UI_ICON_PATHS = {
     '<path d="M10.6 6.2A9.9 9.9 0 0 1 12 6c6.4 0 10 6 10 6a18.5 18.5 0 0 1-3 3.6"/><path d="M6.6 6.6A18.6 18.6 0 0 0 2 12s3.6 6 10 6a9.8 9.8 0 0 0 4.2-.9"/><path d="m3 3 18 18"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
   key:
     '<path d="M15.5 8.5a3.5 3.5 0 1 1-3.4 4.4L9 16h-2v2H5v2H2v-3l7.1-7.1a3.5 3.5 0 0 1 6.4-1.4z"/><circle cx="16.5" cy="7.5" r="1"/>',
+  plan:
+    '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/>',
+  shield:
+    '<path d="M12 3l8 3v5c0 4.5-3.2 8-8 10-4.8-2-8-5.5-8-10V6z"/><path d="m9 12 2 2 4-4.2"/>',
+  shieldOff:
+    '<path d="M12 3l8 3v5c0 4.5-3.2 8-8 10-4.8-2-8-5.5-8-10V6z"/><path d="m9.5 9.5 5 5"/><path d="m14.5 9.5-5 5"/>',
+  flag:
+    '<path d="M5 21V4"/><path d="M5 4h11l-1.5 4L16 12H5"/>',
+  message:
+    '<path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
 };
 
 // `action` picks the glyph; `label` becomes both the hover title and the

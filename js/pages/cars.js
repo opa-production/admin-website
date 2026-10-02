@@ -146,6 +146,92 @@ async function loadCarMediaSection(carId) {
 }
 
 // Setup car search and filter
+// Cars ticked for a bulk decision. Kept across reloads of the list so a
+// selection survives a search, and cleared once a bulk action lands.
+const selectedCarIds = new Set();
+
+// The status filter's values, as the review-queue endpoints name them.
+const CAR_REVIEW_QUEUES = { awaiting: "awaiting", verified: "verified", denied: "rejected" };
+
+function toggleCarSelected(carId, checked) {
+  if (checked) selectedCarIds.add(carId);
+  else selectedCarIds.delete(carId);
+  renderCarsBulkBar();
+}
+
+function toggleAllCarsSelected(checked) {
+  document.querySelectorAll(".car-select").forEach((box) => {
+    box.checked = checked;
+    const id = Number(box.value);
+    if (checked) selectedCarIds.add(id);
+    else selectedCarIds.delete(id);
+  });
+  renderCarsBulkBar();
+}
+
+function clearCarSelection() {
+  selectedCarIds.clear();
+  document.querySelectorAll(".car-select, #carSelectAll").forEach((box) => {
+    box.checked = false;
+  });
+  renderCarsBulkBar();
+}
+
+function renderCarsBulkBar() {
+  const bar = document.getElementById("carsBulkBar");
+  if (!bar) return;
+  const count = selectedCarIds.size;
+  if (!count) {
+    bar.innerHTML = "";
+    return;
+  }
+  bar.innerHTML = `
+        <div class="bulk-bar">
+            <span class="bulk-bar-count">${count} car${count === 1 ? "" : "s"} selected</span>
+            <button class="btn btn-primary btn-small" onclick="bulkSetCarStatus('verified')">Approve</button>
+            <button class="btn btn-secondary btn-small" onclick="bulkSetCarStatus('denied')">Reject</button>
+            <button class="btn btn-secondary btn-small" onclick="bulkSetCarStatus('awaiting')">Back to awaiting</button>
+            <button class="btn btn-secondary btn-small" onclick="clearCarSelection()">Clear</button>
+        </div>`;
+}
+
+// One decision for every ticked car. A rejection needs a reason, because the
+// reason is what each host is shown.
+async function bulkSetCarStatus(status) {
+  const ids = Array.from(selectedCarIds);
+  if (!ids.length) return;
+  const many = `${ids.length} car${ids.length === 1 ? "" : "s"}`;
+
+  let reason = null;
+  if (status === "denied") {
+    reason = await uiPrompt(`Why are these ${many} being rejected? Each host sees this reason.`, {
+      title: "Reject cars",
+      confirmText: "Reject",
+      multiline: true,
+      danger: true,
+    });
+    if (reason === null) return;
+    reason = reason.trim();
+    if (!reason) {
+      uiToast("A rejection needs a reason.", "error");
+      return;
+    }
+  } else {
+    const verb = status === "verified" ? "Approve" : "Move back to awaiting";
+    const ok = await uiConfirm(`${verb} ${many}?`, { title: verb, confirmText: verb, danger: false });
+    if (!ok) return;
+  }
+
+  try {
+    await api.bulkUpdateCarStatus(ids, status, reason);
+    uiToast(`${many} updated.`, "success");
+    selectedCarIds.clear();
+    loadCars();
+  } catch (error) {
+    uiToast(`Bulk update failed: ${error.message}`, "error");
+  }
+}
+
 function setupCarSearch() {
   const searchInput = document.getElementById("carSearch");
   const statusFilter = document.getElementById("carStatusFilter");
@@ -187,13 +273,22 @@ async function loadCars() {
       params.status = currentCarStatusFilter;
     }
 
-    const data = await api.getCars(params);
+    // A status on its own is one of the review queues, each with its own
+    // endpoint; a search goes through the general list, which is the only one
+    // that takes a search term.
+    const queue = CAR_REVIEW_QUEUES[currentCarStatusFilter];
+    const data =
+      queue && !currentCarSearch
+        ? await api.getCarsByReviewQueue(queue, { limit: 50 })
+        : await api.getCars(params);
     if (data.cars && data.cars.length > 0) {
       content.innerHTML = `
+                <div id="carsBulkBar"></div>
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
+                                <th style="width: 32px;"><input type="checkbox" id="carSelectAll" aria-label="Select all cars on this page" onchange="toggleAllCarsSelected(this.checked)"></th>
                                 <th>Name</th>
                                 <th>Model</th>
                                 <th>Year</th>
@@ -207,6 +302,7 @@ async function loadCars() {
                               .map(
                                 (car) => `
                                 <tr>
+                                    <td><input type="checkbox" class="car-select" value="${car.id}" aria-label="Select this car" ${selectedCarIds.has(car.id) ? "checked" : ""} onchange="toggleCarSelected(${car.id}, this.checked)"></td>
                                     <td>${car.name || "N/A"}</td>
                                     <td>${car.model || "N/A"}</td>
                                     <td>${car.year || "N/A"}</td>
@@ -241,6 +337,7 @@ async function loadCars() {
                     </table>
                 </div>
             `;
+      renderCarsBulkBar();
     } else {
       content.innerHTML = '<div class="empty-state">No cars found</div>';
     }

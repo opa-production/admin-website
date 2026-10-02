@@ -157,6 +157,8 @@ function assistantMarkdown(text) {
 
 function assistantEls() {
   return {
+    history: document.getElementById("assistantHistory"),
+    newChat: document.getElementById("assistantNewChat"),
     fab: document.getElementById("assistantFab"),
     panel: document.getElementById("assistantPanel"),
     scrim: document.getElementById("assistantScrim"),
@@ -297,6 +299,85 @@ function renderAssistantMessages() {
   }
 
   list.scrollTop = list.scrollHeight;
+}
+
+// ---------------------------------------------------------------------------
+// Past threads
+//
+// The transcript lives server-side, per admin. History lists this admin's own
+// threads; opening one loads its messages and, if it is still open, carries on
+// in it. "New chat" closes the current thread so the next question starts
+// clean instead of dragging the old context along.
+// ---------------------------------------------------------------------------
+
+async function showAssistantHistory() {
+  const { list } = assistantEls();
+  if (!list || assistantBusy) return;
+  list.innerHTML = '<div class="assistant-history"><div class="assistant-history-title">Loading your past chats...</div></div>';
+  try {
+    const data = await api.getAssistantConversations(20);
+    const rows = data.conversations || [];
+    if (!rows.length) {
+      list.innerHTML =
+        '<div class="assistant-history"><div class="assistant-history-title">No past chats yet.</div></div>';
+      return;
+    }
+    list.innerHTML =
+      '<div class="assistant-history"><div class="assistant-history-title">Your past chats</div>' +
+      rows
+        .map((c) => {
+          const when = c.last_message_at || c.created_at;
+          const where = c.opened_on_page ? ` from ${escapeHtml(c.opened_on_page)}` : "";
+          return (
+            `<button type="button" class="assistant-history-item" data-conversation="${c.id}">` +
+            `${when ? escapeHtml(new Date(when).toLocaleString()) : "Chat"}` +
+            `<small>${c.message_count} message${c.message_count === 1 ? "" : "s"}${where}${c.status === "closed" ? " · closed" : ""}</small>` +
+            "</button>"
+          );
+        })
+        .join("") +
+      "</div>";
+    list.querySelectorAll(".assistant-history-item").forEach((btn) => {
+      btn.addEventListener("click", () => openAssistantConversation(Number(btn.dataset.conversation)));
+    });
+    list.scrollTop = 0;
+  } catch (error) {
+    list.innerHTML = `<div class="assistant-history"><div class="assistant-history-title">Couldn't load past chats: ${escapeHtml(error.message || "")}</div></div>`;
+  }
+}
+
+async function openAssistantConversation(id) {
+  if (assistantBusy) return;
+  try {
+    const convo = await api.getAssistantConversation(id);
+    assistantMessages = (convo.messages || []).map((m) => ({
+      role: m.role === "user" ? "admin" : "ai",
+      text: m.content,
+      at: m.created_at ? new Date(m.created_at) : new Date(),
+      error: false,
+    }));
+    // A closed thread can be read but not continued; the next question then
+    // starts a new one.
+    assistantConversationId = convo.status === "closed" ? null : convo.id;
+    renderAssistantMessages();
+  } catch (error) {
+    pushAssistantMessage("ai", (error && error.message) || "Couldn't open that chat.", { error: true });
+  }
+}
+
+async function startNewAssistantChat() {
+  if (assistantBusy) return;
+  const closing = assistantConversationId;
+  assistantConversationId = null;
+  assistantMessages = [];
+  renderAssistantMessages();
+  if (closing) {
+    try {
+      await api.closeAssistantConversation(closing);
+    } catch (error) {
+      /* already closed, or offline: the new thread starts either way */
+    }
+  }
 }
 
 function pushAssistantMessage(role, text, opts) {
@@ -578,7 +659,7 @@ function autosizeAssistantInput() {
 }
 
 function setupAssistant() {
-  const { fab, close, scrim, form, input, send, footnote } = assistantEls();
+  const { fab, close, scrim, form, input, send, footnote, history, newChat } = assistantEls();
   if (!fab || !form || !input) return;
 
   if (footnote) {
@@ -588,6 +669,8 @@ function setupAssistant() {
 
   fab.addEventListener("click", toggleAssistant);
   if (close) close.addEventListener("click", closeAssistant);
+  if (history) history.addEventListener("click", showAssistantHistory);
+  if (newChat) newChat.addEventListener("click", startNewAssistantChat);
   // Clicking anywhere outside the panel dismisses it.
   if (scrim) scrim.addEventListener("click", closeAssistant);
   form.addEventListener("submit", submitAssistantMessage);

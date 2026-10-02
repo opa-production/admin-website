@@ -217,9 +217,12 @@ function renderB2BFleetRow(car) {
       );
     }
   }
-  buttons.push(
-    uiIconButton("trash", "Delete vehicle", `deleteB2BFleetVehicle(${car.vehicle_id})`, "danger"),
-  );
+  // The API allows this for the roles that manage B2B credentials only.
+  if (canManageB2BCredentials()) {
+    buttons.push(
+      uiIconButton("trash", "Delete vehicle", `deleteB2BFleetVehicle(${car.vehicle_id})`, "danger"),
+    );
+  }
 
   // With no Car row there is nothing on the app to approve or reject, so only
   // delete is offered; the note says why the other actions are missing.

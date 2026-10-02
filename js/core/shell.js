@@ -47,6 +47,10 @@ const NAV_ICONS = {
   b2b: '<path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 9h1.5M9 12h1.5M9 15h1.5M13.5 9H15M13.5 12H15M13.5 15H15"></path>',
   "b2b-support":
     '<path d="M4 18V8a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H8z"></path><path d="M17 10h1a2 2 0 0 1 2 2v9l-3-3h-6a2 2 0 0 1-2-2"></path>',
+  "deposit-claims":
+    '<path d="M12 3l8 3v5c0 4.5-3.2 8-8 10-4.8-2-8-5.5-8-10V6z"></path><path d="M12 8v5"></path><circle cx="12" cy="16" r="0.6"></circle>',
+  "status-incidents":
+    '<polyline points="3 12 7 12 10 5 14 19 17 12 21 12"></polyline>',
   "b2b-revenue":
     '<path d="M3 21h18"></path><path d="M5 21V10l5-3v14"></path><path d="M10 21V4l9 4v13"></path><path d="M14 11v6"></path><path d="M12.6 12.4c.3-.9 2.8-.9 2.8.3 0 1.3-2.8.9-2.8 2.2 0 1.2 2.5 1.2 2.8.3"></path>',
   newsroom:
@@ -80,6 +84,7 @@ const NAV_ITEMS = [
     icon: "referral-earnings",
   },
   { page: "refunds", label: "Refunds", icon: "refunds" },
+  { page: "deposit-claims", label: "Deposit Claims", icon: "deposit-claims" },
   { page: "subscribers", label: "Email Service", icon: "subscribers" },
   { page: "revenue", label: "Revenue", icon: "revenue" },
   { page: "support", label: "Support", icon: "support" },
@@ -89,6 +94,7 @@ const NAV_ITEMS = [
   { page: "b2b-support", label: "B2B Support", icon: "b2b-support" },
   { page: "b2b-revenue", label: "B2B Revenue", icon: "b2b-revenue" },
   { page: "newsroom", label: "Newsroom", icon: "newsroom" },
+  { page: "status-incidents", label: "Status Page", icon: "status-incidents" },
   {
     page: "admins",
     label: "Admins",

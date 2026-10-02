@@ -600,7 +600,7 @@
                 <div id="referralEarningsPage" class="page-content" style="display: none;">
                     <div class="content-section">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
-                            <h2 style="margin: 0;">Client Referral Earnings</h2>
+                            <h2 style="margin: 0;">Referral Earnings</h2>
                             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                                 <select id="clientEarningStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
                                     <option value="">All Status</option>
@@ -617,10 +617,49 @@
                                 <input type="number" id="clientEarningReferredFilter" placeholder="Referred host ID..." style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; width: 170px;">
                             </div>
                         </div>
+                        <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+                            <button id="referralEarningClientTab" class="referrals-tab active" onclick="switchReferralEarningSource('client')">Referred by clients</button>
+                            <button id="referralEarningHostTab" class="referrals-tab" onclick="switchReferralEarningSource('host')">Referred by hosts</button>
+                        </div>
                         <div id="clientEarningsContent">
                             <div class="loading">Loading earnings...</div>
                         </div>
                         <div id="clientEarningsPagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;"></div>
+                    </div>
+                </div>
+
+                <!-- Deposit claims: a host asks to keep part of a renter's
+                     deposit; an admin decides. See js/pages/deposit-claims.js. -->
+                <div id="depositClaimsPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                            <h2 style="margin: 0;">Deposit Claims</h2>
+                            <select id="depositClaimStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
+                                <option value="pending">Waiting for a decision</option>
+                                <option value="approved">Approved</option>
+                                <option value="partial">Partly approved</option>
+                                <option value="rejected">Rejected</option>
+                                <option value="">All claims</option>
+                            </select>
+                        </div>
+                        <div id="depositClaimsContent">
+                            <div class="loading">Loading deposit claims...</div>
+                        </div>
+                        <div id="depositClaimsPagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;"></div>
+                    </div>
+                </div>
+
+                <!-- Status page incidents: everything here is public on
+                     ardena.co.ke/status. See js/pages/status-incidents.js. -->
+                <div id="statusIncidentsPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                            <h2 style="margin: 0;">Status Page Incidents</h2>
+                            <button class="btn btn-primary" onclick="createStatusIncident()">Post an incident</button>
+                        </div>
+                        <div id="statusIncidentsContent">
+                            <div class="loading">Loading incidents...</div>
+                        </div>
                     </div>
                 </div>
 
@@ -972,6 +1011,7 @@
                         <div style="display: flex; gap: 8px; margin-bottom: 20px;">
                             <button id="b2bRequestsTab" class="referrals-tab active" onclick="switchB2BTab('requests')">Access Requests</button>
                             <button id="b2bBusinessesTab" class="referrals-tab" onclick="switchB2BTab('businesses')">Businesses</button>
+                            <button id="b2bFunnelTab" class="referrals-tab" onclick="switchB2BTab('funnel')">Funnel</button>
                         </div>
 
                         <div id="b2bRequestsPanel">
@@ -998,6 +1038,20 @@
                                 <div class="loading">Loading businesses...</div>
                             </div>
                             <div id="b2bBusinessesPagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;"></div>
+                        </div>
+
+                        <div id="b2bFunnelPanel" style="display: none;">
+                            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                                <select id="b2bFunnelWindow" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
+                                    <option value="">All time</option>
+                                    <option value="30">Last 30 days</option>
+                                    <option value="90">Last 90 days</option>
+                                    <option value="365">Last 12 months</option>
+                                </select>
+                            </div>
+                            <div id="b2bFunnelContent">
+                                <div class="loading">Loading funnel...</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1547,6 +1601,8 @@
                 <div class="assistant-header-title" id="assistantTitle">Ardena Assistant</div>
                 <div class="assistant-header-sub" id="assistantStatus">Ask about anything in the dashboard</div>
             </div>
+            <button type="button" class="assistant-header-btn" id="assistantHistory" title="Your past chats">History</button>
+            <button type="button" class="assistant-header-btn" id="assistantNewChat" title="Close this chat and start a new one">New chat</button>
             <button type="button" class="assistant-close" id="assistantClose" aria-label="Close assistant">&times;</button>
         </div>
 
@@ -1619,6 +1675,8 @@
     <script src="js/pages/b2b-fleet.js"></script>
     <script src="js/pages/b2b-support.js"></script>
     <script src="js/pages/b2b-revenue.js"></script>
+    <script src="js/pages/deposit-claims.js"></script>
+    <script src="js/pages/status-incidents.js"></script>
     <script src="js/pages/newsroom.js"></script>
     <script src="js/pages/listing-reports.js"></script>
 </body>
