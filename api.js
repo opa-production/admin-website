@@ -81,6 +81,32 @@ function getAdminInfo() {
   return info ? JSON.parse(info) : null;
 }
 
+// The message to show for a failed request. FastAPI's `detail` is a sentence
+// for errors the backend raises itself, but a LIST of objects when a request
+// fails validation (422): one per rejected field. Passing that list straight to
+// `new Error()` is how a toast ends up reading "[object Object]", which hides
+// the one thing worth knowing: which field was wrong.
+function apiErrorMessage(data) {
+  const detail = data && data.detail;
+  if (typeof detail === "string" && detail) return detail;
+  if (Array.isArray(detail) && detail.length) {
+    return detail
+      .map((item) => {
+        if (!item || typeof item !== "object") return String(item);
+        const field = (item.loc || [])
+          .filter((part) => !["query", "body", "path", "header"].includes(part))
+          .join(".");
+        const message = item.msg || "is not valid";
+        return field ? `${field}: ${message}` : message;
+      })
+      .join("; ");
+  }
+  if (detail && typeof detail === "object") {
+    return detail.message || detail.msg || JSON.stringify(detail);
+  }
+  return "Request failed";
+}
+
 // Make authenticated API request
 async function apiRequest(endpoint, options = {}) {
   if (isSessionExpired()) {
@@ -148,7 +174,7 @@ async function apiRequest(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    const err = new Error(data.detail || "Request failed");
+    const err = new Error(apiErrorMessage(data));
     err.status = response.status;
     throw err;
   }

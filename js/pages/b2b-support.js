@@ -93,18 +93,24 @@ async function loadB2BSupportThreads() {
       "last_message_at:desc";
     const [sortBy, order] = sortValue.split(":");
 
+    // Only ever send values the endpoint accepts: a filter left in an odd
+    // state (a 0 or negative id, a sort it doesn't know) would otherwise fail
+    // the whole inbox with a 422 instead of just being ignored.
     const params = {
-      skip: b2bSupportSkip,
+      skip: Number.isInteger(b2bSupportSkip) && b2bSupportSkip > 0 ? b2bSupportSkip : 0,
       limit: B2B_SUPPORT_PAGE_SIZE,
-      sort_by: sortBy,
-      order: order,
+      sort_by: sortBy === "created_at" ? "created_at" : "last_message_at",
+      order: order === "asc" ? "asc" : "desc",
     };
     if (search) params.search = search;
     // Archived threads are left out unless asked for by name.
     if (view === "awaiting") params.unanswered_only = true;
     else if (view === "open" || view === "closed") params.status = view;
     else if (view === "archived") params.archived = true;
-    if (businessId) params.business_id = parseInt(businessId, 10);
+    const businessIdNumber = parseInt(businessId, 10);
+    if (Number.isInteger(businessIdNumber) && businessIdNumber >= 1) {
+      params.business_id = businessIdNumber;
+    }
 
     const response = await api.getB2BSupportThreads(params);
 
