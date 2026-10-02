@@ -80,29 +80,34 @@
     --shadow-sm: 0 1px 3px rgba(17, 24, 39, 0.06);
     --shadow-md: 0 8px 24px rgba(17, 24, 39, 0.10);
     --shadow-lg: 0 20px 48px rgba(17, 24, 39, 0.16);
+
+    /* Cards sit flat on the page: a hairline, no drop shadow. Shadows are kept
+       for things that really float (menus, dialogs, drawers, toasts). */
+    --card-border: #eceef1;
+    --card-shadow: none;
 }
 
-/* Deep slate-navy rather than black: the greys keep a touch of blue so the
-   accent sits in the same family, and surfaces step up in lightness as they
-   come forward (app → card → chip), which is what reads as "premium" instead
-   of "inverted". */
+/* Warm neutral greys, shared with the other Ardena sites: no blue in the
+   surfaces, so the accent is the only colour on the page. Surfaces step up
+   only slightly as they come forward (app → card → chip), which keeps cards
+   quiet instead of lifted. */
 [data-theme="dark"] {
     color-scheme: dark;
 
-    --app-bg: #080b11;
-    --surface: #111722;
-    --surface-2: #161d2a;
-    --surface-3: #1e2736;
+    --app-bg: #171716;
+    --surface: #1e1e1d;
+    --surface-2: #232322;
+    --surface-3: #272725;
 
-    --ink: #eef2f8;
-    --ink-2: #cdd6e4;
-    --muted: #96a3b8;
-    --muted-2: #74829a;
-    --muted-3: #55617a;
+    --ink: #edece8;
+    --ink-2: #c9c8c2;
+    --muted: #a5a49e;
+    --muted-2: #78776f;
+    --muted-3: #5c5b55;
     --on-accent: #ffffff;
 
-    --border: #232d3f;
-    --border-strong: #35415a;
+    --border: #2e2e2c;
+    --border-strong: #474743;
 
     --accent: #4d9fff;
     --accent-hover: #6cb0ff;
@@ -111,13 +116,15 @@
 
     --invert-bg: #2f6fd0;
 
-    --sidebar-bg: #0b0f16;
-    --sidebar-bg-2: #161d29;
-    --sidebar-border: #1e2634;
-    --sidebar-ink: #a8b3c6;
+    --sidebar-bg: #1c1c1b;
+    --sidebar-bg-2: #272725;
+    --sidebar-border: #2e2e2c;
+    --sidebar-ink: #a5a49e;
 
-    --btn-secondary-bg: #2b3547;
-    --btn-secondary-bg-hover: #35415a;
+    --btn-secondary-bg: #33332f;
+    --btn-secondary-bg-hover: #474743;
+
+    --card-border: #262625;
 
     --ok-bg: #0d2a20;
     --ok-ink: #4ade80;
@@ -134,9 +141,9 @@
     --danger-border: #522328;
     --danger-solid: #ef4444;
 
-    --info-bg: #12203a;
+    --info-bg: #1a2330;
 
-    --violet-bg: #221a3d;
+    --violet-bg: #26213a;
     --violet-ink: #c4b5fd;
     --violet-solid: #7c3aed;
 
@@ -301,7 +308,6 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     width: 100%;
     position: sticky;
     top: 0;
@@ -446,7 +452,8 @@ body {
     background: var(--surface);
     padding: 24px;
     border-radius: 0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
     margin-bottom: 24px;
     width: 100%;
 }
@@ -471,7 +478,8 @@ body {
     background: var(--surface);
     padding: 14px 16px;
     border-radius: 0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
 }
 
 .stat-label {
@@ -506,8 +514,8 @@ body {
     background: var(--surface);
     padding: 18px 20px 16px;
     border-radius: 0;
-    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 1px 3px rgba(17, 24, 39, 0.06);
-    border: 1px solid rgba(17, 24, 39, 0.04);
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--card-border);
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -866,7 +874,6 @@ textarea.form-input-clean {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 0;
-    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
 }
 .subscribers-count-dot {
     width: 8px;
@@ -897,8 +904,8 @@ textarea.form-input-clean {
 .newsletter-card,
 .subscribers-list-card {
     margin-bottom: 0;
-    border: 1px solid rgba(17, 24, 39, 0.04);
-    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 1px 3px rgba(17, 24, 39, 0.06);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
     border-radius: 0;
 }
 .newsletter-card-header { margin-bottom: 14px; }
@@ -1321,35 +1328,19 @@ td.row-actions {
     grid-column: 1 / -1;
 }
 
-/* Premium stat cards on the revenue page */
+/* Stat cards on the revenue page: roomier, but as flat as every other card. */
 #revenueStatsGrid .stat-card {
     border-radius: 0;
     padding: 18px 20px;
-    border: 1px solid rgba(17, 24, 39, 0.06);
-    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 4px 16px rgba(17, 24, 39, 0.04);
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
-}
-
-#revenueStatsGrid .stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 4px rgba(17, 24, 39, 0.06), 0 12px 28px rgba(17, 24, 39, 0.08);
 }
 
 #revenueStatsGrid .stat-card--revenue .stat-value {
     color: var(--ok-ink);
 }
 
-/* Premium graph cards */
 .revenue-graphs-section .graph-container {
     border-radius: 0;
     padding: 20px 22px 18px;
-    border: 1px solid rgba(17, 24, 39, 0.06);
-    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 6px 20px rgba(17, 24, 39, 0.05);
-    transition: box-shadow 0.18s ease;
-}
-
-.revenue-graphs-section .graph-container:hover {
-    box-shadow: 0 2px 4px rgba(17, 24, 39, 0.06), 0 14px 32px rgba(17, 24, 39, 0.08);
 }
 
 .revenue-chart-hero {
@@ -2025,8 +2016,16 @@ body.admin-nav-open {
 
 .support-chat-actions {
     display: flex;
+    align-items: center;
     gap: 8px;
     flex-shrink: 0;
+}
+.support-chat-actions:empty { display: none; }
+
+/* Archive and delete sit beside the labelled buttons, so match their height. */
+.support-chat-actions .icon-btn {
+    width: 34px;
+    height: 34px;
 }
 
 .support-action-btn {
@@ -2034,11 +2033,22 @@ body.admin-nav-open {
     align-items: center;
     gap: 6px;
     padding: 8px 16px;
+    border: 1.5px solid var(--border);
     border-radius: 0;
+    background: var(--surface);
+    color: var(--ink-2);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.18s;
+}
+
+.badge-archived {
+    background: none;
+    color: var(--muted-2);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 0;
 }
 .danger-btn {
     background: var(--danger-bg);
@@ -2327,7 +2337,7 @@ body.admin-nav-open {
     font-weight: 600;
 }
 .b2bsup-unread-dot::before {
-    content: " b7";
+    content: "\00b7";
     margin: 0 4px;
     color: var(--muted-3);
 }
@@ -2405,10 +2415,10 @@ body.admin-nav-open {
 /* Card wrapper */
 .notif-card {
     background: var(--surface);
-    border: 1px solid rgba(17, 24, 39, 0.06);
+    border: 1px solid var(--card-border);
     border-radius: 0;
     padding: 18px 20px;
-    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+    box-shadow: var(--card-shadow);
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -2627,7 +2637,7 @@ body.admin-nav-open {
 .notif-preview-col { position: sticky; top: 16px; }
 .notif-preview-card {
     background: var(--surface);
-    border: 1px solid rgba(17, 24, 39, 0.06);
+    border: 1px solid var(--card-border);
     border-radius: 0;
     padding: 18px;
 }
@@ -2771,10 +2781,10 @@ body.admin-nav-open {
 
 .mod-stat-card {
     background: var(--surface);
-    border: 1px solid rgba(17, 24, 39, 0.05);
+    border: 1px solid var(--card-border);
     border-radius: 0;
     padding: 14px 16px;
-    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+    box-shadow: var(--card-shadow);
 }
 
 .mod-stat-label {
@@ -3115,8 +3125,8 @@ body.admin-nav-open {
 /* ---------- Compose sheet ---------- */
 .email-compose-sheet {
     background: var(--surface);
-    border: 1px solid var(--border);
-    box-shadow: 0 1px 3px rgba(17, 24, 39, 0.06);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -3195,8 +3205,8 @@ body.admin-nav-open {
 /* ---------- Docked details panel ---------- */
 .email-side {
     background: var(--surface);
-    border: 1px solid var(--border);
-    box-shadow: 0 1px 3px rgba(17, 24, 39, 0.06);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
     padding: 20px 22px;
     display: flex;
     flex-direction: column;
@@ -3706,7 +3716,8 @@ body.admin-nav-open {
 .sk-stat-card {
     background: var(--surface);
     padding: 14px 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--card-border);
+    box-shadow: var(--card-shadow);
 }
 
 .sk-stat-card .sk-line + .sk-line { margin-top: 10px; }
@@ -4615,14 +4626,12 @@ button.profile-menu-item {
 /* ===========================================================================
    Dark theme refinements
 
-   A drop shadow does almost nothing against a dark ground, so the surfaces that
-   relied on one for separation get a hairline border instead. Everything else
-   is handled by the tokens above.
+   A drop shadow does almost nothing against a dark ground, so the floating
+   surfaces that rely on one for separation get a hairline border as well.
+   Cards already carry --card-border in both themes. Everything else is handled
+   by the tokens above.
    =========================================================================== */
 
-[data-theme="dark"] .content-section,
-[data-theme="dark"] .stat-card,
-[data-theme="dark"] .sk-stat-card,
 [data-theme="dark"] .modal-content,
 [data-theme="dark"] .mod-drawer-panel,
 [data-theme="dark"] .email-modal-panel,
@@ -4732,7 +4741,7 @@ button.profile-menu-item {
 .ver-kpi {
     padding: 18px 20px;
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1px solid var(--card-border);
 }
 
 .ver-kpi.is-attention {
@@ -4787,7 +4796,7 @@ button.profile-menu-item {
 .ver-card {
     padding: 20px;
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1px solid var(--card-border);
 }
 
 .ver-card-head {

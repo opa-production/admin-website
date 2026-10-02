@@ -23,27 +23,27 @@
     --auth-otp-filled-bg: #f8fbff;
 }
 
-/* Dark theme — same deep slate-navy family as the dashboard.
+/* Dark theme — same warm neutral greys as the dashboard.
    <html data-theme> is stamped by js/core/theme.js before this file paints. */
 [data-theme="dark"] {
     color-scheme: dark;
     --auth-accent: #4d9fff;
     --auth-accent-hover: #6cb0ff;
-    --auth-ink: #eef2f8;
-    --auth-muted: #96a3b8;
-    --auth-border: #232d3f;
-    --auth-bg: #080b11;
-    --auth-surface: #111722;
-    --auth-field: #161d2a;
-    --auth-placeholder: #55617a;
+    --auth-ink: #edece8;
+    --auth-muted: #a5a49e;
+    --auth-border: #2e2e2c;
+    --auth-bg: #171716;
+    --auth-surface: #1e1e1d;
+    --auth-field: #232322;
+    --auth-placeholder: #78776f;
     --auth-danger: #f87171;
-    --auth-disabled: #2b3547;
+    --auth-disabled: #33332f;
     --auth-ring: rgba(77, 159, 255, 0.22);
     --auth-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
     --auth-modal-shadow: 0 20px 48px rgba(0, 0, 0, 0.65);
     --auth-scrim: rgba(0, 0, 0, 0.68);
-    --auth-otp-filled-border: #35415a;
-    --auth-otp-filled-bg: #18212f;
+    --auth-otp-filled-border: #474743;
+    --auth-otp-filled-bg: #272725;
 }
 
 * {

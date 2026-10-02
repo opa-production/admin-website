@@ -58,7 +58,10 @@ async function loadSupportConversations() {
       limit: 20,
     };
 
-    if (statusFilter) params.status_filter = statusFilter;
+    // "Archived" shares the status menu but is its own flag: archived
+    // conversations are left out of every other view.
+    if (statusFilter === "archived") params.archived = true;
+    else if (statusFilter) params.status_filter = statusFilter;
     if (hostIdFilter) params.host_id = parseInt(hostIdFilter);
     if (search) params.search = search;
 
@@ -133,7 +136,7 @@ async function loadSupportConversations() {
                         </div>
                         <div class="support-conv-preview">${previewHtml}</div>
                     </div>
-                    <div class="support-conv-badges">${unreadBadge}${statusBadge}</div>
+                    <div class="support-conv-badges">${unreadBadge}${statusBadge}${conv.is_archived ? '<span class="badge-archived">Archived</span>' : ""}</div>
                 </div>
             `;
     });
@@ -198,9 +201,11 @@ async function viewSupportConversation(conversationId) {
     '<div class="sk-conv-body"><span class="sk-line" style="width: 40%"></span>' +
     '<span class="sk-line" style="width: 26%; height: 9px"></span></div></div>';
   messagesEl.innerHTML = skMessageBubbles(5);
+  renderSupportExtraActions(null);
 
   try {
     const conversation = await api.getSupportConversation(conversationId);
+    renderSupportExtraActions(conversation);
 
     // Render header info (conversation belongs to either a host or a client)
     const isClientConv = !conversation.host_id && !!conversation.client_id;
@@ -228,6 +233,7 @@ async function viewSupportConversation(conversationId) {
                     <span>${personLabel} ID: ${personId != null ? personId : "—"}</span>
                     <span class="dot">·</span>
                     ${statusBadge}
+                    ${conversation.is_archived ? '<span class="dot">·</span><span class="badge-archived">Archived</span>' : ""}
                 </div>
             </div>
         `;
@@ -412,5 +418,71 @@ async function reopenSupportConversation() {
     alert("Conversation reopened successfully");
   } catch (error) {
     alert("Error reopening conversation: " + error.message);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Archive / delete (ADMIN_ACTIONS_BACKEND.md §2)
+// ---------------------------------------------------------------------------
+
+function renderSupportExtraActions(conversation) {
+  const el = document.getElementById("supportExtraActions");
+  if (!el) return;
+  if (!conversation) {
+    el.innerHTML = "";
+    return;
+  }
+  const archive = conversation.is_archived
+    ? uiIconButton("unarchive", "Move back to the inbox", "setSupportConversationArchived(false)")
+    : uiIconButton("archive", "Archive conversation", "setSupportConversationArchived(true)");
+  const remove = canManageAdmins()
+    ? uiIconButton("trash", "Delete conversation", "deleteSupportConversation()", "danger")
+    : "";
+  el.innerHTML = archive + remove;
+}
+
+async function setSupportConversationArchived(archive) {
+  const conversationId = currentSupportConversationId;
+  if (!conversationId) return;
+
+  try {
+    if (archive) await api.archiveSupportConversation(conversationId);
+    else await api.unarchiveSupportConversation(conversationId);
+    uiToast(
+      archive
+        ? "Conversation archived. Find it under the Archived filter."
+        : "Conversation moved back to the inbox.",
+      "success",
+    );
+    // An archived conversation has just left the list on the left.
+    if (archive) backToSupportList();
+    else await viewSupportConversation(conversationId);
+    loadSupportConversations();
+  } catch (error) {
+    uiToast(
+      actionErrorMessage(error, `Couldn't ${archive ? "archive" : "unarchive"} the conversation`),
+      "error",
+    );
+  }
+}
+
+// Permanent. Archive is the reversible way to clear the inbox.
+async function deleteSupportConversation() {
+  const conversationId = currentSupportConversationId;
+  if (!conversationId) return;
+
+  const ok = await uiConfirm(
+    "Permanently delete this conversation and every message in it? The host or client loses it in their app too. This cannot be undone. To just clear it from the inbox, archive it instead.",
+    { title: "Delete conversation", confirmText: "Delete permanently", danger: true },
+  );
+  if (!ok) return;
+
+  try {
+    await api.deleteSupportConversation(conversationId);
+    uiToast("Conversation deleted.", "success");
+    backToSupportList();
+    loadSupportConversations();
+  } catch (error) {
+    uiToast(actionErrorMessage(error, "Couldn't delete the conversation"), "error");
   }
 }

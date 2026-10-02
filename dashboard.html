@@ -843,6 +843,7 @@
                                         <option value="">All</option>
                                         <option value="open">Open</option>
                                         <option value="closed">Closed</option>
+                                        <option value="archived">Archived</option>
                                     </select>
                                     <input type="number" id="supportHostIdFilter" placeholder="Host ID" class="support-filter-input">
                                 </div>
@@ -877,6 +878,9 @@
                                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                                             Reopen
                                         </button>
+                                        <!-- Archive / delete, drawn per conversation by
+                                             renderSupportExtraActions(). -->
+                                        <div id="supportExtraActions" class="support-chat-actions"></div>
                                     </div>
                                 </div>
                                 <div id="supportMessages" class="support-messages-area">
@@ -1146,7 +1150,10 @@
                                 <div class="support-left-filters">
                                     <select id="b2bSupportAwaitingFilter" class="support-filter-select">
                                         <option value="">All threads</option>
-                                        <option value="1">Awaiting reply</option>
+                                        <option value="awaiting">Awaiting reply</option>
+                                        <option value="open">Open</option>
+                                        <option value="closed">Closed</option>
+                                        <option value="archived">Archived</option>
                                     </select>
                                     <select id="b2bSupportSortFilter" class="support-filter-select">
                                         <option value="last_message_at:desc">Latest activity</option>
@@ -1183,6 +1190,9 @@
                                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                                             Details
                                         </button>
+                                        <!-- Close / archive / delete, drawn per thread state by
+                                             renderB2BSupportThreadActions(). -->
+                                        <div id="b2bSupportThreadActions" class="support-chat-actions"></div>
                                     </div>
                                 </div>
                                 <!-- Business header: a billing question is answerable without

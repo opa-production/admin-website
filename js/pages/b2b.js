@@ -124,8 +124,15 @@ async function loadB2BRequests() {
                                 if (r.status === "pending") {
                                   actions = `<button class="btn btn-small btn-primary" onclick="openB2BApproveModal(${r.id}, '${escapeHtml(r.reference)}', '${escapeHtml(r.business_name)}', '${escapeHtml(r.email)}')">Approve</button>
                                         <button class="btn btn-small btn-secondary" onclick="openB2BRejectModal(${r.id}, '${escapeHtml(r.reference)}')">Reject</button>`;
-                                } else if (r.status === "rejected" && r.rejection_reason) {
-                                  actions = `<span title="${escapeHtml(r.rejection_reason)}">Reason ℹ</span>`;
+                                } else if (r.status === "rejected") {
+                                  // A rejection made by mistake can be undone, and
+                                  // spam cleared out; an approved request stays as
+                                  // the record of how its workspace was created.
+                                  actions = `<div class="row-actions">
+                                        ${r.rejection_reason ? `<span title="${escapeHtml(r.rejection_reason)}">Reason ℹ</span>` : ""}
+                                        ${canManageB2BCredentials() ? uiIconButton("reopen", "Move back to pending", `reopenB2BAccessRequest(${r.id}, '${escapeHtml(r.reference)}')`) : ""}
+                                        ${canManageAdmins() ? uiIconButton("trash", "Delete request", `deleteB2BAccessRequest(${r.id}, '${escapeHtml(r.reference)}')`, "danger") : ""}
+                                    </div>`;
                                 }
                                 return `<tr>
                                     <td><strong>${escapeHtml(r.reference)}</strong></td>
@@ -156,6 +163,38 @@ async function loadB2BRequests() {
 function goToB2BRequestPage(page) {
   currentB2BRequestPage = page;
   loadB2BRequests();
+}
+
+// Undo a rejection: the request goes back to pending, where it can be approved.
+async function reopenB2BAccessRequest(id, reference) {
+  const ok = await uiConfirm(
+    `Move ${reference} back to pending? Its rejection reason is cleared and it can be approved or rejected again.`,
+    { title: "Reopen request", confirmText: "Move to pending", danger: false },
+  );
+  if (!ok) return;
+  try {
+    await api.reopenB2BAccessRequest(id);
+    uiToast(`${reference} is pending again.`, "success");
+    loadB2BRequests();
+  } catch (error) {
+    uiToast(actionErrorMessage(error, "Couldn't reopen the request"), "error");
+  }
+}
+
+// For spam and duplicates among the rejected requests.
+async function deleteB2BAccessRequest(id, reference) {
+  const ok = await uiConfirm(
+    `Permanently delete access request ${reference}? This cannot be undone.`,
+    { title: "Delete request", confirmText: "Delete permanently", danger: true },
+  );
+  if (!ok) return;
+  try {
+    await api.deleteB2BAccessRequest(id);
+    uiToast(`${reference} was deleted.`, "success");
+    loadB2BRequests();
+  } catch (error) {
+    uiToast(actionErrorMessage(error, "Couldn't delete the request"), "error");
+  }
 }
 
 // ---------- Businesses ----------

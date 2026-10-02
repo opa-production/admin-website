@@ -148,7 +148,9 @@ async function apiRequest(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(data.detail || "Request failed");
+    const err = new Error(data.detail || "Request failed");
+    err.status = response.status;
+    throw err;
   }
 
   return data;
@@ -467,6 +469,18 @@ const api = {
     apiRequest(`/admin/support/conversations/${id}/close`, { method: "PUT" }),
   reopenSupportConversation: (id) =>
     apiRequest(`/admin/support/conversations/${id}/reopen`, { method: "PUT" }),
+  // Archive takes a conversation out of the default inbox without changing its
+  // status; list it again with `archived=true`. See ADMIN_ACTIONS_BACKEND.md §2.
+  archiveSupportConversation: (id) =>
+    apiRequest(`/admin/support/conversations/${id}/archive`, { method: "PUT" }),
+  unarchiveSupportConversation: (id) =>
+    apiRequest(`/admin/support/conversations/${id}/unarchive`, {
+      method: "PUT",
+    }),
+  // Permanent: the conversation and every message in it. Super and general
+  // admins only.
+  deleteSupportConversation: (id) =>
+    apiRequest(`/admin/support/conversations/${id}`, { method: "DELETE" }),
 
   // Bookings
   getBookings: (params = {}) => {
@@ -731,6 +745,14 @@ const api = {
       method: "POST",
       body: JSON.stringify({ reason }),
     }),
+  // Puts a rejected request back in the pending queue (a rejection made by
+  // mistake). See ADMIN_ACTIONS_BACKEND.md §3.
+  reopenB2BAccessRequest: (id) =>
+    apiRequest(`/admin/b2b/access-requests/${id}/reopen`, { method: "POST" }),
+  // Permanent, for spam and duplicates. 409 for an approved request: it is the
+  // record of how its workspace was created.
+  deleteB2BAccessRequest: (id) =>
+    apiRequest(`/admin/b2b/access-requests/${id}`, { method: "DELETE" }),
   getB2BBusinesses: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     return apiRequest(
@@ -870,6 +892,31 @@ const api = {
   // Whole backlog of threads whose newest message is from the business.
   getB2BSupportUnansweredCount: (opts = {}) =>
     apiRequest("/admin/b2b/support/unanswered-count", opts),
+  // Thread state (ADMIN_ACTIONS_BACKEND.md §1). A thread is still one per
+  // business and still addressed by business_id; close and archive are flags
+  // on it, and a new message from the business clears both.
+  closeB2BSupportThread: (businessId) =>
+    apiRequest(`/admin/b2b/support/threads/${businessId}/close`, {
+      method: "PUT",
+    }),
+  reopenB2BSupportThread: (businessId) =>
+    apiRequest(`/admin/b2b/support/threads/${businessId}/reopen`, {
+      method: "PUT",
+    }),
+  archiveB2BSupportThread: (businessId) =>
+    apiRequest(`/admin/b2b/support/threads/${businessId}/archive`, {
+      method: "PUT",
+    }),
+  unarchiveB2BSupportThread: (businessId) =>
+    apiRequest(`/admin/b2b/support/threads/${businessId}/unarchive`, {
+      method: "PUT",
+    }),
+  // Permanent: every message in the business's thread, on their dashboard too.
+  // Super and general admins only.
+  deleteB2BSupportThread: (businessId) =>
+    apiRequest(`/admin/b2b/support/threads/${businessId}`, {
+      method: "DELETE",
+    }),
 
   // B2B subscription revenue: totals, run rate, a monthly series, who is on
   // which plan and the latest plan payments. Money page — the backend refuses

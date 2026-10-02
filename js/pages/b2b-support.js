@@ -3,9 +3,11 @@
 // vars are global by design.
 //
 // This is NOT the consumer/host inbox in support.js. `b2b_support_messages` has
-// no conversation row, so there is no status, assignee, close or reopen — one
-// flat thread per business, addressed by business_id, and "who is waiting" is
-// the only open/closed signal the table can express (`awaiting_reply`).
+// no conversation row — one flat thread per business, addressed by business_id.
+// "Who is waiting" (`awaiting_reply`) comes from the messages themselves; close
+// and archive are per-thread flags the backend keeps beside them
+// (ADMIN_ACTIONS_BACKEND.md §1), and a new message from the business clears
+// both, so a closed thread never swallows a question.
 
 const B2B_SUPPORT_PAGE_SIZE = 20;
 
@@ -82,9 +84,7 @@ async function loadB2BSupportThreads() {
 
   try {
     const search = document.getElementById("b2bSupportSearch")?.value.trim();
-    const awaiting = document.getElementById(
-      "b2bSupportAwaitingFilter",
-    )?.value;
+    const view = document.getElementById("b2bSupportAwaitingFilter")?.value;
     const businessId = document.getElementById(
       "b2bSupportBusinessIdFilter",
     )?.value;
@@ -100,7 +100,10 @@ async function loadB2BSupportThreads() {
       order: order,
     };
     if (search) params.search = search;
-    if (awaiting) params.unanswered_only = true;
+    // Archived threads are left out unless asked for by name.
+    if (view === "awaiting") params.unanswered_only = true;
+    else if (view === "open" || view === "closed") params.status = view;
+    else if (view === "archived") params.archived = true;
     if (businessId) params.business_id = parseInt(businessId, 10);
 
     const response = await api.getB2BSupportThreads(params);
@@ -120,8 +123,7 @@ async function loadB2BSupportThreads() {
 
     const threads = response.threads || [];
     if (threads.length === 0) {
-      content.innerHTML =
-        '<div class="empty-state">No business has messaged support yet</div>';
+      content.innerHTML = `<div class="empty-state">${view || search || businessId ? "No threads match these filters" : "No business has messaged support yet"}</div>`;
       renderB2BSupportPagination(response);
       return;
     }
@@ -156,7 +158,8 @@ async function loadB2BSupportThreads() {
                         <div class="b2bsup-row-meta">${t.message_count || 0} message${t.message_count === 1 ? "" : "s"}</div>
                     </div>
                     <div class="support-conv-badges">
-                        ${t.awaiting_reply ? '<span class="badge-unread">Waiting</span>' : '<span class="badge-status-closed">Answered</span>'}
+                        ${t.awaiting_reply ? '<span class="badge-unread">Waiting</span>' : `<span class="badge-status-closed">${t.status === "closed" ? "Closed" : "Answered"}</span>`}
+                        ${t.archived ? '<span class="badge-archived">Archived</span>' : ""}
                         ${t.has_handoff ? '<span class="badge-handoff" title="Escalated by the Ardena assistant">AI</span>' : ""}
                     </div>
                 </div>
@@ -247,6 +250,10 @@ async function viewB2BSupportThread(businessId) {
     '<div class="sk-conv-body"><span class="sk-line" style="width: 40%"></span>' +
     '<span class="sk-line" style="width: 26%; height: 9px"></span></div></div>';
   messagesEl.innerHTML = skMessageBubbles(5);
+  // The buttons belong to the thread being replaced; drop them until this one
+  // has loaded.
+  b2bSupportThread = null;
+  renderB2BSupportThreadActions(null);
 
   try {
     const thread = await api.getB2BSupportThread(businessId);
@@ -270,12 +277,15 @@ async function viewB2BSupportThread(businessId) {
                         : '<span class="badge-status-open">Active</span>'
                     }
                     ${thread.awaiting_reply ? '<span class="dot">·</span><span class="badge-unread">Waiting</span>' : ""}
+                    ${thread.status === "closed" ? '<span class="dot">·</span><span class="badge-status-closed">Closed</span>' : ""}
+                    ${thread.archived ? '<span class="dot">·</span><span class="badge-archived">Archived</span>' : ""}
                 </div>
             </div>
         `;
 
     if (toggleBtn) toggleBtn.style.display = "flex";
     renderB2BSupportBusinessCard(business);
+    renderB2BSupportThreadActions(thread);
 
     const messages = thread.messages || [];
     if (messages.length === 0) {
@@ -336,6 +346,142 @@ async function viewB2BSupportThread(businessId) {
     infoEl.innerHTML = `<div class="error">Error loading thread: ${escapeHtml(error.message)}</div>`;
     messagesEl.innerHTML = "";
     if (toggleBtn) toggleBtn.style.display = "none";
+    renderB2BSupportThreadActions(null);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Thread actions: close / reopen, archive, delete
+// ---------------------------------------------------------------------------
+
+// Draws the header buttons for the open thread and swaps the reply box for a
+// "closed" banner. A thread with no state yet (an older backend, or a business
+// nobody has acted on) reads as open and not archived.
+function renderB2BSupportThreadActions(thread) {
+  const actions = document.getElementById("b2bSupportThreadActions");
+  const replyArea = document.getElementById("b2bSupportReplyArea");
+  const oldBanner = document.getElementById("b2bSupportClosedBanner");
+  if (oldBanner) oldBanner.remove();
+  if (!actions) return;
+
+  if (!thread) {
+    actions.innerHTML = "";
+    if (replyArea) replyArea.style.display = "block";
+    return;
+  }
+
+  const closed = thread.status === "closed";
+  const closeOrReopen = closed
+    ? `<button type="button" class="support-action-btn success-btn" onclick="setB2BSupportThreadClosed(false)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            Reopen
+        </button>`
+    : `<button type="button" class="support-action-btn danger-btn" onclick="setB2BSupportThreadClosed(true)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            Close
+        </button>`;
+  const archive = thread.archived
+    ? uiIconButton("unarchive", "Move back to the inbox", "setB2BSupportThreadArchived(false)")
+    : uiIconButton("archive", "Archive thread", "setB2BSupportThreadArchived(true)");
+  // Deleting takes the history off the business's dashboard too, so it is held
+  // to the same admins who can delete the business itself.
+  const remove = canManageAdmins()
+    ? uiIconButton("trash", "Delete thread", "deleteB2BSupportThread()", "danger")
+    : "";
+  actions.innerHTML = closeOrReopen + archive + remove;
+
+  if (!replyArea) return;
+  replyArea.style.display = closed ? "none" : "block";
+  if (closed) {
+    const banner = document.createElement("div");
+    banner.id = "b2bSupportClosedBanner";
+    banner.className = "support-closed-banner";
+    banner.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+            This thread is closed. A new message from the business reopens it.
+            <button class="support-closed-reopen-btn" onclick="setB2BSupportThreadClosed(false)">Reopen</button>
+        `;
+    replyArea.parentNode.insertBefore(banner, replyArea);
+  }
+}
+
+function b2bSupportThreadName() {
+  const business = (b2bSupportThread && b2bSupportThread.business) || {};
+  return business.name || `Business #${b2bSupportBusinessId}`;
+}
+
+async function setB2BSupportThreadClosed(close) {
+  const businessId = b2bSupportBusinessId;
+  if (businessId == null) return;
+
+  if (close) {
+    const ok = await uiConfirm(
+      `Close the thread with ${b2bSupportThreadName()}? It leaves the awaiting-reply backlog. If they write again it reopens by itself.`,
+      { title: "Close thread", confirmText: "Close thread", danger: false },
+    );
+    if (!ok) return;
+  }
+
+  try {
+    if (close) await api.closeB2BSupportThread(businessId);
+    else await api.reopenB2BSupportThread(businessId);
+    uiToast(`Thread ${close ? "closed" : "reopened"}.`, "success");
+    await viewB2BSupportThread(businessId);
+    loadB2BSupportThreads();
+  } catch (error) {
+    uiToast(
+      actionErrorMessage(error, `Couldn't ${close ? "close" : "reopen"} the thread`),
+      "error",
+    );
+  }
+}
+
+async function setB2BSupportThreadArchived(archive) {
+  const businessId = b2bSupportBusinessId;
+  if (businessId == null) return;
+
+  try {
+    if (archive) await api.archiveB2BSupportThread(businessId);
+    else await api.unarchiveB2BSupportThread(businessId);
+    uiToast(
+      archive
+        ? "Thread archived. Find it under the Archived filter."
+        : "Thread moved back to the inbox.",
+      "success",
+    );
+    // An archived thread has just left the list the admin is looking at, so
+    // leaving it open in the right pane would point at a row that is gone.
+    if (archive) backToB2BSupportList();
+    else await viewB2BSupportThread(businessId);
+    loadB2BSupportThreads();
+  } catch (error) {
+    uiToast(
+      actionErrorMessage(error, `Couldn't ${archive ? "archive" : "unarchive"} the thread`),
+      "error",
+    );
+  }
+}
+
+// Permanent, and it removes the history from the business's own dashboard as
+// well. Archive is the reversible option.
+async function deleteB2BSupportThread() {
+  const businessId = b2bSupportBusinessId;
+  if (businessId == null) return;
+
+  const count = ((b2bSupportThread && b2bSupportThread.messages) || []).length;
+  const ok = await uiConfirm(
+    `Permanently delete all ${count} message${count === 1 ? "" : "s"} in the thread with ${b2bSupportThreadName()}? The business loses this history on their dashboard too. This cannot be undone. To just clear it from the inbox, archive it instead.`,
+    { title: "Delete thread", confirmText: "Delete permanently", danger: true },
+  );
+  if (!ok) return;
+
+  try {
+    await api.deleteB2BSupportThread(businessId);
+    uiToast("Thread deleted.", "success");
+    backToB2BSupportList();
+    loadB2BSupportThreads();
+  } catch (error) {
+    uiToast(actionErrorMessage(error, "Couldn't delete the thread"), "error");
   }
 }
 

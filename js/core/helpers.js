@@ -67,6 +67,20 @@ function canManageB2BCredentials(role) {
   return canViewAdmins(role);
 }
 
+// The text for a failed action's toast. A route the backend hasn't shipped yet
+// answers FastAPI's bare 404/405; say that, rather than showing "Not Found" as
+// if the record itself were missing.
+function actionErrorMessage(error, prefix) {
+  const message = (error && error.message) || "Request failed";
+  const unshipped =
+    error &&
+    (error.status === 404 || error.status === 405) &&
+    /^(Not Found|Method Not Allowed)$/i.test(message);
+  return unshipped
+    ? `${prefix}: the server doesn't support this action yet.`
+    : `${prefix}: ${message}`;
+}
+
 // Page through a list endpoint and return every row (client-side filtering needs
 // the whole dataset, not just one page). Uses a limit we know the backend honors.
 async function fetchAllPaged(apiFn, key) {
@@ -343,7 +357,7 @@ function chartGridColor() {
 
 function chartAxisColor() {
   return document.documentElement.getAttribute("data-theme") === "dark"
-    ? "#74829a"
+    ? "#78776f"
     : "#9ca3af";
 }
 
