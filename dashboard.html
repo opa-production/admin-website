@@ -436,6 +436,7 @@
                                 <select id="adminRoleFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
                                     <option value="">All Roles</option>
                                     <option value="super_admin">Super Admin</option>
+                                    <option value="general_admin">General Admin</option>
                                     <option value="manager">Manager</option>
                                     <option value="finance">Finance</option>
                                     <option value="customer_service">Customer Care</option>
@@ -1001,6 +1002,33 @@
                     </div>
                 </div>
 
+                <!-- B2B Revenue: what Ardena earns from Ardena for Business
+                     subscriptions. One request fills the tiles, the chart and
+                     both tables; see js/pages/b2b-revenue.js. -->
+                <div id="b2bRevenuePage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div class="stats-grid" id="b2bRevenueStatsGrid" aria-busy="true"></div>
+                        <div class="revenue-graphs-section">
+                            <div class="graph-container revenue-chart-wrap revenue-chart-full revenue-chart-hero">
+                                <div class="graph-header graph-header-row">
+                                    <div>
+                                        <h3>Subscription Revenue</h3>
+                                        <span class="graph-subtitle">Plan payments collected each month, after Ardena app commission credit</span>
+                                    </div>
+                                    <span class="graph-pill graph-pill--revenue">Last 12 months</span>
+                                </div>
+                                <canvas id="b2bRevenueChart"></canvas>
+                            </div>
+                        </div>
+                        <div id="b2bRevenuePlanMix" style="margin: 24px 0 16px; font-size: 14px;"></div>
+                        <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+                            <button id="b2bRevenueWorkspacesTab" class="referrals-tab active" onclick="switchB2BRevenueTab('workspaces')">Workspaces</button>
+                            <button id="b2bRevenuePaymentsTab" class="referrals-tab" onclick="switchB2BRevenueTab('payments')">Recent payments</button>
+                        </div>
+                        <div id="b2bRevenueContent"></div>
+                    </div>
+                </div>
+
                 <!-- Newsroom: who writes for ardena.co.ke/newsroom, and the stories.
                      Anyone can look; only a super admin can change who writes
                      (the API enforces that too). -->
@@ -1188,6 +1216,7 @@
                     <div class="form-group">
                         <label for="adminRole">Role *</label>
                         <select id="adminRole" required>
+                            <option value="general_admin" id="adminRoleGeneralOption" hidden disabled>General Admin (full access)</option>
                             <option value="manager">Manager</option>
                             <option value="finance">Finance</option>
                             <option value="customer_service">Customer Care</option>
@@ -1589,6 +1618,7 @@
     <script src="js/pages/b2b.js"></script>
     <script src="js/pages/b2b-fleet.js"></script>
     <script src="js/pages/b2b-support.js"></script>
+    <script src="js/pages/b2b-revenue.js"></script>
     <script src="js/pages/newsroom.js"></script>
     <script src="js/pages/listing-reports.js"></script>
 </body>

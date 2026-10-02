@@ -762,6 +762,16 @@ const api = {
   getB2BSupportUnansweredCount: (opts = {}) =>
     apiRequest("/admin/b2b/support/unanswered-count", opts),
 
+  // B2B subscription revenue: totals, run rate, a monthly series, who is on
+  // which plan and the latest plan payments. Money page — the backend refuses
+  // customer service. Amounts are what wallets were charged, in whole KES.
+  getB2BRevenue: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(
+      `/admin/b2b/revenue${queryString ? "?" + queryString : ""}`,
+    );
+  },
+
   // Listing reports (moderation queue) — see reports.md
   getListingReports: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();

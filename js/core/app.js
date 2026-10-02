@@ -173,15 +173,15 @@ function setupNavigation() {
 
 // Configure sidebar/navigation visibility based on admin role
 function configureNavigationForRole(role) {
-  // Super admins manage admins; managers get a read-only view (see roles.md).
+  // Super and general admins manage admins; managers get a read-only view.
   const adminsNavItem = document.getElementById("adminsNavItem");
   if (adminsNavItem) {
-    adminsNavItem.style.display =
-      role === "super_admin" || role === "manager" ? "block" : "none";
+    adminsNavItem.style.display = canViewAdmins(role) ? "block" : "none";
   }
 
   const hideForCustomerService = [
     "revenue",
+    "b2b-revenue",
     "withdrawals",
     "referrals",
     "referral-earnings",
@@ -268,6 +268,7 @@ function loadPage(page) {
     b2b: "B2B Businesses",
     "b2b-fleet": "B2B Fleet",
     "b2b-support": "B2B Support",
+    "b2b-revenue": "B2B Revenue",
     newsroom: "Newsroom",
     admins: "Admins",
     "my-profile": "My Profile",
@@ -360,6 +361,9 @@ function loadPage(page) {
     case "b2b-support":
       initB2BSupportPage();
       break;
+    case "b2b-revenue":
+      loadB2BRevenue();
+      break;
     case "newsroom":
       initNewsroomPage();
       break;
@@ -371,7 +375,7 @@ function loadPage(page) {
 
 // Check if a page is allowed for a given admin role
 function isPageAllowedForRole(page, role) {
-  if (role === "super_admin") {
+  if (role === "super_admin" || role === "general_admin") {
     return true;
   }
 
@@ -383,6 +387,7 @@ function isPageAllowedForRole(page, role) {
   // Restrictions should mirror configureNavigationForRole
   const restrictedForCustomerService = new Set([
     "revenue",
+    "b2b-revenue",
     "withdrawals",
     "referrals",
     "referral-earnings",

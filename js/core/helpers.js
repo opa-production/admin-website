@@ -9,6 +9,7 @@ const LIST_PAGE_SIZE = 50;
 // See roles.md. super_admin is seeded only (never offered in the create UI).
 const ROLE_LABELS = {
   super_admin: "Super Admin",
+  general_admin: "General Admin",
   manager: "Manager",
   finance: "Finance",
   customer_service: "Customer Care",
@@ -25,10 +26,32 @@ function roleBadge(role) {
 
 // Admin-management capability gates (cosmetic only — the backend enforces them).
 function canViewAdmins(role) {
-  return ["super_admin", "manager"].includes(role || window.currentAdminRole);
+  return ["super_admin", "general_admin", "manager"].includes(
+    role || window.currentAdminRole,
+  );
 }
 
+// A general admin does everything a super admin does, except act on a super
+// admin or general admin account — see canManageAdminAccount.
 function canManageAdmins(role) {
+  return ["super_admin", "general_admin"].includes(
+    role || window.currentAdminRole,
+  );
+}
+
+// Whether the signed-in admin may edit, disable or delete THIS account. Super
+// admin accounts are never changed from the dashboard; a general admin account
+// is changed only by a super admin.
+function canManageAdminAccount(target, role) {
+  const me = role || window.currentAdminRole;
+  if (!target || !canManageAdmins(me)) return false;
+  if (target.role === "super_admin") return false;
+  if (target.role === "general_admin") return me === "super_admin";
+  return true;
+}
+
+// Only a super admin hands out the General Admin role.
+function canGrantGeneralAdmin(role) {
   return (role || window.currentAdminRole) === "super_admin";
 }
 

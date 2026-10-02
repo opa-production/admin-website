@@ -32,11 +32,11 @@ const NEWSROOM_FILTERS = {
 const newsroomFilterValue = { requests: "pending", stories: "" };
 
 function newsroomCanManageWriters() {
-  return window.currentAdminRole === "super_admin";
+  return canManageAdmins();
 }
 
 function newsroomCanManageStories() {
-  return window.currentAdminRole === "super_admin" || window.currentAdminRole === "manager";
+  return canManageAdmins() || window.currentAdminRole === "manager";
 }
 
 function initNewsroomPage() {

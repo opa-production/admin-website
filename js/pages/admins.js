@@ -47,7 +47,8 @@ async function loadAdmins() {
 
   setupAdminSearch();
 
-  // Only super_admin can create/manage admins; managers get a read-only view.
+  // Super and general admins create/manage admins; managers get a read-only
+  // view. Which rows get actions is decided per account (canManageAdminAccount).
   const canManage = canManageAdmins();
   const createBtn = document.getElementById("createAdminBtn");
   if (createBtn) createBtn.style.display = canManage ? "" : "none";
@@ -92,17 +93,13 @@ async function loadAdmins() {
                                     <td>
                                         <button class="btn btn-primary btn-small" onclick="viewAdminDetails(${admin.id})">View</button>
                                         ${
-                                          canManage
+                                          canManageAdminAccount(admin)
                                             ? `${
                                                 admin.is_active
                                                   ? `<button class="btn btn-secondary btn-small" onclick="deactivateAdmin(${admin.id})">Deactivate</button>`
                                                   : `<button class="btn btn-primary btn-small" onclick="activateAdmin(${admin.id})">Activate</button>`
                                               }
-                                        ${
-                                          admin.role !== "super_admin"
-                                            ? `<button class="btn btn-secondary btn-small" onclick="resendCredentials(${admin.id}, '${admin.email}')">Resend</button>`
-                                            : ""
-                                        }
+                                        <button class="btn btn-secondary btn-small" onclick="resendCredentials(${admin.id}, '${admin.email}')">Resend</button>
                                         <button class="btn btn-danger btn-small" onclick="deleteAdminConfirm(${admin.id}, '${admin.full_name}')">Delete</button>`
                                             : ""
                                         }
@@ -199,16 +196,12 @@ async function viewAdminDetails(adminId) {
             </div>
             
             ${
-              canManageAdmins()
+              canManageAdminAccount(admin)
                 ? `
             <div class="action-buttons" style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #eee;">
                 <button class="btn btn-primary" onclick="showEditAdminForm(${admin.id})">Edit Admin</button>
                 <button class="btn btn-secondary" onclick="showChangeAdminPasswordModal(${admin.id})">Change Password</button>
-                ${
-                  admin.role !== "super_admin"
-                    ? `<button class="btn btn-secondary" onclick="resendCredentials(${admin.id}, '${admin.email}')">Resend Credentials</button>`
-                    : ""
-                }
+                <button class="btn btn-secondary" onclick="resendCredentials(${admin.id}, '${admin.email}')">Resend Credentials</button>
                 ${
                   admin.is_active
                     ? `<button class="btn btn-secondary" onclick="deactivateAdmin(${admin.id}, true)">Deactivate</button>`
@@ -218,7 +211,7 @@ async function viewAdminDetails(adminId) {
             </div>`
                 : `
             <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #eee; color: #888; font-size: 13px;">
-                Read-only — only a Super Admin can edit admin accounts.
+                ${adminReadOnlyReason(admin)}
             </div>`
             }
         `;
@@ -228,12 +221,34 @@ async function viewAdminDetails(adminId) {
   }
 }
 
+// Why the signed-in admin sees no actions on this account.
+function adminReadOnlyReason(admin) {
+  if (admin.role === "super_admin") {
+    return "Read-only — a Super Admin account can't be changed from the dashboard.";
+  }
+  if (admin.role === "general_admin" && canManageAdmins()) {
+    return "Read-only — only a Super Admin can change or disable a General Admin.";
+  }
+  return "Read-only — only a Super Admin or General Admin can edit admin accounts.";
+}
+
+// The General Admin option is offered to super admins only (the API refuses
+// anyone else who sends it).
+function syncGeneralAdminOption() {
+  const option = document.getElementById("adminRoleGeneralOption");
+  if (!option) return;
+  const allowed = canGrantGeneralAdmin();
+  option.hidden = !allowed;
+  option.disabled = !allowed;
+}
+
 // Show create admin form
 function showCreateAdminForm() {
   document.getElementById("adminModalTitle").textContent = "Invite Admin";
   document.getElementById("adminFormId").value = "";
   document.getElementById("adminForm").reset();
   document.getElementById("adminInviteNote").style.display = "block";
+  syncGeneralAdminOption();
   document.getElementById("adminRole").value = "customer_service";
   document.getElementById("adminIsActive").checked = true;
   document.getElementById("adminFormError").textContent = "";
@@ -250,6 +265,7 @@ async function showEditAdminForm(adminId) {
     document.getElementById("adminFullName").value = admin.full_name || "";
     document.getElementById("adminEmail").value = admin.email || "";
     document.getElementById("adminInviteNote").style.display = "none";
+    syncGeneralAdminOption();
     document.getElementById("adminRole").value =
       admin.role || "customer_service";
     document.getElementById("adminIsActive").checked = admin.is_active;
@@ -329,8 +345,8 @@ async function saveAdmin(event) {
   }
 }
 
-// Resend (regenerate + re-email) an admin's temporary password. super_admin only;
-// the API rejects targeting another super_admin. See invite.md endpoint 2.
+// Resend (regenerate + re-email) an admin's temporary password. The API rejects
+// targeting a super_admin, and a general_admin unless the caller is a super_admin.
 async function resendCredentials(adminId, email) {
   if (
     !(await uiConfirm(
