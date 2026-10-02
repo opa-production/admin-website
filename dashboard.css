@@ -163,6 +163,15 @@
     box-sizing: border-box;
 }
 
+/* styles.css is shared with the sign-in page and gives every text input a
+   fixed light-grey border, which reads as a white outline on the dark theme.
+   Same selector, loaded later, so the token wins. */
+input[type="email"],
+input[type="password"],
+input[type="text"] {
+    border-color: var(--border);
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background-color: var(--app-bg);
@@ -1647,14 +1656,19 @@ body.admin-nav-open {
 
 /* ==================== Support Page (two-pane inbox) ==================== */
 
+/* Fills .content edge to edge: the negative margin cancels its padding, and the
+   width and height add that padding back so the inbox reaches the right edge
+   and the bottom without making the page itself scroll. */
 .support-page-shell {
     margin: -16px -24px;
-    height: calc(100vh - 64px);
+    width: calc(100% + 48px);
+    max-width: none;
+    height: calc(100% + 32px);
 }
 
 .support-inbox {
     display: grid;
-    grid-template-columns: 340px 1fr;
+    grid-template-columns: 310px minmax(0, 1fr);
     height: 100%;
     background: var(--surface);
     border-top: 1px solid var(--border);
@@ -1730,25 +1744,60 @@ body.admin-nav-open {
 
 .support-left-filters {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
+}
+
+/* The filters are the auto-upgraded .ui-select widget (js/core/ui.js), sized
+   down to sit beside the search box. They share the row evenly rather than
+   hugging their label, and wrap when the pane is too narrow for all of them. */
+.support-left-filters .ui-select--auto {
+    display: block;
+    flex: 1 1 108px;
+    min-width: 0 !important;
+}
+.support-left-filters .ui-select-trigger {
+    height: 34px;
+    padding: 0 8px 0 10px;
+    gap: 4px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+}
+.support-left-filters .ui-select-trigger:focus-visible,
+.support-left-filters .ui-select.is-open .ui-select-trigger {
+    border-color: var(--border-strong);
+}
+.support-left-filters .ui-select-menu {
+    right: auto;
+    min-width: 100%;
+    width: max-content;
+    border-color: var(--border-strong);
+}
+.support-left-filters .ui-select-option {
+    padding: 8px 12px;
+    font-size: 12.5px;
 }
 
 .support-search-box {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 7px 12px;
+    height: 34px;
+    padding: 0 10px;
     border: 1px solid var(--border);
     border-radius: 0;
     background: var(--surface);
     transition: border-color 0.2s;
 }
-.support-search-box:focus-within { border-color: var(--accent); }
+.support-search-box:focus-within { border-color: var(--border-strong); }
 .support-search-box svg { color: var(--muted-2); flex-shrink: 0; }
 
-.support-search-input {
+/* Two classes, so the shared input[type="text"] rule can't put its own border
+   and padding back inside the search box. */
+.support-search-box .support-search-input {
     border: none;
     outline: none;
+    padding: 0;
     font-size: 13px;
     color: var(--ink-2);
     width: 100%;
@@ -1776,18 +1825,28 @@ body.admin-nav-open {
 .support-filter-select:focus { border-color: var(--accent); }
 
 .support-filter-input {
-    flex: 1;
-    padding: 7px 12px;
+    flex: 1 1 84px;
+    height: 34px;
+    padding: 0 10px;
     border: 1px solid var(--border);
     border-radius: 0;
     font-size: 12.5px;
     color: var(--ink-2);
+    background: var(--surface);
     outline: none;
     min-width: 0;
     width: auto;
     transition: border-color 0.2s;
+    appearance: textfield;
+    -moz-appearance: textfield;
 }
-.support-filter-input:focus { border-color: var(--accent); }
+.support-filter-input::placeholder { color: var(--muted-3); }
+.support-filter-input::-webkit-outer-spin-button,
+.support-filter-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.support-filter-input:focus { border-color: var(--border-strong); }
 
 /* Compact conversation rows (no huge cards) */
 .support-left-list {
@@ -2066,7 +2125,8 @@ body.admin-nav-open {
 .support-messages-area {
     flex: 1;
     overflow-y: auto;
-    padding: 28px 28px;
+    /* The bottom padding is the room the floating reply box overlaps. */
+    padding: 24px 20px 44px 28px;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -2096,7 +2156,7 @@ body.admin-nav-open {
 }
 
 .support-msg-bubble-wrap {
-    max-width: 62%;
+    max-width: 68%;
     display: flex;
     flex-direction: column;
 }
@@ -2125,9 +2185,11 @@ body.admin-nav-open {
     border: 1px solid var(--border);
     border-bottom-left-radius: 5px;
 }
+/* Our own replies: told apart by side and a step of grey, not a solid colour. */
 .admin-bubble {
-    background: var(--accent);
-    color: var(--on-accent);
+    background: var(--surface-3);
+    color: var(--ink);
+    border: 1px solid var(--border);
     border-bottom-right-radius: 5px;
 }
 
@@ -2182,26 +2244,34 @@ body.admin-nav-open {
     text-underline-offset: 2px;
 }
 
+/* The reply box floats over the foot of the transcript: the area is pulled up
+   over the messages and fades them out, and only the pill itself takes clicks.
+   The wider right padding keeps the send button clear of the assistant button
+   in the corner of the page. */
 .support-reply-area {
-    background: var(--surface);
-    padding: 14px 20px;
-    border-top: 1.5px solid var(--border);
+    position: relative;
+    z-index: 1;
+    margin-top: -32px;
+    padding: 32px 92px 18px 28px;
+    background: linear-gradient(to bottom, transparent, var(--surface-2) 32px);
     flex-shrink: 0;
+    pointer-events: none;
 }
 
 .support-reply-form {
     display: flex;
     align-items: flex-end;
     gap: 10px;
-    background: var(--surface-2);
-    border: 1.5px solid var(--border);
-    border-radius: 0;
-    padding: 10px 10px 10px 16px;
-    transition: border-color 0.2s, background 0.2s;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 26px;
+    padding: 7px 7px 7px 20px;
+    box-shadow: var(--shadow-md);
+    transition: border-color 0.2s;
+    pointer-events: auto;
 }
 .support-reply-form:focus-within {
-    border-color: var(--accent);
-    background: var(--surface);
+    border-color: var(--border-strong);
 }
 
 .support-reply-textarea {
@@ -2216,13 +2286,14 @@ body.admin-nav-open {
     min-height: 24px;
     max-height: 120px;
     line-height: 1.55;
+    padding: 8px 0;
 }
 .support-reply-textarea::placeholder { color: var(--muted-3); }
 
 .support-send-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
     background: var(--accent);
     border: none;
     color: var(--on-accent);
@@ -2233,8 +2304,18 @@ body.admin-nav-open {
     flex-shrink: 0;
     transition: background 0.15s;
 }
-.support-send-btn:hover { background: var(--accent); }
-.support-send-btn:active { background: var(--accent); }
+.support-send-btn:hover { background: var(--accent-hover); }
+.support-send-btn:active { background: var(--accent-hover); }
+
+/* js/assets/send.svg carries a fixed dark fill, so it is used as a mask and
+   takes the button's text colour instead. */
+.support-send-icon {
+    width: 20px;
+    height: 20px;
+    background: currentColor;
+    -webkit-mask: url("js/assets/send.svg") center / contain no-repeat;
+    mask: url("js/assets/send.svg") center / contain no-repeat;
+}
 
 @media (max-width: 900px) {
     .support-inbox { grid-template-columns: 1fr; }
@@ -2245,11 +2326,12 @@ body.admin-nav-open {
 }
 
 @media (max-width: 768px) {
-    .support-page-shell { margin: -16px -16px; height: calc(100vh - 56px); }
+    .support-page-shell { margin: -16px -16px; width: calc(100% + 32px); }
+    .support-reply-area { padding: 32px 84px 14px 14px; }
     .support-chat-host-sub { font-size: 11px; gap: 5px; }
     .support-msg-bubble-wrap { max-width: 82%; }
     .support-chat-header { padding: 10px 14px; gap: 10px; }
-    .support-messages-area { padding: 16px 14px; }
+    .support-messages-area { padding: 16px 14px 44px; }
 }
 
 /* ==================== B2B Support ====================
