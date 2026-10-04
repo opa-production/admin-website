@@ -153,7 +153,7 @@ function clientDocThumb(label, url, round) {
           <a href="${safe}" target="_blank" rel="noopener noreferrer" title="Open ${label}" style="display:block;">
             <img src="${safe}" alt="${label}" loading="lazy" referrerpolicy="no-referrer"
               onerror="${onerror}"
-              style="${shape} object-fit: cover; border: 1px solid #e5e7eb; background: #f5f5f5; display: block;" />
+              style="${shape} object-fit: cover; border: 1px solid var(--border); background: var(--app-bg); display: block;" />
           </a>`;
       })()
     : `<div style="${placeholderStyle}">Not provided</div>`;

@@ -93,7 +93,7 @@ function renderCarMediaHtml(mediaData) {
                                 src="${safe}"
                                 alt="Car image ${index + 1}"
                                 class="car-media-thumb"
-                                style="width: 100%; height: 130px; object-fit: cover; border-radius: 0; border: 1px solid #e5e7eb; background: #f5f5f5; display: block;"
+                                style="width: 100%; height: 130px; object-fit: cover; border-radius: 0; border: 1px solid var(--border); background: var(--app-bg); display: block;"
                                 loading="lazy"
                             />
                         </a>`;
@@ -494,7 +494,7 @@ async function viewCarDetails(carId) {
             
             <div class="host-detail-section">
                 <h3>Description</h3>
-                <div class="detail-value" style="padding: 12px; background-color: #f9f9f9; border-radius: 0; min-height: 60px;">
+                <div class="detail-value" style="padding: 12px; background-color: var(--app-bg); border-radius: 0; min-height: 60px;">
                     ${car.description || "No description provided"}
                 </div>
             </div>
@@ -504,7 +504,7 @@ async function viewCarDetails(carId) {
                 ? `
             <div class="host-detail-section">
                 <h3>Rules</h3>
-                <div class="detail-value" style="padding: 12px; background-color: #f9f9f9; border-radius: 0; min-height: 60px;">
+                <div class="detail-value" style="padding: 12px; background-color: var(--app-bg); border-radius: 0; min-height: 60px;">
                     ${car.rules}
                 </div>
             </div>
