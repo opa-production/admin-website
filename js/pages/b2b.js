@@ -106,6 +106,8 @@ function switchB2BTab(tab) {
 // ---------- Access requests ----------
 
 async function loadB2BRequests() {
+  // Keep the sidebar badge in step after a decision reloads this list.
+  if (typeof refreshNavBadges === "function") refreshNavBadges();
   const content = document.getElementById("b2bRequestsContent");
   if (!content) return;
   try {

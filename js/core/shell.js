@@ -134,7 +134,7 @@ function renderSidebar() {
 
 // ---------------------------------------------------------------------------
 // Sidebar notification badges: surface work that needs the admin's attention
-// (unread support messages, cars awaiting verification) on the nav itself.
+// (unread support, cars to verify, payouts, requests to approve) on the nav itself.
 // ---------------------------------------------------------------------------
 function setNavBadge(page, count) {
   const el = document.getElementById("navBadge-" + page);
@@ -153,39 +153,69 @@ function setNavBadge(page, count) {
 
 let navBadgeTimer = null;
 
-// Fetch the counts that drive the badges. Each source is guarded so a role
-// without access (e.g. finance can't see Support) just skips that badge.
-async function refreshNavBadges() {
-  if (!localStorage.getItem("admin_token")) return;
+// A list endpoint's total for one status, read off a limit=1 page. Background,
+// so a role that can't reach the endpoint skips its badge instead of being
+// signed out.
+async function navQueueTotal(path, params) {
+  const qs = new URLSearchParams({ limit: 1, ...params }).toString();
+  const res = await apiRequest(`${path}?${qs}`, { background: true });
+  return res.total || 0;
+}
 
+// Every badge: the page it sits on and how many items are waiting on an
+// admin there. Each source is fetched on its own, so one failing (no access,
+// endpoint not deployed, offline) leaves the others — and its own last
+// value — alone.
+const NAV_BADGE_SOURCES = [
   // Cars awaiting verification (neither approved nor rejected yet).
-  try {
-    const stats = await api.getVerificationQueueStats({ background: true });
-    setNavBadge("cars", stats.cars_awaiting_verification || 0);
-  } catch (e) {
-    /* no access / offline — leave badge as-is */
-  }
-
+  ["cars", async () =>
+    (await api.getVerificationQueueStats({ background: true })).cars_awaiting_verification],
   // Unread support conversations needing a reply.
-  try {
-    const res = await api.getSupportConversations(
-      { page: 1, limit: 1 },
-      { background: true },
-    );
-    setNavBadge("support", res.unread_count || 0);
-  } catch (e) {
-    /* no access / offline */
-  }
-
+  ["support", async () =>
+    (await api.getSupportConversations({ page: 1, limit: 1 }, { background: true })).unread_count],
   // B2B threads whose newest message is from the business (support.md §2).
   // Its own endpoint rather than a field off the inbox list, so the badge is
   // the whole backlog and never disagrees with a filtered view of the page.
-  try {
-    const res = await api.getB2BSupportUnansweredCount({ background: true });
-    setNavBadge("b2b-support", res.count || 0);
-  } catch (e) {
-    /* no access / offline */
-  }
+  ["b2b-support", async () =>
+    (await api.getB2BSupportUnansweredCount({ background: true })).count],
+  // Payouts a host asked for that nobody has paid or rejected.
+  ["withdrawals", () => navQueueTotal("/admin/withdrawals", { status: "pending" })],
+  ["refunds", () => navQueueTotal("/admin/refunds", { status: "pending" })],
+  ["deposit-claims", () => navQueueTotal("/admin/deposit-claims", { status: "pending" })],
+  // Listing reports nobody has resolved: received + reviewing.
+  ["moderation", async () => {
+    const [received, reviewing] = await Promise.all([
+      navQueueTotal("/admin/listing-reports", { status: "received" }),
+      navQueueTotal("/admin/listing-reports", { status: "reviewing" }),
+    ]);
+    return received + reviewing;
+  }],
+  // Businesses that applied for access and are waiting for an answer.
+  ["b2b", () => navQueueTotal("/admin/b2b/access-requests", { status: "pending" })],
+  // Business cars published to the app that only our review is holding back.
+  ["b2b-fleet", async () =>
+    (await apiRequest("/admin/b2b/fleet/cars/stats", { background: true })).pending_review],
+  // People who asked to write for the newsroom. Only a super admin can
+  // approve them, so nobody else is shown a count they can't act on.
+  ["newsroom", async () => {
+    if (typeof canManageAdmins === "function" && !canManageAdmins()) return 0;
+    const rows = await apiRequest("/admin/newsroom/requests?status=pending", { background: true });
+    return Array.isArray(rows) ? rows.length : 0;
+  }],
+];
+
+// Fetch the counts that drive the badges.
+async function refreshNavBadges() {
+  if (!localStorage.getItem("admin_token")) return;
+  await Promise.all(
+    NAV_BADGE_SOURCES.map(async ([page, count]) => {
+      try {
+        setNavBadge(page, (await count()) || 0);
+      } catch (e) {
+        /* no access / offline — leave badge as-is */
+      }
+    }),
+  );
 }
 
 // Poll periodically so the badges self-heal without a page reload.

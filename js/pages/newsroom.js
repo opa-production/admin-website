@@ -107,6 +107,8 @@ async function loadNewsroomTab() {
 // ---------- Requests ----------
 
 async function renderNewsroomRequests() {
+  // Keep the sidebar badge in step after a decision reloads this list.
+  if (typeof refreshNavBadges === "function") refreshNavBadges();
   const rows = await api.getNewsroomRequests(newsroomFilterValue.requests);
   newsroomRows = {};
   rows.forEach((r) => (newsroomRows[r.id] = r));

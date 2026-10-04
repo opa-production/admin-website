@@ -32,6 +32,8 @@ function setupWithdrawalFilters() {
 }
 
 async function loadWithdrawals() {
+  // Keep the sidebar badge in step after a decision reloads this list.
+  if (typeof refreshNavBadges === "function") refreshNavBadges();
   const content = document.getElementById("withdrawalsContent");
   if (!content) return;
   try {

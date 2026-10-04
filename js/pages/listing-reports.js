@@ -77,6 +77,8 @@ function bindListingReportFilters() {
 }
 
 async function loadListingReportStats() {
+  // Keep the sidebar badge in step after a decision reloads this list.
+  if (typeof refreshNavBadges === "function") refreshNavBadges();
   const row = document.getElementById("reportsStatsRow");
   if (!row) return;
   try {

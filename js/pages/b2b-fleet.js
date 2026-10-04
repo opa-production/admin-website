@@ -83,6 +83,8 @@ function goToB2BFleetPage(page) {
 }
 
 async function loadB2BFleet() {
+  // Keep the sidebar badge in step after a decision reloads this list.
+  if (typeof refreshNavBadges === "function") refreshNavBadges();
   const content = document.getElementById("b2bFleetContent");
   if (!content) return;
 
