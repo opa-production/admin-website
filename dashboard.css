@@ -2895,9 +2895,36 @@ body.admin-nav-open {
 .mod-filters {
     display: flex;
     flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 10px;
     margin-bottom: 16px;
     align-items: center;
+}
+
+/* Filters and search sit on the right of a list page: titles and tabs keep the
+   left, and a filter row never lines up under the content's left edge. */
+.list-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.list-toolbar-filters {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+}
+
+@media (max-width: 640px) {
+    .list-toolbar-filters { width: 100%; }
+    .list-toolbar-filters > input,
+    .list-toolbar-filters > select { flex: 1 1 100%; width: auto !important; min-width: 0 !important; }
 }
 
 .mod-filter-select,

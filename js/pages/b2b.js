@@ -20,6 +20,9 @@ let currentB2BRequestSearch = "";
 let b2bBusinessRows = {};
 let currentB2BBusinessPage = 1;
 let currentB2BBusinessSearch = "";
+// Deactivated workspaces are kept out of the default list; the status filter
+// brings them back ("false") or shows everything ("").
+let currentB2BBusinessActive = "true";
 const B2B_PAGE_SIZE = 20;
 
 function initB2BPage() {
@@ -42,6 +45,15 @@ function initB2BPage() {
         currentB2BRequestPage = 1;
         loadB2BRequests();
       }, 400);
+    };
+  }
+  const businessStatus = document.getElementById("b2bBusinessStatusFilter");
+  if (businessStatus) {
+    businessStatus.value = currentB2BBusinessActive;
+    businessStatus.onchange = () => {
+      currentB2BBusinessActive = businessStatus.value;
+      currentB2BBusinessPage = 1;
+      loadB2BBusinesses();
     };
   }
   const businessSearch = document.getElementById("b2bBusinessSearch");
@@ -74,6 +86,14 @@ function switchB2BTab(tab) {
   requestsPanel.style.display = tab === "requests" ? "block" : "none";
   businessesPanel.style.display = tab === "businesses" ? "block" : "none";
   if (funnelPanel) funnelPanel.style.display = tab === "funnel" ? "block" : "none";
+  [
+    ["b2bRequestsFilters", "requests"],
+    ["b2bBusinessesFilters", "businesses"],
+    ["b2bFunnelFilters", "funnel"],
+  ].forEach(([id, t]) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = tab === t ? "flex" : "none";
+  });
   if (tab === "requests") {
     loadB2BRequests();
   } else if (tab === "funnel") {
@@ -209,7 +229,13 @@ async function loadB2BBusinesses() {
       limit: B2B_PAGE_SIZE,
     };
     if (currentB2BBusinessSearch) params.search = currentB2BBusinessSearch;
+    if (currentB2BBusinessActive) params.is_active = currentB2BBusinessActive;
     const data = await api.getB2BBusinesses(params);
+    // An API without the is_active filter ignores it and returns every row.
+    if (currentB2BBusinessActive && data.businesses) {
+      const wantActive = currentB2BBusinessActive === "true";
+      data.businesses = data.businesses.filter((b) => Boolean(b.is_active) === wantActive);
+    }
 
     b2bBusinessRows = {};
     (data.businesses || []).forEach((b) => {
@@ -269,7 +295,12 @@ async function loadB2BBusinesses() {
             `;
       renderB2BPagination("b2bBusinessesPagination", data.total, data.limit, data.skip, "goToB2BBusinessPage");
     } else {
-      content.innerHTML = '<div class="empty-state">No businesses yet — approve an access request or create one directly.</div>';
+      content.innerHTML =
+        currentB2BBusinessActive === "false"
+          ? '<div class="empty-state">No deactivated businesses.</div>'
+          : currentB2BBusinessActive || currentB2BBusinessSearch
+            ? '<div class="empty-state">No businesses match these filters.</div>'
+            : '<div class="empty-state">No businesses yet — approve an access request or create one directly.</div>';
       document.getElementById("b2bBusinessesPagination").innerHTML = "";
     }
   } catch (error) {
@@ -676,23 +707,26 @@ async function openB2BUsersModal(businessId, businessName) {
             <div class="table-container">
                 <table>
                     <thead>
-                        <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Last active</th><th>Actions</th></tr>
+                        <tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Status</th><th>Last active</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
                         ${users
                           .map((u) => {
                             const toggle = u.is_active
-                              ? `<button class="btn btn-small btn-secondary" onclick="toggleB2BUser(${u.id}, false, ${businessId}, '${escapeHtml(businessName)}')">Deactivate</button>`
-                              : `<button class="btn btn-small btn-primary" onclick="toggleB2BUser(${u.id}, true, ${businessId}, '${escapeHtml(businessName)}')">Activate</button>`;
+                              ? uiIconButton("deactivate", "Deactivate user", `toggleB2BUser(${u.id}, false, ${businessId}, '${escapeHtml(businessName)}')`)
+                              : uiIconButton("activate", "Activate user", `toggleB2BUser(${u.id}, true, ${businessId}, '${escapeHtml(businessName)}')`, "primary");
                             return `<tr>
                                 <td>${escapeHtml(u.name)}</td>
                                 <td>${escapeHtml(u.email)}</td>
+                                <td>${u.phone ? `<a href="tel:${escapeHtmlAttr(u.phone)}">${escapeHtml(u.phone)}</a>` : "—"}</td>
                                 <td>${escapeHtml(u.role)}</td>
                                 <td><span class="status-badge ${u.is_active ? "active" : "inactive"}">${u.is_active ? "Active" : "Inactive"}</span></td>
                                 <td>${u.last_active_at ? new Date(u.last_active_at).toLocaleString() : "Never"}</td>
                                 <td>
-                                    <button class="btn btn-small btn-primary" onclick="resetB2BUserPassword(${u.id})">Reset password</button>
-                                    ${toggle}
+                                    <div class="row-actions">
+                                        ${uiIconButton("key", "Reset password", `resetB2BUserPassword(${u.id})`)}
+                                        ${toggle}
+                                    </div>
                                 </td>
                             </tr>`;
                           })
