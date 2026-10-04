@@ -743,6 +743,8 @@ const api = {
     }),
   resendNewsroomInvite: (id) =>
     apiRequest(`/admin/newsroom/editors/${id}/resend-invite`, { method: "POST" }),
+  removeNewsroomAvatar: (id) =>
+    apiRequest(`/admin/newsroom/editors/${id}/avatar`, { method: "DELETE" }),
   getNewsroomArticles: (status = "") =>
     apiRequest(`/admin/newsroom/articles${status ? "?status=" + encodeURIComponent(status) : ""}`),
   updateNewsroomArticle: (id, changes) =>

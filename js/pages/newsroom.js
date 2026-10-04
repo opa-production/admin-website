@@ -207,10 +207,16 @@ async function renderNewsroomWriters() {
                 ? `<button class="btn btn-small btn-secondary" onclick="resendNewsroomInvite(${e.id})">Resend invite</button>`
                 : "",
               `<button class="btn btn-small ${e.is_active ? "btn-danger" : "btn-secondary"}" onclick="toggleNewsroomActive(${e.id}, ${!e.is_active})">${e.is_active ? "Deactivate" : "Reactivate"}</button>`,
+              e.avatar_url
+                ? `<button class="btn btn-small btn-secondary" onclick="removeNewsroomAvatar(${e.id})">Remove photo</button>`
+                : "",
             ].join(" ")
           : "—";
+        const photo = /^https:\/\//.test(e.avatar_url || "")
+          ? `<img src="${escapeHtmlAttr(e.avatar_url)}" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:8px;">`
+          : "";
         return `<tr>
-          <td><strong>${escapeHtml(e.full_name)}</strong></td>
+          <td>${photo}<strong>${escapeHtml(e.full_name)}</strong></td>
           <td>${escapeHtml(e.email)}</td>
           <td>${newsroomBadge(e.can_publish ? "Can publish" : "Off", e.can_publish)}</td>
           <td>${account}</td>
@@ -242,6 +248,11 @@ function toggleNewsroomActive(id, isActive) {
 
 function resendNewsroomInvite(id) {
   newsroomAct(() => api.resendNewsroomInvite(id));
+}
+
+function removeNewsroomAvatar(id) {
+  if (!confirm("Remove this writer's photo? It disappears from all their stories.")) return;
+  newsroomAct(() => api.removeNewsroomAvatar(id));
 }
 
 function openNewsroomInviteModal() {
@@ -332,6 +343,8 @@ const NEWSROOM_ACTIONS = {
   activate_editor: "Reactivated a writer",
   deactivate_editor: "Deactivated a writer",
   resend_invite: "Resent an invite",
+  remove_avatar: "Removed a writer's photo",
+  password_changed: "Writer changed their password",
   feature: "Featured a story",
   unfeature: "Unfeatured a story",
   set_status_published: "Republished a story",
