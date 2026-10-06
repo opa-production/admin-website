@@ -200,13 +200,36 @@ function configureNavigationForRole(role) {
 
   document.querySelectorAll(".nav-item").forEach((item) => {
     const page = item.getAttribute("data-page");
-    if (role === "customer_service" && hideForCustomerService.includes(page)) {
+    if (CHAUFFEUR_PAGE_ROLES[page]) {
+      if (!CHAUFFEUR_PAGE_ROLES[page].includes(role)) item.style.display = "none";
+    } else if (role === "customer_service" && hideForCustomerService.includes(page)) {
       item.style.display = "none";
     } else if (role === "finance" && hideForFinance.includes(page)) {
       item.style.display = "none";
     }
   });
+
+  // A group heading with nothing visible under it would be a stray label.
+  document.querySelectorAll(".nav-group-label").forEach((label) => {
+    const group = label.getAttribute("data-group");
+    const visible = Array.from(
+      document.querySelectorAll(`.nav-item[data-group="${group}"]`),
+    ).some((item) => item.style.display !== "none");
+    label.style.display = visible ? "" : "none";
+  });
 }
+
+// Chauffeurs pages are gated by an explicit allow-list (chauffer.md §1): the
+// backend answers 403 to anyone else, so their nav entries are hidden instead.
+const CHAUFFEUR_REVIEW_ROLES = ["super_admin", "general_admin", "manager", "customer_service"];
+const CHAUFFEUR_MONEY_ROLES = ["super_admin", "general_admin", "finance"];
+const CHAUFFEUR_PAGE_ROLES = {
+  "chauffeur-applications": CHAUFFEUR_REVIEW_ROLES,
+  "chauffeur-drivers": CHAUFFEUR_REVIEW_ROLES,
+  "chauffeur-hires": [...CHAUFFEUR_REVIEW_ROLES, "finance"],
+  "chauffeur-withdrawals": CHAUFFEUR_MONEY_ROLES,
+  "chauffeur-refunds": CHAUFFEUR_MONEY_ROLES,
+};
 
 // Load page content
 function loadPage(page) {
@@ -272,6 +295,11 @@ function loadPage(page) {
     "deposit-claims": "Deposit Claims",
     "status-incidents": "Status Page",
     newsroom: "Newsroom",
+    "chauffeur-applications": "Chauffeur Applications",
+    "chauffeur-drivers": "Chauffeur Drivers",
+    "chauffeur-hires": "Chauffeur Hires",
+    "chauffeur-withdrawals": "Chauffeur Withdrawals",
+    "chauffeur-refunds": "Chauffeur Refunds",
     admins: "Admins",
     "my-profile": "My Profile",
   };
@@ -375,6 +403,21 @@ function loadPage(page) {
     case "newsroom":
       initNewsroomPage();
       break;
+    case "chauffeur-applications":
+      initChauffeurApplicationsPage();
+      break;
+    case "chauffeur-drivers":
+      initChauffeurDriversPage();
+      break;
+    case "chauffeur-hires":
+      initChauffeurHiresPage();
+      break;
+    case "chauffeur-withdrawals":
+      initChauffeurWithdrawalsPage();
+      break;
+    case "chauffeur-refunds":
+      initChauffeurRefundsPage();
+      break;
     case "my-profile":
       loadMyProfile();
       break;
@@ -383,6 +426,10 @@ function loadPage(page) {
 
 // Check if a page is allowed for a given admin role
 function isPageAllowedForRole(page, role) {
+  if (CHAUFFEUR_PAGE_ROLES[page]) {
+    return CHAUFFEUR_PAGE_ROLES[page].includes(role);
+  }
+
   if (role === "super_admin" || role === "general_admin") {
     return true;
   }

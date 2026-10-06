@@ -649,6 +649,97 @@
                     </div>
                 </div>
 
+                <!-- Chauffeurs (chauffer.md): js/pages/chauffeur-*.js -->
+                <div id="chauffeurApplicationsPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                            <h2 style="margin: 0;">Chauffeur Applications</h2>
+                            <select id="chAppStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
+                                <option value="pending">Waiting for review</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Sent back</option>
+                                <option value="">All applications</option>
+                            </select>
+                        </div>
+                        <div id="chAppContent"><div class="loading">Loading applications...</div></div>
+                        <div id="chAppPagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;"></div>
+                    </div>
+                </div>
+
+                <div id="chauffeurDriversPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                            <h2 style="margin: 0;">Chauffeur Drivers</h2>
+                            <select id="chDriverStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
+                                <option value="">All drivers</option>
+                                <option value="active">Active</option>
+                                <option value="suspended">Suspended</option>
+                                <option value="deleted">Former drivers</option>
+                            </select>
+                        </div>
+                        <div id="chDriverContent"><div class="loading">Loading drivers...</div></div>
+                        <div id="chDriverPagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;"></div>
+                    </div>
+                </div>
+
+                <div id="chauffeurHiresPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                            <h2 style="margin: 0;">Chauffeur Hires</h2>
+                            <span id="chHireStatusFilterWrap">
+                                <select id="chHireStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
+                                    <option value="">All statuses</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="accepted">Accepted</option>
+                                    <option value="in_progress">In progress</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="declined">Declined</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </span>
+                        </div>
+                        <div class="referrals-tabs" style="display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border);">
+                            <button class="referrals-tab active" data-ch-hire-tab="all" onclick="switchChauffeurHireTab('all')">All hires</button>
+                            <button class="referrals-tab" data-ch-hire-tab="stuck" onclick="switchChauffeurHireTab('stuck')">Needs attention</button>
+                        </div>
+                        <div id="chHireContent"><div class="loading">Loading hires...</div></div>
+                        <div id="chHirePagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;"></div>
+                    </div>
+                </div>
+
+                <div id="chauffeurWithdrawalsPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                            <h2 style="margin: 0;">Chauffeur Withdrawals</h2>
+                            <select id="chPayoutStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
+                                <option value="processing">Waiting to be sent</option>
+                                <option value="paid">Paid</option>
+                                <option value="failed">Failed</option>
+                                <option value="">All withdrawals</option>
+                            </select>
+                        </div>
+                        <p class="detail-note" style="margin-top: 0; margin-bottom: 16px;">Send the M-Pesa by hand, then record the result here. Oldest request first.</p>
+                        <div id="chPayoutContent"><div class="loading">Loading withdrawals...</div></div>
+                    </div>
+                </div>
+
+                <div id="chauffeurRefundsPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                            <h2 style="margin: 0;">Chauffeur Refunds</h2>
+                            <select id="chRefundStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
+                                <option value="pending">Waiting to be refunded</option>
+                                <option value="completed">Refunded</option>
+                                <option value="failed">Failed</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="">All refunds</option>
+                            </select>
+                        </div>
+                        <p class="detail-note" style="margin-top: 0; margin-bottom: 16px;">Pay the renter back the way they paid, then record it here. Oldest first.</p>
+                        <div id="chRefundContent"><div class="loading">Loading refunds...</div></div>
+                    </div>
+                </div>
+
                 <!-- Status page incidents: everything here is public on
                      ardena.co.ke/status. See js/pages/status-incidents.js. -->
                 <div id="statusIncidentsPage" class="page-content" style="display: none;">
@@ -1268,6 +1359,18 @@
     </div>
 
     <!-- Create/Edit Admin Modal -->
+    <!-- Chauffeur application review (js/pages/chauffeur-applications.js) -->
+    <div id="chAppModal" class="modal" style="display: none;" onclick="if (event.target === this) closeChauffeurApplication()">
+        <div class="modal-content" style="max-width: 760px;">
+            <div class="modal-header">
+                <h2 id="chAppModalTitle">Application</h2>
+                <button class="modal-close" onclick="closeChauffeurApplication()" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body" id="chAppModalBody"></div>
+            <div class="modal-footer" id="chAppModalFooter"></div>
+        </div>
+    </div>
+
     <div id="adminModal" class="modal" style="display: none;">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
@@ -1700,5 +1803,11 @@
     <script src="js/pages/status-incidents.js"></script>
     <script src="js/pages/newsroom.js"></script>
     <script src="js/pages/listing-reports.js"></script>
+    <script src="js/pages/chauffeurs-shared.js"></script>
+    <script src="js/pages/chauffeur-applications.js"></script>
+    <script src="js/pages/chauffeur-drivers.js"></script>
+    <script src="js/pages/chauffeur-hires.js"></script>
+    <script src="js/pages/chauffeur-withdrawals.js"></script>
+    <script src="js/pages/chauffeur-refunds.js"></script>
 </body>
 </html>

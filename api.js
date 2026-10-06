@@ -972,4 +972,65 @@ const api = {
     }),
   deleteListingReport: (reportId) =>
     apiRequest(`/admin/listing-reports/${reportId}`, { method: "DELETE" }),
+
+  // Chauffeurs — see chauffer.md. Params are sent as given, so an empty
+  // `status` goes out as `status=` (the payouts and refunds queues read that
+  // as "all", and their default without it is the open queue).
+  getChauffeurSummary: (options = {}) =>
+    apiRequest("/admin/chauffeur-summary", options),
+
+  getChauffeurApplications: (params = {}) =>
+    apiRequest(
+      `/admin/chauffeur-applications?${new URLSearchParams(params).toString()}`,
+    ),
+  getChauffeurApplication: (id) =>
+    apiRequest(`/admin/chauffeur-applications/${encodeURIComponent(id)}`),
+  approveChauffeurApplication: (id, data) =>
+    apiRequest(
+      `/admin/chauffeur-applications/${encodeURIComponent(id)}/approve`,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+  rejectChauffeurApplication: (id, data) =>
+    apiRequest(
+      `/admin/chauffeur-applications/${encodeURIComponent(id)}/reject`,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
+  getChauffeurs: (params = {}) =>
+    apiRequest(`/admin/chauffeurs?${new URLSearchParams(params).toString()}`),
+  updateChauffeurStatus: (id, data) =>
+    apiRequest(`/admin/chauffeurs/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  getChauffeurBookings: (params = {}) =>
+    apiRequest(
+      `/admin/chauffeur-bookings?${new URLSearchParams(params).toString()}`,
+    ),
+  cancelChauffeurBooking: (id, data) =>
+    apiRequest(`/admin/chauffeur-bookings/${encodeURIComponent(id)}/cancel`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getChauffeurPayouts: (params = {}) =>
+    apiRequest(
+      `/admin/chauffeur-payouts?${new URLSearchParams(params).toString()}`,
+    ),
+  updateChauffeurPayout: (id, data) =>
+    apiRequest(`/admin/chauffeur-payouts/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  getChauffeurRefunds: (params = {}) =>
+    apiRequest(
+      `/admin/chauffeur-refunds?${new URLSearchParams(params).toString()}`,
+    ),
+  updateChauffeurRefund: (id, data) =>
+    apiRequest(`/admin/chauffeur-refunds/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
 };

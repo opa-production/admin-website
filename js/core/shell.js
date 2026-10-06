@@ -57,6 +57,12 @@ const NAV_ICONS = {
     '<path d="M4 5h13v14H6a2 2 0 0 1-2-2z"></path><path d="M17 8h3v9a2 2 0 0 1-2 2"></path><line x1="7.5" y1="9" x2="13.5" y2="9"></line><line x1="7.5" y1="12.5" x2="13.5" y2="12.5"></line><line x1="7.5" y1="16" x2="11" y2="16"></line>',
   "b2b-fleet":
     '<path d="M5 17h14"></path><path d="M4 17v-4l2-5h12l2 5v4"></path><circle cx="7.5" cy="17.5" r="1.8"></circle><circle cx="16.5" cy="17.5" r="1.8"></circle><polyline points="9 6 11 8 15 4"></polyline>',
+  "chauffeur-applications":
+    '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="14 3 14 9 20 9"></polyline><polyline points="9 15 11 17 15 13"></polyline>',
+  "chauffeur-drivers":
+    '<circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="2"></circle><path d="M3.5 10.5c5.5-1.5 11.5-1.5 17 0"></path><path d="M10.5 13.8 7 20.2"></path><path d="M13.5 13.8 17 20.2"></path>',
+  "chauffeur-hires":
+    '<circle cx="12" cy="10" r="3"></circle><path d="M12 21s-7-6.1-7-11a7 7 0 0 1 14 0c0 4.9-7 11-7 11z"></path>',
 };
 
 // Single source of truth for the sidebar. Order = display order.
@@ -95,6 +101,12 @@ const NAV_ITEMS = [
   { page: "b2b-revenue", label: "B2B Revenue", icon: "b2b-revenue" },
   { page: "newsroom", label: "Newsroom", icon: "newsroom" },
   { page: "status-incidents", label: "Status Page", icon: "status-incidents" },
+  // Chauffeurs (chauffer.md). `group` draws a heading above the first item.
+  { page: "chauffeur-applications", label: "Applications", icon: "chauffeur-applications", group: "Chauffeurs" },
+  { page: "chauffeur-drivers", label: "Drivers", icon: "chauffeur-drivers", group: "Chauffeurs" },
+  { page: "chauffeur-hires", label: "Hires", icon: "chauffeur-hires", group: "Chauffeurs" },
+  { page: "chauffeur-withdrawals", label: "Withdrawals", icon: "withdrawals", group: "Chauffeurs" },
+  { page: "chauffeur-refunds", label: "Refunds", icon: "refunds", group: "Chauffeurs" },
   {
     page: "admins",
     label: "Admins",
@@ -118,12 +130,20 @@ function navIconSvgEl(name) {
 function renderSidebar() {
   const nav = document.getElementById("sidebarNav");
   if (!nav) return;
+  let lastGroup = null;
   nav.innerHTML = NAV_ITEMS.map((item) => {
+    const heading =
+      item.group && item.group !== lastGroup
+        ? `<div class="nav-group-label" data-group="${item.group}">${item.group}</div>`
+        : "";
+    lastGroup = item.group || null;
     const cls = "nav-item" + (item.page === "dashboard" ? " active" : "");
     const idAttr = item.id ? ` id="${item.id}"` : "";
     const styleAttr = item.hidden ? ' style="display: none;"' : "";
+    const groupAttr = item.group ? ` data-group="${item.group}"` : "";
     return (
-      `<a href="#" class="${cls}" data-page="${item.page}"${idAttr}${styleAttr} title="${item.label}">` +
+      heading +
+      `<a href="#" class="${cls}" data-page="${item.page}"${idAttr}${styleAttr}${groupAttr} title="${item.label}">` +
       `<span class="nav-icon">${navIconSvgEl(item.icon)}</span>` +
       `<span class="nav-label">${item.label}</span>` +
       `<span class="nav-badge" id="navBadge-${item.page}" style="display:none;"></span>` +
@@ -204,18 +224,38 @@ const NAV_BADGE_SOURCES = [
   }],
 ];
 
+// The four Chauffeurs badges come from one summary call (chauffer.md §2).
+const CHAUFFEUR_SUMMARY_BADGES = [
+  ["chauffeur-applications", "applications_pending"],
+  ["chauffeur-withdrawals", "payouts_processing"],
+  ["chauffeur-refunds", "refunds_pending"],
+  ["chauffeur-hires", "stuck_trips"],
+];
+
+async function refreshChauffeurBadges() {
+  try {
+    const summary = await api.getChauffeurSummary({ background: true });
+    CHAUFFEUR_SUMMARY_BADGES.forEach(([page, field]) =>
+      setNavBadge(page, summary[field]),
+    );
+  } catch (e) {
+    /* no access / not deployed — leave badges as-is */
+  }
+}
+
 // Fetch the counts that drive the badges.
 async function refreshNavBadges() {
   if (!localStorage.getItem("admin_token")) return;
-  await Promise.all(
-    NAV_BADGE_SOURCES.map(async ([page, count]) => {
+  await Promise.all([
+    ...NAV_BADGE_SOURCES.map(async ([page, count]) => {
       try {
         setNavBadge(page, (await count()) || 0);
       } catch (e) {
         /* no access / offline — leave badge as-is */
       }
     }),
-  );
+    refreshChauffeurBadges(),
+  ]);
 }
 
 // Poll periodically so the badges self-heal without a page reload.
