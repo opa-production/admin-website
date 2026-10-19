@@ -1192,6 +1192,11 @@
                      (the API enforces that too). -->
                 <div id="affiliatesPage" class="page-content" style="display: none;">
                     <div class="content-section">
+                        <div class="referrals-tabs" style="display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border);">
+                            <button class="referrals-tab active" data-aff-tab="applications" onclick="switchAffiliateTab('applications')">Affiliates</button>
+                            <button class="referrals-tab" data-aff-tab="payouts" onclick="switchAffiliateTab('payouts')">Payouts</button>
+                        </div>
+                        <div id="affApplicationsView">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
                             <h2 style="margin: 0;">Affiliates</h2>
                             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -1212,10 +1217,27 @@
                                 </select>
                             </div>
                         </div>
-                        <p class="detail-note" style="margin: 0 0 16px;">Marketers who applied on ardena.co.ke/affiliate. Approving gives them an affiliate code.</p>
+                        <p class="detail-note" style="margin: 0 0 16px;">Marketers who applied on ardena.co.ke/affiliate. Approving gives them a promo code like AKEVIN24: renters get KES 500 off with it, and the affiliate earns 5% once the trip is completed.</p>
                         <div id="affCounts" style="margin-bottom: 16px;"></div>
                         <div id="affContent"><div class="loading">Loading applications...</div></div>
                         <div id="affPagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;"></div>
+                        </div>
+                        <div id="affPayoutsView" style="display: none;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                                <h2 style="margin: 0;">Affiliate payouts</h2>
+                                <select id="affEarnStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
+                                    <option value="due">Due (trip completed)</option>
+                                    <option value="pending">Trip not finished</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="void">Cancelled bookings</option>
+                                    <option value="all">All</option>
+                                </select>
+                            </div>
+                            <p class="detail-note" style="margin: 0 0 16px;">Send the M-Pesa by hand, then mark it paid with the transaction code.</p>
+                            <div id="affEarnTotals" style="margin-bottom: 16px;"></div>
+                            <div id="affEarnContent"><div class="loading">Loading payouts...</div></div>
+                            <div id="affEarnPagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;"></div>
+                        </div>
                     </div>
                 </div>
 

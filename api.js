@@ -990,6 +990,18 @@ const api = {
       `/admin/affiliates/applications/${encodeURIComponent(id)}/reject`,
       { method: "POST", body: JSON.stringify(data) },
     ),
+  markAffiliatePaid: (id, data) =>
+    apiRequest(
+      `/admin/affiliates/applications/${encodeURIComponent(id)}/mark-paid`,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+  getAffiliateEarnings: (params = {}) =>
+    apiRequest(`/admin/affiliates/earnings?${new URLSearchParams(params).toString()}`),
+  markAffiliateEarningPaid: (id, data) =>
+    apiRequest(
+      `/admin/affiliates/earnings/${encodeURIComponent(id)}/mark-paid`,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
 
   // Chauffeurs — see chauffer.md. Params are sent as given, so an empty
   // `status` goes out as `status=` (the payouts and refunds queues read that
