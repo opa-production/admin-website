@@ -1190,6 +1190,33 @@
                 <!-- Newsroom: who writes for ardena.co.ke/newsroom, and the stories.
                      Anyone can look; only a super admin can change who writes
                      (the API enforces that too). -->
+                <div id="affiliatesPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                            <h2 style="margin: 0;">Affiliates</h2>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <input type="search" id="affSearch" placeholder="Name, phone, handle or code" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px; min-width: 220px;">
+                                <select id="affPlatformFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
+                                    <option value="">All platforms</option>
+                                    <option value="tiktok">TikTok</option>
+                                    <option value="instagram">Instagram</option>
+                                    <option value="x">X</option>
+                                </select>
+                                <select id="affStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
+                                    <option value="pending">Waiting for review</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="rejected">Rejected</option>
+                                    <option value="all">All applications</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="detail-note" style="margin: 0 0 16px;">Marketers who applied on ardena.co.ke/affiliate. Approving gives them an affiliate code.</p>
+                        <div id="affCounts" style="margin-bottom: 16px;"></div>
+                        <div id="affContent"><div class="loading">Loading applications...</div></div>
+                        <div id="affPagination" style="margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center;"></div>
+                    </div>
+                </div>
+
                 <div id="newsroomPage" class="page-content" style="display: none;">
                     <div class="content-section">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
@@ -1368,6 +1395,17 @@
             </div>
             <div class="modal-body" id="chAppModalBody"></div>
             <div class="modal-footer" id="chAppModalFooter"></div>
+        </div>
+    </div>
+
+    <div id="affModal" class="modal" style="display: none;" onclick="if (event.target === this) closeAffiliate()">
+        <div class="modal-content" style="max-width: 680px;">
+            <div class="modal-header">
+                <h2 id="affModalTitle">Affiliate application</h2>
+                <button class="modal-close" onclick="closeAffiliate()" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body" id="affModalBody"></div>
+            <div class="modal-footer" id="affModalFooter"></div>
         </div>
     </div>
 
@@ -1809,5 +1847,6 @@
     <script src="js/pages/chauffeur-hires.js"></script>
     <script src="js/pages/chauffeur-withdrawals.js"></script>
     <script src="js/pages/chauffeur-refunds.js"></script>
+    <script src="js/pages/affiliates.js"></script>
 </body>
 </html>

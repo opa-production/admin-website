@@ -57,6 +57,8 @@ const NAV_ICONS = {
     '<path d="M4 5h13v14H6a2 2 0 0 1-2-2z"></path><path d="M17 8h3v9a2 2 0 0 1-2 2"></path><line x1="7.5" y1="9" x2="13.5" y2="9"></line><line x1="7.5" y1="12.5" x2="13.5" y2="12.5"></line><line x1="7.5" y1="16" x2="11" y2="16"></line>',
   "b2b-fleet":
     '<path d="M5 17h14"></path><path d="M4 17v-4l2-5h12l2 5v4"></path><circle cx="7.5" cy="17.5" r="1.8"></circle><circle cx="16.5" cy="17.5" r="1.8"></circle><polyline points="9 6 11 8 15 4"></polyline>',
+  affiliates:
+    '<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M18.5 5.5a9 9 0 0 1 0 13"></path>',
   "chauffeur-applications":
     '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="14 3 14 9 20 9"></polyline><polyline points="9 15 11 17 15 13"></polyline>',
   "chauffeur-drivers":
@@ -84,6 +86,7 @@ const NAV_ITEMS = [
   { page: "bookings", label: "Bookings", icon: "bookings" },
   { page: "withdrawals", label: "Withdrawals", icon: "withdrawals" },
   { page: "referrals", label: "Referrals", icon: "referrals" },
+  { page: "affiliates", label: "Affiliates", icon: "affiliates" },
   {
     page: "referral-earnings",
     label: "Referral Earnings",
@@ -210,6 +213,9 @@ const NAV_BADGE_SOURCES = [
     ]);
     return received + reviewing;
   }],
+  // Marketers who applied on ardena.co.ke/affiliate and are waiting for an answer.
+  ["affiliates", async () =>
+    (await apiRequest("/admin/affiliates/applications?status=pending&limit=1", { background: true })).counts.pending],
   // Businesses that applied for access and are waiting for an answer.
   ["b2b", () => navQueueTotal("/admin/b2b/access-requests", { status: "pending" })],
   // Business cars published to the app that only our review is holding back.

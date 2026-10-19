@@ -284,6 +284,7 @@ function loadPage(page) {
     withdrawals: "Withdrawals",
     referrals: "Referrals",
     "referral-earnings": "Referral Earnings",
+    affiliates: "Affiliates",
     subscribers: "Email Service",
     revenue: "Revenue",
     support: "Support",
@@ -402,6 +403,9 @@ function loadPage(page) {
       break;
     case "newsroom":
       initNewsroomPage();
+      break;
+    case "affiliates":
+      initAffiliatesPage();
       break;
     case "chauffeur-applications":
       initChauffeurApplicationsPage();

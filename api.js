@@ -973,6 +973,24 @@ const api = {
   deleteListingReport: (reportId) =>
     apiRequest(`/admin/listing-reports/${reportId}`, { method: "DELETE" }),
 
+  // Affiliates: marketers who applied on ardena.co.ke/affiliate.
+  getAffiliateApplications: (params = {}) =>
+    apiRequest(
+      `/admin/affiliates/applications?${new URLSearchParams(params).toString()}`,
+    ),
+  getAffiliateApplication: (id) =>
+    apiRequest(`/admin/affiliates/applications/${encodeURIComponent(id)}`),
+  approveAffiliateApplication: (id, data) =>
+    apiRequest(
+      `/admin/affiliates/applications/${encodeURIComponent(id)}/approve`,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+  rejectAffiliateApplication: (id, data) =>
+    apiRequest(
+      `/admin/affiliates/applications/${encodeURIComponent(id)}/reject`,
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+
   // Chauffeurs — see chauffer.md. Params are sent as given, so an empty
   // `status` goes out as `status=` (the payouts and refunds queues read that
   // as "all", and their default without it is the open queue).
