@@ -22,7 +22,9 @@ const AFF_STATUS = {
   rejected: ["Rejected", "danger"],
 };
 
-const AFF_PLATFORM = { x: "X", tiktok: "TikTok", instagram: "Instagram" };
+const AFF_PLATFORM = { tiktok: "TikTok", instagram: "Instagram", x: "X", facebook: "Facebook", linkedin: "LinkedIn" };
+// Platforms where people know an account by its @username.
+const AFF_AT_PLATFORMS = ["tiktok", "instagram", "x"];
 
 function affCanDecide() {
   return AFF_DECIDE_ROLES.includes(window.currentAdminRole || (currentAdminInfo() || {}).role);
@@ -86,7 +88,8 @@ function affPhoneLinks(phone) {
 }
 
 function affProfileLink(a) {
-  return `<a href="${escapeHtmlAttr(a.profile_url)}" target="_blank" rel="noopener noreferrer">@${chText(a.handle)}</a>`;
+  const label = AFF_AT_PLATFORMS.includes(a.platform) ? `@${a.handle}` : a.handle;
+  return `<a href="${escapeHtmlAttr(a.profile_url)}" target="_blank" rel="noopener noreferrer">${chText(label)}</a>`;
 }
 
 function affCounts(counts) {
