@@ -226,9 +226,13 @@ const CHAUFFEUR_MONEY_ROLES = ["super_admin", "general_admin", "finance"];
 const CHAUFFEUR_PAGE_ROLES = {
   "chauffeur-applications": CHAUFFEUR_REVIEW_ROLES,
   "chauffeur-drivers": CHAUFFEUR_REVIEW_ROLES,
+  "driving-licences": CHAUFFEUR_REVIEW_ROLES,
   "chauffeur-hires": [...CHAUFFEUR_REVIEW_ROLES, "finance"],
   "chauffeur-withdrawals": CHAUFFEUR_MONEY_ROLES,
   "chauffeur-refunds": CHAUFFEUR_MONEY_ROLES,
+  // Not a chauffeur page, but gated the same way: the backend moderates
+  // testimonials for these roles only (app/admin/testimonials.py).
+  "b2b-testimonials": ["super_admin", "general_admin", "manager"],
 };
 
 // Load page content
@@ -293,6 +297,8 @@ function loadPage(page) {
     "b2b-fleet": "B2B Fleet",
     "b2b-support": "B2B Support",
     "b2b-revenue": "B2B Revenue",
+    "b2b-testimonials": "B2B Testimonials",
+    "driving-licences": "Driving Licences",
     "deposit-claims": "Deposit Claims",
     "status-incidents": "Status Page",
     newsroom: "Newsroom",
@@ -406,6 +412,12 @@ function loadPage(page) {
       break;
     case "affiliates":
       initAffiliatesPage();
+      break;
+    case "b2b-testimonials":
+      initB2BTestimonialsPage();
+      break;
+    case "driving-licences":
+      initDrivingLicencesPage();
       break;
     case "chauffeur-applications":
       initChauffeurApplicationsPage();

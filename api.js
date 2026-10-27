@@ -973,6 +973,34 @@ const api = {
   deleteListingReport: (reportId) =>
     apiRequest(`/admin/listing-reports/${reportId}`, { method: "DELETE" }),
 
+  // Renters' driving licences to verify (CHAUFFEURS_LOCATION_LICENCE_UI.md §4).
+  getDrivingLicences: (params = {}) =>
+    apiRequest(`/admin/driving-licenses?${new URLSearchParams(params).toString()}`),
+  setDrivingLicenceVerification: (clientId, data) =>
+    apiRequest(`/admin/clients/${encodeURIComponent(clientId)}/driving-license`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  // B2B testimonials: what businesses wrote, before it goes on the landing page.
+  getB2BTestimonials: (params = {}) =>
+    apiRequest(`/admin/testimonials?${new URLSearchParams(params).toString()}`),
+  approveB2BTestimonial: (id, data) =>
+    apiRequest(`/admin/testimonials/${encodeURIComponent(id)}/approve`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  rejectB2BTestimonial: (id, data) =>
+    apiRequest(`/admin/testimonials/${encodeURIComponent(id)}/reject`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateB2BTestimonial: (id, data) =>
+    apiRequest(`/admin/testimonials/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
   // Affiliates: marketers who applied on ardena.co.ke/affiliate.
   getAffiliateApplications: (params = {}) =>
     apiRequest(

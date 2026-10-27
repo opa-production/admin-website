@@ -53,6 +53,10 @@ const NAV_ICONS = {
     '<polyline points="3 12 7 12 10 5 14 19 17 12 21 12"></polyline>',
   "b2b-revenue":
     '<path d="M3 21h18"></path><path d="M5 21V10l5-3v14"></path><path d="M10 21V4l9 4v13"></path><path d="M14 11v6"></path><path d="M12.6 12.4c.3-.9 2.8-.9 2.8.3 0 1.3-2.8.9-2.8 2.2 0 1.2 2.5 1.2 2.8.3"></path>',
+  "driving-licences":
+    '<rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="9" cy="11" r="2"></circle><path d="M6 16c.6-1.5 1.7-2.2 3-2.2s2.4.7 3 2.2"></path><path d="M14.5 10h4"></path><path d="M14.5 13.5h3"></path>',
+  "b2b-testimonials":
+    '<path d="M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.6A8 8 0 1 1 21 12z"></path><path d="M9 10.5h.01"></path><path d="M9 10.5c0 1.5-.6 2.5-1.6 3"></path><path d="M14 10.5h.01"></path><path d="M14 10.5c0 1.5-.6 2.5-1.6 3"></path>',
   newsroom:
     '<path d="M4 5h13v14H6a2 2 0 0 1-2-2z"></path><path d="M17 8h3v9a2 2 0 0 1-2 2"></path><line x1="7.5" y1="9" x2="13.5" y2="9"></line><line x1="7.5" y1="12.5" x2="13.5" y2="12.5"></line><line x1="7.5" y1="16" x2="11" y2="16"></line>',
   "b2b-fleet":
@@ -102,11 +106,13 @@ const NAV_ITEMS = [
   { page: "b2b-fleet", label: "B2B Fleet", icon: "b2b-fleet" },
   { page: "b2b-support", label: "B2B Support", icon: "b2b-support" },
   { page: "b2b-revenue", label: "B2B Revenue", icon: "b2b-revenue" },
+  { page: "b2b-testimonials", label: "B2B Testimonials", icon: "b2b-testimonials" },
   { page: "newsroom", label: "Newsroom", icon: "newsroom" },
   { page: "status-incidents", label: "Status Page", icon: "status-incidents" },
   // Chauffeurs (chauffer.md). `group` draws a heading above the first item.
   { page: "chauffeur-applications", label: "Applications", icon: "chauffeur-applications", group: "Chauffeurs" },
   { page: "chauffeur-drivers", label: "Drivers", icon: "chauffeur-drivers", group: "Chauffeurs" },
+  { page: "driving-licences", label: "Licences", icon: "driving-licences", group: "Chauffeurs" },
   { page: "chauffeur-hires", label: "Hires", icon: "chauffeur-hires", group: "Chauffeurs" },
   { page: "chauffeur-withdrawals", label: "Withdrawals", icon: "withdrawals", group: "Chauffeurs" },
   { page: "chauffeur-refunds", label: "Refunds", icon: "refunds", group: "Chauffeurs" },
@@ -216,6 +222,13 @@ const NAV_BADGE_SOURCES = [
   // Marketers who applied on ardena.co.ke/affiliate and are waiting for an answer.
   ["affiliates", async () =>
     (await apiRequest("/admin/affiliates/applications?status=pending&limit=1", { background: true })).counts.pending],
+  // Testimonials businesses sent for the landing page. Only moderators get a count.
+  ["b2b-testimonials", async () => {
+    const role = window.currentAdminRole || (typeof currentAdminInfo === "function" ? (currentAdminInfo() || {}).role : null);
+    if (!["super_admin", "general_admin", "manager"].includes(role)) return 0;
+    const data = await apiRequest("/admin/testimonials?status=pending", { background: true });
+    return (data.items || []).length;
+  }],
   // Businesses that applied for access and are waiting for an answer.
   ["b2b", () => navQueueTotal("/admin/b2b/access-requests", { status: "pending" })],
   // Business cars published to the app that only our review is holding back.

@@ -1241,6 +1241,42 @@
                     </div>
                 </div>
 
+                <!-- Renters' driving licences to verify. See js/pages/driving-licences.js. -->
+                <div id="drivingLicencesPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                            <h2 style="margin: 0;">Driving Licences</h2>
+                            <select id="dlStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
+                                <option value="unverified">Waiting to be verified</option>
+                                <option value="verified">Verified</option>
+                                <option value="all">All</option>
+                            </select>
+                        </div>
+                        <p class="detail-note" style="margin-bottom: 16px;">A verified licence that's in date lets the renter skip the licence upload when they apply to drive. Expired licences can't be verified.</p>
+                        <div id="dlContent"></div>
+                        <div id="dlPagination"></div>
+                    </div>
+                </div>
+
+                <!-- B2B testimonials: what businesses wrote, approved before the
+                     landing page shows it. See js/pages/b2b-testimonials.js. -->
+                <div id="b2bTestimonialsPage" class="page-content" style="display: none;">
+                    <div class="content-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                            <h2 style="margin: 0;">B2B Testimonials</h2>
+                            <select id="tstStatusFilter" style="padding: 8px 12px; border: 1px solid #ddd; border-radius: 0; font-size: 14px;">
+                                <option value="pending">Waiting for review</option>
+                                <option value="approved">Live</option>
+                                <option value="rejected">Rejected</option>
+                                <option value="withdrawn">Withdrawn</option>
+                                <option value="all">All</option>
+                            </select>
+                        </div>
+                        <p class="detail-note" style="margin-bottom: 16px;">Approved testimonials show on the Ardena for Business landing page while the workspace is active and verified. A business that edits theirs sends it back here.</p>
+                        <div id="tstContent"></div>
+                    </div>
+                </div>
+
                 <div id="newsroomPage" class="page-content" style="display: none;">
                     <div class="content-section">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
@@ -1864,6 +1900,8 @@
     <script src="js/pages/deposit-claims.js"></script>
     <script src="js/pages/status-incidents.js"></script>
     <script src="js/pages/newsroom.js"></script>
+    <script src="js/pages/b2b-testimonials.js"></script>
+    <script src="js/pages/driving-licences.js"></script>
     <script src="js/pages/listing-reports.js"></script>
     <script src="js/pages/chauffeurs-shared.js"></script>
     <script src="js/pages/chauffeur-applications.js"></script>
