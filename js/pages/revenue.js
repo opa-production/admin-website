@@ -1,8 +1,9 @@
 // js/pages/revenue.js — extracted from dashboard.js during the per-page refactor.
 // Classic script (not a module): top-level functions and vars are global by design.
 //
-// The four charts are intentionally distinct (no two show the same series):
-//   1. revenueTrendChart   — area: OUR revenue (commission) per month
+// The charts are intentionally distinct (no two show the same series):
+//   1. revenueTrendChart   — area: OUR revenue per month (cars + chauffeur hires)
+//   1b. chauffeurIncomeChart — lines: chauffeur commission vs trip value per month
 //   2. cashFlowChart       — stacked bars: processed cash split into commission + host payout
 //   3. bookingVolumeChart  — bars: paid bookings per month
 //   4. revenueSplitChart   — doughnut: all-time commission vs host payout (with centre total)
@@ -11,6 +12,7 @@
 // commission rate), so every chart reconciles with the KPI cards above.
 
 let revenueTrendChart = null;
+let chauffeurIncomeChart = null;
 let cashFlowChart = null;
 let bookingVolumeChart = null;
 let revenueSplitChart = null;
@@ -23,6 +25,8 @@ const REV_COLORS = {
   hostPayoutSoft: "rgba(99, 102, 241, 0.14)",
   bookings: "#a855f7", // violet — booking volume
   bookingsSoft: "rgba(168, 85, 247, 0.14)",
+  chauffeur: "#f59e0b", // amber — chauffeur hires
+  tripValue: "#94a3b8", // slate — what renters paid for hires
 };
 
 // Shared currency formatter (KES, no decimals)
@@ -103,6 +107,10 @@ async function loadRevenue() {
   try {
     const data = await api.getRevenueStats();
 
+    // Older backends send no chauffeur figures: fall back to car commission.
+    const hires = data.chauffeurs || { commission: 0, trips: 0 };
+    const totalRevenue = data.total_revenue ?? data.commission;
+
     const ratePct = ((data.commission_rate || 0) * 100).toFixed(
       (data.commission_rate || 0) * 100 % 1 ? 1 : 0
     );
@@ -115,8 +123,8 @@ async function loadRevenue() {
             </div>
             <div class="stat-card stat-card--revenue">
                 <div class="stat-label">Revenue</div>
-                <div class="stat-value">${revFmt(data.commission)}</div>
-                <div class="stat-subvalue">Commission · ${ratePct}% platform fee</div>
+                <div class="stat-value">${revFmt(totalRevenue)}</div>
+                <div class="stat-subvalue">Cars ${revFmt(data.commission)} · Chauffeurs ${revFmt(hires.commission)}</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Host Payout</div>
@@ -126,13 +134,14 @@ async function loadRevenue() {
             <div class="stat-card">
                 <div class="stat-label">Paid Bookings</div>
                 <div class="stat-value">${(data.paid_bookings_count || 0).toLocaleString()}</div>
-                <div class="stat-subvalue">Confirmed, active, completed</div>
+                <div class="stat-subvalue">Car bookings · ${ratePct}% platform fee</div>
             </div>
         `;
 
     hideRevenueSkeleton();
 
     createRevenueTrendChart(data);
+    createChauffeurIncomeChart(data);
     createCashFlowChart(data);
     createBookingVolumeChart(data);
     createRevenueSplitChart(data);
@@ -143,7 +152,8 @@ async function loadRevenue() {
   }
 }
 
-// 1. Revenue Trend — smooth gradient area of OUR revenue (commission) per month
+// 1. Revenue Trend — smooth gradient area of OUR revenue per month, car
+// commission plus chauffeur commission (tooltip shows the split)
 function createRevenueTrendChart(data) {
   const canvas = document.getElementById("revenueTrendChart");
   if (!canvas) return;
@@ -152,7 +162,7 @@ function createRevenueTrendChart(data) {
   const ctx = canvas.getContext("2d");
   const monthly = data.monthly_breakdown || [];
   const labels = monthly.map((m) => m.label);
-  const values = monthly.map((m) => m.commission || 0);
+  const values = monthly.map((m) => m.total_revenue ?? (m.commission || 0));
 
   const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height || 240);
   gradient.addColorStop(0, "rgba(16, 185, 129, 0.32)");
@@ -187,7 +197,112 @@ function createRevenueTrendChart(data) {
         legend: { display: false },
         tooltip: {
           ...revTooltip,
-          callbacks: { label: (c) => `Revenue: ${revFmt(c.raw)}` },
+          callbacks: {
+            label: (c) => `Revenue: ${revFmt(c.raw)}`,
+            afterLabel: (c) => {
+              const m = monthly[c.dataIndex] || {};
+              return `Cars ${revFmt(m.commission)} · Chauffeurs ${revFmt(m.chauffeur_commission)}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: { color: chartAxisColor(), font: { size: 11 } },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: chartGridColor() },
+          border: { display: false },
+          ticks: {
+            color: chartAxisColor(),
+            font: { size: 11 },
+            maxTicksLimit: 5,
+            callback: (v) => "KES " + revShort(v),
+          },
+        },
+      },
+    },
+  });
+}
+
+// 1b. Chauffeur Income — our commission on hires (filled line) against the
+// trip value renters paid (dashed), per month. Counted when a trip completes
+// or a late cancellation keeps money; cash trips' commission is included.
+function createChauffeurIncomeChart(data) {
+  const canvas = document.getElementById("chauffeurIncomeChart");
+  if (!canvas) return;
+  if (chauffeurIncomeChart) chauffeurIncomeChart.destroy();
+
+  const hires = data.chauffeurs || { commission: 0, trips: 0 };
+  const pill = document.getElementById("chauffeurIncomePill");
+  if (pill) {
+    pill.textContent = `${revFmt(hires.commission)} all time · ${hires.trips} trip${hires.trips === 1 ? "" : "s"}`;
+  }
+
+  const ctx = canvas.getContext("2d");
+  const monthly = data.monthly_breakdown || [];
+  const labels = monthly.map((m) => m.label);
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height || 240);
+  gradient.addColorStop(0, "rgba(245, 158, 11, 0.28)");
+  gradient.addColorStop(1, "rgba(245, 158, 11, 0.0)");
+
+  chauffeurIncomeChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Our commission",
+          data: monthly.map((m) => m.chauffeur_commission || 0),
+          fill: true,
+          backgroundColor: gradient,
+          borderColor: REV_COLORS.chauffeur,
+          borderWidth: 2.5,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          pointBackgroundColor: REV_COLORS.chauffeur,
+          pointBorderColor: "#fff",
+          pointBorderWidth: 2,
+        },
+        {
+          label: "Trip value",
+          data: monthly.map((m) => m.chauffeur_gross || 0),
+          fill: false,
+          borderColor: REV_COLORS.tripValue,
+          borderWidth: 2,
+          borderDash: [6, 4],
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          pointBackgroundColor: REV_COLORS.tripValue,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: "index" },
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: { usePointStyle: true, pointStyle: "circle", boxWidth: 8, padding: 16, color: "#64748b", font: { size: 11 } },
+        },
+        tooltip: {
+          ...revTooltip,
+          callbacks: {
+            label: (c) => `${c.dataset.label}: ${revFmt(c.raw)}`,
+            footer: (items) => {
+              const trips = monthly[items[0]?.dataIndex]?.chauffeur_trips || 0;
+              return `${trips} completed trip${trips === 1 ? "" : "s"}`;
+            },
+          },
+          footerColor: "#f9fafb",
+          footerFont: { size: 11, weight: "600" },
         },
       },
       scales: {

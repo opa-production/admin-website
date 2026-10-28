@@ -883,30 +883,40 @@
                                 <div class="graph-header graph-header-row">
                                     <div>
                                         <h3>Revenue Over Time</h3>
-                                        <span class="graph-subtitle">Net commission earned each month</span>
+                                        <span class="graph-subtitle">Net commission earned each month: car bookings + chauffeur hires</span>
                                     </div>
                                     <span class="graph-pill graph-pill--revenue">Our revenue</span>
                                 </div>
                                 <canvas id="revenueTrendChart"></canvas>
                             </div>
                             <div class="graph-container revenue-chart-wrap revenue-chart-full">
+                                <div class="graph-header graph-header-row">
+                                    <div>
+                                        <h3>Chauffeur Income</h3>
+                                        <span class="graph-subtitle">Our commission on chauffeur hires each month, against the trip value</span>
+                                    </div>
+                                    <span class="graph-pill graph-pill--revenue" id="chauffeurIncomePill">Chauffeurs</span>
+                                </div>
+                                <canvas id="chauffeurIncomeChart"></canvas>
+                            </div>
+                            <div class="graph-container revenue-chart-wrap revenue-chart-full">
                                 <div class="graph-header">
                                     <h3>Cash Flow Breakdown</h3>
-                                    <span class="graph-subtitle">Processed cash each month = host payout + commission</span>
+                                    <span class="graph-subtitle">Car bookings: processed cash each month = host payout + commission</span>
                                 </div>
                                 <canvas id="cashFlowChart"></canvas>
                             </div>
                             <div class="graph-container revenue-chart-wrap">
                                 <div class="graph-header">
                                     <h3>Booking Volume</h3>
-                                    <span class="graph-subtitle">Paid bookings per month</span>
+                                    <span class="graph-subtitle">Paid car bookings per month</span>
                                 </div>
                                 <canvas id="bookingVolumeChart"></canvas>
                             </div>
                             <div class="graph-container revenue-chart-wrap">
                                 <div class="graph-header">
                                     <h3>Where the Money Goes</h3>
-                                    <span class="graph-subtitle">All-time split of processed cash</span>
+                                    <span class="graph-subtitle">All-time split of car booking cash</span>
                                 </div>
                                 <canvas id="revenueSplitChart"></canvas>
                             </div>
